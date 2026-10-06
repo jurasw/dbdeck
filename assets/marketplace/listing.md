@@ -62,3 +62,7 @@ Used in the extension README and on dbdeck.dev, in this order:
 ## Social / announcement text
 
 > DBDeck is a free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker in one sidebar, with a SQL editor, data grid, schema diagrams and SSH tunnels. No account, no paywall, no telemetry. https://dbdeck.dev
+
+## Search all values
+
+Search beyond the current page in the current table, collection or index, with immediate search and a spinner in the search field while results load. MongoDB includes nested values and arrays; Elasticsearch searches indexed fields.

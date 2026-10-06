@@ -14,6 +14,15 @@ export interface SearchOptions {
   from: number;
   size: number;
   sort?: string;
+  search?: string;
+}
+
+export function searchQuery(text: string): Record<string, unknown> {
+  const terms = text
+    .trim()
+    .split(/\s+/)
+    .map((t) => `*${t.replace(/[+\-=&|><!(){}[\]^"~*?:\\/]/g, '\\$&')}*`);
+  return { query_string: { query: terms.join(' '), default_field: '*', default_operator: 'AND', lenient: true, analyze_wildcard: true } };
 }
 
 const HEALTH_COLOR: Record<string, string> = { green: 'charts.green', yellow: 'charts.yellow', red: 'charts.red' };
@@ -124,6 +133,7 @@ export class ElasticDriver extends BaseDriver {
       const dsl = JSON.parse(q) as Record<string, unknown>;
       body = { ...body, ...(dsl.query || dsl.aggs ? dsl : { query: dsl }) };
     } else if (q) body.query = { query_string: { query: q } };
+    if (o.search?.trim()) body.query = { bool: { must: [body.query ?? { match_all: {} }, searchQuery(o.search)] } };
     if (o.sort?.trim()) {
       body.sort = o.sort.split(',').map((s) => {
         const [field, dir] = s.trim().split(/\s+/);

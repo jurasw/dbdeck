@@ -1,25 +1,40 @@
+import { readFileSync, statSync } from 'node:fs';
 import * as vscode from 'vscode';
 import { errorMessage } from './util';
 
 export type Handlers = Record<string, (params: any) => unknown>;
 
+const assets = new Map<string, { mtime: number; text: string }>();
+
+function readAsset(extUri: vscode.Uri, file: string): string {
+  const path = vscode.Uri.joinPath(extUri, 'dist', 'webview', file).fsPath;
+  const mtime = statSync(path).mtimeMs;
+  const cached = assets.get(path);
+  if (cached?.mtime === mtime) return cached.text;
+  const text = readFileSync(path, 'utf8');
+  assets.set(path, { mtime, text });
+  return text;
+}
+
 export function webviewHtml(webview: vscode.Webview, extUri: vscode.Uri, script: string, title: string, init: unknown, styles = ['codicon.css', 'style.css']): string {
   const asset = (f: string) => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'dist', 'webview', f)).toString();
   const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   const state = JSON.stringify(init ?? {}).replace(/</g, '\\u003c');
+  const css = styles.map((f) => readAsset(extUri, f).replace(/url\((["']?)\.\/([^"')?#]+)/g, (_, q: string, file: string) => `url(${q}${asset(file)}`)).join('\n');
+  const js = readAsset(extUri, `${script}.js`).replace(/<\/script/gi, '<\\/script');
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}';">
-${styles.map((f) => `<link rel="stylesheet" href="${asset(f)}">`).join('\n')}
+<style>${css}</style>
 <title>${title.replace(/</g, '&lt;')}</title>
 </head>
 <body>
 <div id="app"></div>
 <script nonce="${nonce}">window.__INIT__ = ${state};</script>
-<script nonce="${nonce}" src="${asset(`${script}.js`)}"></script>
+<script nonce="${nonce}">${js}</script>
 </body>
 </html>`;
 }

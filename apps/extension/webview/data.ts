@@ -1,6 +1,7 @@
 import { Grid, GridColumn } from './grid';
 import { parseCellValue } from './cell-value';
 import { duplicateRow } from './row-duplicate';
+import { RowChanges, undoChanges } from './row-undo';
 import { jsonView } from './json';
 import { btn, clear, contextMenu, flash, fmtMs, fmtNum, h, icon, INIT, jsonEditor, loading, MenuItem, modal, raw, rpc, toast, toCsv, toObjects, toTsv, typeOut } from './lib';
 
@@ -26,6 +27,15 @@ let docs: Record<string, unknown>[] = [];
 let duration = 0;
 let view: 'grid' | 'json' = 'grid';
 let loadSeq = 0;
+let loaded = false;
+const searchStatus = h('span.data-search-status', { role: 'status' }, icon('search'));
+const searchInput = h('input.input', { placeholder: 'Search all values…', 'aria-label': 'Search all values' }) as HTMLInputElement;
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    void load(true);
+  }
+});
 
 const edits = new Map<number, Map<number, unknown>>();
 const originals = new Map<number, unknown[]>();
@@ -80,20 +90,34 @@ const grid = new Grid({
 async function saveDocCell(r: number, c: number, text: string | null): Promise<void> {
   const key = `${r}:${c}`;
   const doc = docs[r];
-  const row = rows[r];
   const field = columns[c].name;
+  const before = rows[r][c];
   savingCells.add(key);
   try {
-    const value = parseCellValue(text, row[c]);
-    await rpc('updateField', { id: doc._id, field, text: JSON.stringify(value) });
-    Object.defineProperty(doc, field, { value, enumerable: true, writable: true, configurable: true });
-    row[c] = value;
-    grid.refresh();
-    toast('Value saved', 'success');
+    await writeDocField(doc, field, parseCellValue(text, before));
+    toast('Value saved', 'success', undefined, before === undefined ? undefined : { label: 'Undo', run: () => undo(() => writeDocField(doc, field, before)) });
   } catch (e) {
     toast((e as Error).message, 'error');
   } finally {
     savingCells.delete(key);
+  }
+}
+
+async function writeDocField(doc: Record<string, unknown>, field: string, value: unknown): Promise<void> {
+  await rpc('updateField', { id: doc._id, field, text: JSON.stringify(value) });
+  Object.defineProperty(doc, field, { value, enumerable: true, writable: true, configurable: true });
+  const r = docs.indexOf(doc);
+  const c = columns.findIndex((x) => x.name === field);
+  if (r >= 0 && c >= 0) rows[r][c] = value;
+  grid.refresh();
+}
+
+async function undo(revert: () => Promise<unknown>): Promise<void> {
+  try {
+    await revert();
+    toast('Change undone', 'success');
+  } catch (e) {
+    toast((e as Error).message, 'error');
   }
 }
 
@@ -219,7 +243,7 @@ function editDoc(r: number): void {
         onClick: async () => {
           JSON.parse(ta.value);
           await rpc('replace', { id: doc._id, text: ta.value });
-          toast('Document saved', 'success');
+          toast('Document saved', 'success', undefined, { label: 'Undo', run: () => undo(() => rpc('replace', { id: doc._id, text: JSON.stringify(doc) }).then(() => load())) });
           void load();
         },
       },
@@ -275,12 +299,19 @@ async function deleteSelected(): Promise<void> {
   const ok = await rpc<boolean>('confirm', { message: `Delete ${sel.length} document(s)?`, action: 'Delete' });
   if (!ok) return;
   try {
-    const n = await rpc<number>('remove', { ids: sel.map((r) => docs[r]._id) });
-    toast(`Deleted ${n} document(s)`, 'success');
+    const removed = sel.map((r) => docs[r]);
+    const n = await rpc<number>('remove', { ids: removed.map((d) => d._id) });
+    toast(`Deleted ${n} document(s)`, 'success', undefined, { label: 'Undo', run: () => undo(() => restoreDocs(removed)) });
     void load();
   } catch (e) {
     toast((e as Error).message, 'error');
   }
+}
+
+async function restoreDocs(removed: Record<string, unknown>[]): Promise<void> {
+  if (I.mode === 'mongo') await rpc('insert', { text: JSON.stringify(removed) });
+  else for (const d of removed) await rpc('insert', { text: JSON.stringify(d) });
+  await load();
 }
 
 function addRow(): void {
@@ -310,15 +341,24 @@ async function save(): Promise<void> {
   if (!dirty()) return;
   const pks = pkCols();
   const keyOf = (r: number) => Object.fromEntries(pks.map((c) => [columns[c].name, (originals.get(r) ?? rows[r])[c]]));
-  const changes = {
-    updates: [...edits].filter(([r]) => !deleted.has(r)).map(([r, m]) => ({ key: keyOf(r), values: Object.fromEntries([...m].map(([c, v]) => [columns[c].name, v])) })),
-    inserts: [...added].filter((r) => !deleted.has(r)).map((r) => Object.fromEntries(columns.map((c, i) => [c.name, rows[r][i]]).filter(([, v]) => v !== undefined))),
-    deletes: [...deleted].filter((r) => !added.has(r)).map(keyOf),
+  const asObject = (row: unknown[]) => Object.fromEntries(columns.map((c, i) => [c.name, row[i]]).filter(([, v]) => v !== undefined));
+  const updated = [...edits].filter(([r]) => !deleted.has(r));
+  const removed = [...deleted].filter((r) => !added.has(r));
+  const changes: RowChanges = {
+    updates: updated.map(([r, m]) => ({ key: keyOf(r), values: Object.fromEntries([...m].map(([c, v]) => [columns[c].name, v])) })),
+    inserts: [...added].filter((r) => !deleted.has(r)).map((r) => asObject(rows[r])),
+    deletes: removed.map(keyOf),
   };
+  const revert = undoChanges(
+    pks.map((c) => columns[c].name),
+    changes,
+    updated.map(([r]) => asObject(originals.get(r)!)),
+    removed.map((r) => asObject(originals.get(r) ?? rows[r])),
+  );
   loading(app, true);
   try {
     const n = await rpc<number>('apply', changes);
-    toast(`Saved · ${n} row(s) affected`, 'success');
+    toast(`Saved · ${n} row(s) affected`, 'success', undefined, revert ? { label: 'Undo', run: () => undo(() => rpc('apply', revert).then(() => load())) } : undefined);
     await load();
   } catch (e) {
     loading(app, false);
@@ -339,25 +379,29 @@ function discard(): void {
 }
 
 function params(): Record<string, unknown> {
-  if (isSql) return { limit: pageSize, offset: page * pageSize, where: inputs.a.value, orderBy: inputs.b.value };
-  if (I.mode === 'mongo') return { filter: inputs.a.value, sort: inputs.b.value, projection: inputs.c.value, skip: page * pageSize, limit: pageSize };
-  return { query: inputs.a.value, sort: inputs.b.value, from: page * pageSize, size: pageSize };
+  const search = searchInput.value.trim();
+  if (isSql) return { search, limit: pageSize, offset: page * pageSize, where: inputs.a.value, orderBy: inputs.b.value };
+  if (I.mode === 'mongo') return { search, filter: inputs.a.value, sort: inputs.b.value, projection: inputs.c.value, skip: page * pageSize, limit: pageSize };
+  return { search, query: inputs.a.value, sort: inputs.b.value, from: page * pageSize, size: pageSize };
 }
 
-async function load(resetPage = false): Promise<void> {
+async function load(resetPage = false, initial = false): Promise<void> {
   if (dirty()) {
     const ok = await rpc<boolean>('confirm', { message: 'Discard unsaved changes?', action: 'Discard' });
     if (!ok) return;
   }
+  const search = searchInput.value.trim();
   if (resetPage) {
     page = 0;
     total = undefined;
   }
   const seq = ++loadSeq;
   loading(app, true);
+  clear(searchStatus, h('span.spinner', { 'aria-label': 'Searching' }));
+  searchInput.setAttribute('aria-busy', 'true');
   try {
     const p = params();
-    const r = await rpc<{ columns: GridColumn[]; rows: unknown[][]; docs?: Record<string, unknown>[]; durationMs: number; total?: number }>('load', p);
+    const r = await rpc<{ columns: GridColumn[]; rows: unknown[][]; docs?: Record<string, unknown>[]; durationMs: number; total?: number }>(initial ? 'initialLoad' : 'load', p);
     if (seq !== loadSeq) return;
     edits.clear();
     originals.clear();
@@ -368,14 +412,16 @@ async function load(resetPage = false): Promise<void> {
     docs = r.docs ?? [];
     duration = r.durationMs;
     if (r.total !== undefined) total = r.total;
+    loaded = true;
     errorBox.classList.add('hidden');
-    grid.emptyText = inputs.a.value ? 'No rows match the filter' : 'Empty';
+    grid.emptyText = inputs.a.value || search ? 'No rows match the filter' : 'Empty';
+    grid.highlight = search;
     grid.setData(columns, rows, true);
     renderBody();
     if (isSql || I.mode === 'mongo') {
-      if (resetPage || total === undefined) {
+      if (r.total === undefined && (resetPage || total === undefined)) {
         total = undefined;
-        rpc<number>('count', isSql ? { where: inputs.a.value } : { filter: inputs.a.value })
+        rpc<number>('count', isSql ? { where: p.where, search: p.search } : { filter: p.filter, search: p.search })
           .then((n) => {
             if (seq === loadSeq) {
               total = n;
@@ -387,10 +433,18 @@ async function load(resetPage = false): Promise<void> {
     }
   } catch (e) {
     if (seq !== loadSeq) return;
+    if (!loaded) {
+      loaded = true;
+      renderBody();
+    }
     clear(errorBox, h('div.head', null, icon('error'), 'Query failed'), (e as Error).message);
     errorBox.classList.remove('hidden');
   } finally {
-    if (seq === loadSeq) loading(app, false);
+    if (seq === loadSeq) {
+      loading(app, false);
+      clear(searchStatus, icon('search'));
+      searchInput.setAttribute('aria-busy', 'false');
+    }
     updateActions();
   }
 }
@@ -399,8 +453,25 @@ const errorBox = h('div.message.error.hidden');
 const content = h('div.split');
 const actions = h('div.toolbar.actions');
 
+function skeleton(): HTMLElement {
+  const widths = [8, 18, 26, 14, 22, 12];
+  const row = (cls: string) =>
+    h(
+      `div.skeleton-row${cls}`,
+      null,
+      widths.map((w) => h('span', { style: `flex:${w}` })),
+    );
+  return h(
+    'div.skeleton',
+    { 'aria-busy': 'true', 'aria-label': 'Loading rows' },
+    row('.head'),
+    Array.from({ length: 14 }, () => row('')),
+  );
+}
+
 function renderBody(): void {
-  if (view === 'json' && !isSql) clear(content, h('div.scroll', null, jsonView(docs, 1)), side);
+  if (!loaded) clear(content, skeleton(), side);
+  else if (view === 'json' && !isSql) clear(content, h('div.scroll', null, jsonView(docs, 1)), side);
   else clear(content, h('div.grid-wrap', null, grid.el), side);
 }
 
@@ -421,11 +492,7 @@ function updateActions(): void {
   });
   const left: (HTMLElement | null)[] = [];
   if (isSql && I.editable && pkCols().length) {
-    left.push(
-      btn('Add row', { icon: 'add', class: 'sm outline', onClick: addRow }),
-      btn('Duplicate', { icon: 'copy', class: 'sm outline', title: 'Duplicate selected rows', disabled: !sel, onClick: duplicateRows }),
-      btn('Delete', { icon: 'trash', class: 'sm outline', disabled: !sel, onClick: () => void deleteSelected() }),
-    );
+    left.push(btn('Add row', { icon: 'add', class: 'sm outline', onClick: addRow }));
     if (pendingCount) {
       left.push(
         h('div.sep'),
@@ -452,13 +519,27 @@ function updateActions(): void {
       left.push(
         btn(I.mode === 'mongo' ? 'Insert' : 'Add', { icon: 'add', class: 'sm outline', onClick: () => insertDoc() }),
         btn('Edit', { icon: 'edit', class: 'sm outline', disabled: sel !== 1, onClick: () => editDoc(grid.selectedRows()[0]) }),
-        btn('Duplicate row', { icon: 'copy', class: 'sm outline', disabled: sel !== 1, onClick: () => insertDoc(docs[grid.selectedRows()[0]]) }),
-        btn('Delete', { icon: 'trash', class: 'sm outline', disabled: !sel, onClick: () => void deleteSelected() }),
       );
     }
   }
   clear(
     actions,
+    h(
+      'div.data-search',
+      null,
+      searchStatus,
+      searchInput,
+      btn(null, { icon: 'arrow-right', class: 'sm ghost', title: 'Search all records', onClick: () => void load(true) }),
+      btn(null, {
+        icon: 'close',
+        class: 'sm ghost',
+        title: 'Clear search',
+        onClick: () => {
+          searchInput.value = '';
+          void load(true);
+        },
+      }),
+    ),
     left,
     h('div.grow'),
     h(
@@ -467,7 +548,7 @@ function updateActions(): void {
       sel > 1 ? `${sel} selected · ` : '',
       rows.length ? `${fmtNum(from)}–${fmtNum(to)}${total !== undefined ? ` of ${fmtNum(total)}` : ''}` : total === 0 ? '0 rows' : '',
     ),
-    h('span.muted', null, fmtMs(duration)),
+    h('span.muted', { title: 'Database query time; excludes panel startup and rendering' }, fmtMs(duration)),
     h('div.sep'),
     h('label.row.muted', { style: 'gap:6px' }, 'Rows per page', sizeSel),
     h('span.page', null, `Page ${page + 1}${pages ? ` of ${fmtNum(pages)}` : ''}`),
@@ -624,4 +705,4 @@ document.addEventListener('keydown', (e) => {
 });
 
 render();
-void load(true);
+void load(true, true);

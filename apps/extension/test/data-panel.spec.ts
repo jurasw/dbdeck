@@ -1,14 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Module from 'node:module';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { ConnectionManager } from '../src/connections';
 import type { DbNode } from '../src/types';
 import { SqlDriver } from '../src/drivers/sql';
 import { MongoDriver } from '../src/drivers/mongo';
+import { ElasticDriver } from '../src/drivers/elastic';
+
+const ASSETS: Record<string, string> = {
+  'codicon.css': '@font-face { src: url("./codicon.ttf?v=1") }',
+  'style.css': '.grid {}',
+  'data.js': 'window.dataPanelReady = "</script>";',
+  'ai.js': '',
+};
+const root = mkdtempSync(join(tmpdir(), 'dbdeck-assets-'));
+mkdirSync(join(root, 'dist', 'webview'), { recursive: true });
+for (const [file, text] of Object.entries(ASSETS)) writeFileSync(join(root, 'dist', 'webview', file), text);
 
 const panels: any[] = [];
 const vscode = {
-  Uri: { joinPath: (...parts: unknown[]) => ({ toString: () => parts.join('/') }) },
+  Uri: { joinPath: (...parts: unknown[]) => ({ fsPath: join(root, ...(parts.slice(1) as string[])), toString: () => parts.join('/') }) },
   ThemeIcon: class {},
   ViewColumn: { Active: 1 },
   workspace: { getConfiguration: () => ({ get: () => 100 }) },
@@ -59,11 +73,15 @@ test('table panel opens and reuses its tab while the connection is pending', asy
   await DataPanel.show({} as any, manager, node, () => {});
   const panel = panels.at(-1);
   assert.ok(panel.webview.html.includes('feedback'));
+  assert.ok(panel.webview.html.includes('window.dataPanelReady = "<\\/script>";'));
+  assert.ok(panel.webview.html.includes('.grid {}'));
+  assert.ok(panel.webview.html.includes(`url("[object Object]/dist/webview/codicon.ttf?v=1")`));
+  assert.ok(!/<link|<script[^>]* src=/.test(panel.webview.html));
   assert.ok(panel.receive);
   await DataPanel.show({} as any, manager, node, () => {});
   assert.equal(panel.reveals, 1);
   assert.equal(connections, 1);
-  const request = panel.receive({ type: 'rpc', id: 1, method: 'load', params: { skip: 0, limit: 100 } });
+  const request = panel.receive({ type: 'rpc', id: 1, method: 'initialLoad' });
   assert.equal(panel.messages.length, 0);
   const driver = new MongoDriver({ id: 'slow', name: 'Test', type: 'mongodb' });
   driver.find = async () => ({ docs: [{ message: 'hello' }], durationMs: 1 });
@@ -82,9 +100,74 @@ test('connection failure reaches the already visible panel as an RPC error', asy
   } as unknown as ConnectionManager;
   await DataPanel.show({} as any, manager, node, () => {});
   const panel = panels.at(-1);
-  await panel.receive({ type: 'rpc', id: 2, method: 'load' });
+  await panel.receive({ type: 'rpc', id: 2, method: 'initialLoad' });
   assert.equal(panel.messages[0].error, 'Connection failed');
   panel.dispose();
+});
+
+for (const type of ['postgres', 'mongodb', 'elasticsearch'] as const) {
+  test(`${type} fetches before the webview requests rows and refresh fetches fresh data`, async () => {
+    const driver = Object.create(type === 'postgres' ? SqlDriver.prototype : type === 'mongodb' ? MongoDriver.prototype : ElasticDriver.prototype);
+    const calls: unknown[] = [];
+    let finish!: (value: unknown) => void;
+    const pending = new Promise((resolve) => (finish = resolve));
+    const fetch = (...args: unknown[]) => {
+      calls.push(args.at(-1));
+      return pending;
+    };
+    driver.page = driver.find = driver.search = fetch;
+    const manager = { store: { get: () => ({ name: 'Test', type }) }, get: async () => driver } as unknown as ConnectionManager;
+    await DataPanel.show({} as any, manager, { ...node, connId: type }, () => {});
+    const panel = panels.at(-1);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(calls, [type === 'postgres' ? { limit: 100, offset: 0 } : type === 'mongodb' ? { limit: 100, skip: 0 } : { size: 100, from: 0 }]);
+    assert.equal(panel.messages.length, 0);
+    const request = panel.receive({ type: 'rpc', id: 1, method: 'initialLoad' });
+    finish({ columns: [{ name: 'name' }], rows: [['Ada']], docs: [{ name: 'Ada' }], durationMs: 15 });
+    await request;
+    assert.equal(calls.length, 1);
+    assert.deepEqual(panel.messages[0].result.rows, [['Ada']]);
+    await panel.receive({ type: 'rpc', id: 2, method: 'load', params: { ...(calls[0] as object), search: 'Ada' } });
+    assert.equal(calls.length, 2);
+    assert.equal((calls[1] as any).search, 'Ada');
+    panel.dispose();
+  });
+}
+
+test('a prefetched query failure is reported and refresh retries it', async () => {
+  const driver = Object.create(SqlDriver.prototype);
+  let calls = 0;
+  driver.page = async () => {
+    if (++calls === 1) throw new Error('Query failed');
+    return { columns: [], rows: [], durationMs: 1 };
+  };
+  const manager = { store: { get: () => ({ name: 'Test', type: 'postgres' }) }, get: async () => driver } as unknown as ConnectionManager;
+  await DataPanel.show({} as any, manager, node, () => {});
+  const panel = panels.at(-1);
+  await new Promise((resolve) => setImmediate(resolve));
+  await panel.receive({ type: 'rpc', id: 1, method: 'initialLoad' });
+  assert.equal(panel.messages[0].error, 'Query failed');
+  await panel.receive({ type: 'rpc', id: 2, method: 'load', params: { limit: 100, offset: 0 } });
+  assert.deepEqual(panel.messages[1].result.rows, []);
+  assert.equal(calls, 2);
+  panel.dispose();
+});
+
+test('closing a panel before connection completes skips the initial query', async () => {
+  let connect!: (driver: MongoDriver) => void;
+  const pending = new Promise<MongoDriver>((resolve) => (connect = resolve));
+  const driver = Object.create(MongoDriver.prototype);
+  let calls = 0;
+  driver.find = async () => {
+    calls++;
+    return { docs: [], durationMs: 1 };
+  };
+  const manager = { store: { get: () => ({ name: 'Test', type: 'mongodb' }) }, get: () => pending } as unknown as ConnectionManager;
+  await DataPanel.show({} as any, manager, node, () => {});
+  panels.at(-1).dispose();
+  connect(driver);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls, 0);
 });
 
 test('AI filter passes only current table metadata and preserves SQL generation for review', async () => {

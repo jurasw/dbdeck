@@ -657,6 +657,38 @@ textarea {
   pointer-events: none;
 }
 
+.skeleton {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.skeleton-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  height: var(--row-h);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.skeleton-row.head {
+  height: 40px;
+  background: var(--bg-2);
+}
+.skeleton-row span {
+  height: 9px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-3) 0%, var(--hover) 50%, var(--bg-3) 100%) 0 0 / 200% 100%;
+  animation: skeleton 1.2s ease-in-out infinite;
+}
+.skeleton-row span:first-child {
+  flex: 0 0 24px !important;
+}
+@keyframes skeleton {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 .empty {
   flex: 1;
   display: flex;
@@ -842,6 +874,13 @@ textarea {
 }
 .toast.success .codicon {
   color: var(--ok);
+}
+.toast .toast-action {
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+.toast .toast-action .codicon {
+  color: inherit;
 }
 @keyframes pop {
   from {
@@ -1944,10 +1983,53 @@ body.ai-page #app {
   }
   .ai-filter-wrap.ai-busy::after,
   .ai-prompt-box.ai-busy::after,
-  .schema-links .schema-flow {
+  .schema-links .schema-flow,
+  .skeleton-row span {
     animation: none;
   }
   .schema-ambient .schema-flow {
     opacity: 0;
   }
+}
+
+.data-search {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 1 260px;
+  min-width: 160px;
+  height: 30px;
+  padding: 2px 3px 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.data-search-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  color: var(--muted);
+}
+.data-search-status .spinner {
+  width: 16px;
+  height: 16px;
+}
+.data-search .input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 6px;
+}
+.data-search .btn.sm.icon {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+.data-search:focus-within {
+  border-color: var(--vscode-focusBorder);
 }

@@ -33,7 +33,7 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 - Connection tree with groups, per-type icons and connection status
 - SSH tunnels (password or private key), SSL/TLS, read-only mode
 - Data viewer with a virtualized grid: server-side paging, sorting, `WHERE` / `ORDER BY` filters, column resize, keyboard navigation, copy as TSV / JSON / `INSERT`
-- Inline editing for PostgreSQL and MySQL tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction
+- Inline editing for PostgreSQL and MySQL tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction, with **Undo** in the confirmation toast
 - SQL editor: run the statement under the cursor (`⌘/Ctrl+Enter`), run all (`⌘/Ctrl+Shift+Enter`), `▶ Run` CodeLens, table and column completion with alias resolution
 - Results panel: one tab per statement, row filter, JSON view, export to CSV / JSON
 - DDL for tables, views, functions and procedures; truncate and drop
@@ -109,3 +109,7 @@ Query results that an agent reads are sent to that agent's AI provider. For full
 ## License
 
 [MIT](https://github.com/jurasw/dbdeck/blob/main/LICENSE).
+
+### Search all values
+
+Use **Search all records** in a data viewer to search beyond the current page in the current table, collection or index. Press Enter or the search arrow to run the search immediately; a spinner in the search field shows while results load. Existing filters still apply. SQL searches every column; MongoDB also searches nested values and arrays, streaming documents to your editor. Elasticsearch searches indexed fields using its query semantics. Results remain paginated.

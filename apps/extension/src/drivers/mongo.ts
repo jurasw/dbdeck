@@ -14,6 +14,25 @@ export interface FindOptions {
   projection?: string;
   skip: number;
   limit: number;
+  search?: string;
+}
+
+export function matchesValue(value: unknown, search: string): boolean {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) return value.some((v) => matchesValue(v, search));
+  if (typeof value === 'object') return Object.values(value).some((v) => matchesValue(v, search));
+  return String(value).toLocaleLowerCase().includes(search.toLocaleLowerCase());
+}
+
+export async function scanValues<T>(source: AsyncIterable<T>, search: string, skip: number, limit: number, plain: (doc: T) => unknown): Promise<{ docs: T[]; total: number }> {
+  const docs: T[] = [];
+  let total = 0;
+  for await (const doc of source) {
+    if (!matchesValue(plain(doc), search)) continue;
+    if (total >= skip && docs.length < limit) docs.push(doc);
+    total++;
+  }
+  return { docs, total };
 }
 
 export function parseRelaxed(text: string | undefined): Document {
@@ -167,20 +186,39 @@ export class MongoDriver extends BaseDriver {
     return [];
   }
 
-  async find(db: string, coll: string, o: FindOptions): Promise<{ docs: unknown[]; durationMs: number }> {
+  async find(db: string, coll: string, o: FindOptions): Promise<{ docs: unknown[]; durationMs: number; total?: number }> {
     const t = Date.now();
     let cur = this.db(db).collection(coll).find(parseRelaxed(o.filter));
     const sort = parseRelaxed(o.sort);
     if (Object.keys(sort).length) cur = cur.sort(sort);
     const proj = parseRelaxed(o.projection);
+    if (o.search?.trim()) {
+      try {
+        const result = await scanValues(cur, o.search.trim(), o.skip, o.limit, toPlain);
+        const docs = Object.keys(proj).length
+          ? await Promise.all(result.docs.map((doc) => this.db(db).collection(coll).findOne({ _id: doc._id }, { projection: proj })))
+          : result.docs;
+        return { docs: docs.map(toPlain), total: result.total, durationMs: Date.now() - t };
+      } finally {
+        await cur.close();
+      }
+    }
     if (Object.keys(proj).length) cur = cur.project(proj);
     const docs = await cur.skip(o.skip).limit(o.limit).toArray();
     return { docs: docs.map(toPlain), durationMs: Date.now() - t };
   }
 
-  async count(db: string, coll: string, filter?: string): Promise<number> {
+  async count(db: string, coll: string, filter?: string, search?: string): Promise<number> {
     const f = parseRelaxed(filter);
     const c = this.db(db).collection(coll);
+    if (search?.trim()) {
+      const cursor = c.find(f);
+      try {
+        return (await scanValues(cursor, search.trim(), 0, 0, toPlain)).total;
+      } finally {
+        await cursor.close();
+      }
+    }
     return Object.keys(f).length ? c.countDocuments(f) : c.estimatedDocumentCount();
   }
 

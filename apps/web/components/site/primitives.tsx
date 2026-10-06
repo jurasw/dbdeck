@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SectionLink } from "./section-link";
 import { cn } from "@/lib/utils";
 
 export const links = {
@@ -20,7 +20,7 @@ export function Pin() {
 
 export function PrimaryCta({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link
+    <SectionLink
       href={href}
       className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-black/40 transition-all duration-300 hover:bg-neutral-100 hover:shadow-xl [&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:translate-x-0.5"
     >
@@ -29,7 +29,7 @@ export function PrimaryCta({ href, children }: { href: string; children: React.R
         className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-black/10 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
       />
       <span className="relative z-10 inline-flex items-center gap-2">{children}</span>
-    </Link>
+    </SectionLink>
   );
 }
 

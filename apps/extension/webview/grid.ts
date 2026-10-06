@@ -51,6 +51,7 @@ export class Grid {
   private previewShowTimer?: ReturnType<typeof setTimeout>;
   private previewHideTimer?: ReturnType<typeof setTimeout>;
   emptyText = 'No rows';
+  highlight = '';
 
   constructor(private readonly opts: GridOptions = {}) {
     this.header = h('div.grid-header');
@@ -220,6 +221,7 @@ export class Grid {
     const last = Math.min(this.order.length, Math.ceil((top + height) / RH) + OVERSCAN);
     const total = this.totalWidth;
     const offset = this.opts.rowOffset?.() ?? 0;
+    const term = (this.highlight || this.filterText).toLowerCase();
     let html = '';
     for (let v = first; v < last; v++) {
       const r = this.order[v];
@@ -233,8 +235,8 @@ export class Grid {
         if (val === null) content = '<span class="null">NULL</span>';
         else if (val === undefined) content = '<span class="undef"></span>';
         else if (typeof val === 'boolean') content = `<span class="bool">${val}</span>`;
-        else if (typeof val === 'object') content = `<span class="jv">${esc(display(val, 200))}</span>`;
-        else content = esc(display(val, 200));
+        else if (typeof val === 'object') content = `<span class="jv">${marked(display(val, 200), term)}</span>`;
+        else content = marked(display(val, 200), term);
         if (this.focus && this.focus.v === v && this.focus.c === c) cls += ' focus';
         const extra = this.opts.cellClass?.(r, c);
         if (extra) cls += ` ${extra}`;
@@ -573,4 +575,17 @@ function compare(a: unknown, b: unknown): number {
   const nb = Number(sb);
   if (sa.trim() !== '' && sb.trim() !== '' && !isNaN(na) && !isNaN(nb)) return na - nb;
   return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function marked(text: string, term: string): string {
+  if (!term) return esc(text);
+  const lower = text.toLowerCase();
+  let result = '';
+  let start = 0;
+  let index: number;
+  while ((index = lower.indexOf(term, start)) !== -1) {
+    result += esc(text.slice(start, index)) + '<mark>' + esc(text.slice(index, index + term.length)) + '</mark>';
+    start = index + term.length;
+  }
+  return result + esc(text.slice(start));
 }

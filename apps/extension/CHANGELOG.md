@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Fixed initial table loading to fetch rows while the panel starts, reuse the first result without a duplicate query, and clarify that the displayed duration measures the database query.
+
+- Fixed crowding in the table action bar by keeping Duplicate and Delete in the row context menu, placing search and Add row together on the left, and aligning the search buttons.
+
+- Fixed the full-record search layout with a compact field in the table action bar and a spinner while results load, without a confirmation dialog.
+
+- Simplified the landing page with animated service icons and larger SQL, schema and Redis examples, plus a dedicated AI integration section.
+
+- Added Search all records across the current table, collection or index, with paginated matches.
+
+- Fixed website section navigation to scroll without adding a fragment to the URL.
+- Added website SEO metadata, a canonical URL, sitemap, robots.txt and structured data for DBDeck.
+
+- Tables, collections and other panels open faster: styles and scripts ship inside the panel, and a skeleton grid shows until the first rows arrive.
+
+- Saved row and document edits show **Undo** in the confirmation toast, so an accidental change can be reverted with one click.
+
 - AI Query opened from a table includes the whole database as context, so questions about other schemas and tables work.
 
 - AI filters type into the WHERE field with a glowing border while generating, then apply the filter to the table right away. AI Query streams the generated SQL into the preview.

@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Module from 'node:module';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+const ASSETS: Record<string, string> = { 'codicon.css': '', 'style.css': '', 'results.js': '' };
+const root = mkdtempSync(join(tmpdir(), 'dbdeck-assets-'));
+mkdirSync(join(root, 'dist', 'webview'), { recursive: true });
+for (const [file, text] of Object.entries(ASSETS)) writeFileSync(join(root, 'dist', 'webview', file), text);
 
 const view = {
   webview: {
@@ -21,7 +29,7 @@ const view = {
 };
 let provider: any;
 const vscode = {
-  Uri: { joinPath: (...parts: unknown[]) => ({ toString: () => parts.join('/') }) },
+  Uri: { joinPath: (...parts: unknown[]) => ({ fsPath: join(root, ...(parts.slice(1) as string[])), toString: () => parts.join('/') }) },
   commands: { executeCommand: async () => provider.resolveWebviewView(view) },
 };
 const loader = Module as unknown as { _load: (name: string, ...args: any[]) => any };

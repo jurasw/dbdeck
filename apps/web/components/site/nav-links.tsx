@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SectionLink } from "./section-link";
 
 const items = [
   { id: "features", label: "Features" },
@@ -38,7 +39,7 @@ export function NavLinks() {
   }, []);
 
   return items.map(({ id, label }) => (
-    <a
+    <SectionLink
       key={id}
       href={`#${id}`}
       aria-current={active === id ? "true" : undefined}
@@ -48,6 +49,6 @@ export function NavLinks() {
       )}
     >
       {label}
-    </a>
+    </SectionLink>
   ));
 }

@@ -135,3 +135,16 @@
     background: color-mix(in oklch, var(--brand) 40%, transparent);
   }
 }
+
+@keyframes service-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .service-mark { animation: service-float 6s ease-in-out infinite; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

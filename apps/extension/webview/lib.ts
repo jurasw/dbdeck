@@ -85,11 +85,31 @@ export function esc(s: string): string {
 }
 
 let toastHost: HTMLElement | undefined;
-export function toast(message: string, kind: 'info' | 'error' | 'success' = 'info', ms = 3500): void {
+export interface ToastAction {
+  label: string;
+  run: () => unknown;
+}
+
+export function toast(message: string, kind: 'info' | 'error' | 'success' = 'info', ms = 3500, action?: ToastAction): void {
   toastHost ??= document.body.appendChild(h('div.toast-host'));
-  const el = h('div.toast', { class: kind }, icon(kind === 'error' ? 'error' : kind === 'success' ? 'pass-filled' : 'info'), h('span', null, message));
+  const el = h(
+    'div.toast',
+    { class: kind },
+    icon(kind === 'error' ? 'error' : kind === 'success' ? 'pass-filled' : 'info'),
+    h('span', null, message),
+    action
+      ? btn(action.label, {
+          icon: 'discard',
+          class: 'sm outline toast-action',
+          onClick: () => {
+            el.remove();
+            void action.run();
+          },
+        })
+      : null,
+  );
   toastHost.appendChild(el);
-  setTimeout(() => el.remove(), kind === 'error' ? ms * 2 : ms);
+  setTimeout(() => el.remove(), kind === 'error' || action ? ms * 2 : ms);
 }
 
 export interface ModalAction {

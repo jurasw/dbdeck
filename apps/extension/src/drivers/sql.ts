@@ -7,6 +7,7 @@ export interface PageOptions {
   offset: number;
   where?: string;
   orderBy?: string;
+  search?: string;
 }
 
 export interface RowChanges {
@@ -62,17 +63,33 @@ export abstract class SqlDriver extends BaseDriver {
     const cols = await this.columns(t).catch(() => [] as ColumnMeta[]);
     const pk = cols.filter((c) => c.pk).map((c) => this.quote(c.name));
     const orderBy = o.orderBy?.trim() || (this.dialect !== 'clickhouse' && pk.length ? pk.join(', ') : undefined);
-    const res = await this.run(this.selectSql(t, { ...o, orderBy }), t.database);
+    const res = await this.run(this.selectSql(t, { ...o, where: this.searchWhere(cols, o.where, o.search), orderBy }), t.database);
     const byName = new Map(cols.map((c) => [c.name, c]));
     res.columns = res.columns.map((c) => ({ ...c, ...byName.get(c.name), name: c.name }));
     return res;
   }
 
-  async count(t: TableRef, where?: string): Promise<number> {
+  async count(t: TableRef, where?: string, search?: string): Promise<number> {
+    if (search?.trim()) where = this.searchWhere(await this.columns(t), where, search);
     let sql = `SELECT COUNT(*) FROM ${this.qualified(t)}`;
     if (where?.trim()) sql += ` WHERE ${where.trim()}`;
     const r = await this.run(sql, t.database);
     return Number(r.rows[0]?.[0] ?? 0);
+  }
+
+  searchWhere(cols: ColumnMeta[], where?: string, search?: string): string | undefined {
+    const text = search?.trim();
+    if (!text) return where;
+    if (!cols.length) throw new Error('Cannot read the table columns to search.');
+    const match = cols.map((c) => this.contains(this.quote(c.name), text)).join(' OR ');
+    return where?.trim() ? `(${where.trim()}) AND (${match})` : match;
+  }
+
+  private contains(column: string, text: string): string {
+    if (this.dialect === 'clickhouse') return `positionCaseInsensitiveUTF8(toString(${column}), ${this.literal(text)}) > 0`;
+    return this.dialect === 'postgres'
+      ? `strpos(lower(${column}::text), lower(${this.literal(text)})) > 0`
+      : `LOCATE(LOWER(${this.literal(text)}), LOWER(CAST(${column} AS CHAR))) > 0`;
   }
 
   async apply(t: TableRef, ch: RowChanges): Promise<number> {

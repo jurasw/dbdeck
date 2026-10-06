@@ -3,8 +3,8 @@ import { AiService } from '../ai-service';
 import { QueryEditors } from '../editor';
 import { AiPanel } from './ai-panel';
 import { ConnectionManager } from '../connections';
-import { ElasticDriver, errorText } from '../drivers/elastic';
-import { docsToGrid, MongoDriver } from '../drivers/mongo';
+import { ElasticDriver, errorText, SearchOptions } from '../drivers/elastic';
+import { docsToGrid, FindOptions, MongoDriver } from '../drivers/mongo';
 import { PageOptions, RowChanges, SqlDriver } from '../drivers/sql';
 import { DbNode, FAMILY, TableRef } from '../types';
 import { bindRpc, saveExport, webviewHtml, webviewOptions } from '../webviewHost';
@@ -30,6 +30,9 @@ export class DataPanel {
     const ref: TableRef = { database: n.database, schema: n.schema, table: n.table! };
     const location = [cfg.name, n.database, n.schema].filter(Boolean).join(' › ');
     const editable = !cfg.readonly && (family === 'mongo' || family === 'es' || (family === 'sql' && cfg.type !== 'clickhouse' && n.kind === 'table'));
+    let disposed = false;
+    const initialParams = family === 'sql' ? { limit: pageSize, offset: 0 } : family === 'mongo' ? { limit: pageSize, skip: 0 } : { size: pageSize, from: 0 };
+    let initialPage: Promise<unknown> | undefined;
 
     panel.webview.html = webviewHtml(panel.webview, extUri, 'data', title, {
       mode: family,
@@ -70,7 +73,7 @@ export class DataPanel {
             return ai.generate(prompt, schema, driver.dialect, new AbortController().signal, true);
           },
           load: (o: PageOptions) => driver.page(ref, o),
-          count: ({ where }: { where?: string }) => driver.count(ref, where),
+          count: ({ where, search }: { where?: string; search?: string }) => driver.count(ref, where, search),
           apply: async (ch: RowChanges) => {
             const n = await driver.apply(ref, ch);
             onChanged();
@@ -88,11 +91,11 @@ export class DataPanel {
         const coll = n.table!;
         handlers = {
           ...common,
-          load: async (o: { filter?: string; sort?: string; projection?: string; skip: number; limit: number }) => {
+          load: async (o: FindOptions) => {
             const r = await driver.find(db, coll, o);
-            return { ...docsToGrid(r.docs), docs: r.docs, durationMs: r.durationMs };
+            return { ...docsToGrid(r.docs), docs: r.docs, durationMs: r.durationMs, total: r.total };
           },
-          count: ({ filter }: { filter?: string }) => driver.count(db, coll, filter),
+          count: ({ filter, search }: { filter?: string; search?: string }) => driver.count(db, coll, filter, search),
           replace: async ({ id, text }: { id: unknown; text: string }) => driver.replace(db, coll, id, text),
           updateField: ({ id, field, text }: { id: unknown; field: string; text: string }) => driver.updateField(db, coll, id, field, text),
           insert: async ({ text }: { text: string }) => {
@@ -115,7 +118,7 @@ export class DataPanel {
         };
         handlers = {
           ...common,
-          load: async (o: { query?: string; from: number; size: number; sort?: string }) => {
+          load: async (o: SearchOptions) => {
             const r = await driver.search(index, o);
             return { ...r, docs: r.rows.map((row) => Object.fromEntries(r.columns.map((c, i) => [c.name, row[i]]))) };
           },
@@ -157,12 +160,26 @@ export class DataPanel {
       } else {
         throw new Error('Unsupported object');
       }
-      return handlers;
+      // Fetch while the editor starts the webview, instead of waiting for its first RPC.
+      if (!disposed) {
+        initialPage = Promise.resolve().then(() => handlers.load(initialParams));
+        void initialPage.catch(() => undefined);
+      }
+      return {
+        ...handlers,
+        initialLoad: () => {
+          const result = initialPage;
+          initialPage = undefined;
+          return result ?? handlers.load(initialParams);
+        },
+      };
     })();
     // RPC reports connection errors in the panel, including before its first request.
     void handlersReady.catch(() => undefined);
     const sub = bindRpc(panel.webview, handlersReady);
     panel.onDidDispose(() => {
+      disposed = true;
+      initialPage = undefined;
       sub.dispose();
       DataPanel.panels.delete(key);
     });
