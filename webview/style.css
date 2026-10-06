@@ -558,6 +558,33 @@ textarea {
 .gc.focus {
   box-shadow: inset 0 0 0 1px var(--focus);
 }
+.grid-preview {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(640px, calc(100vw - 16px));
+  max-height: min(420px, calc(100vh - 16px));
+  overflow: auto;
+  padding: 10px 12px;
+  color: var(--vscode-editorHoverWidget-foreground, var(--fg));
+  background: var(--vscode-editorHoverWidget-background, var(--bg));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--border));
+  border-radius: 4px;
+  box-shadow: 0 4px 16px var(--vscode-widget-shadow, #0004);
+  user-select: text;
+}
+.grid-preview-heading {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.grid-preview pre {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .gc.dirty {
   background: var(--warn-soft) !important;
 }

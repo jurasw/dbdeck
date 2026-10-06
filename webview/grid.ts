@@ -46,6 +46,9 @@ export class Grid {
   private anchor = -1;
   private editor?: HTMLInputElement;
   private frame = 0;
+  private preview?: HTMLDivElement;
+  private previewCell?: HTMLElement;
+  private previewTimer?: ReturnType<typeof setTimeout>;
   emptyText = 'No rows';
 
   constructor(private readonly opts: GridOptions = {}) {
@@ -59,6 +62,16 @@ export class Grid {
     this.body.addEventListener('mousedown', (e) => this.onMouseDown(e));
     this.body.addEventListener('dblclick', (e) => this.onDblClick(e));
     this.body.addEventListener('contextmenu', (e) => this.onContext(e));
+    this.body.addEventListener('mouseover', (e) => this.onCellHover(e));
+    this.body.addEventListener('mouseout', (e) => {
+      const next = e.relatedTarget as Node | null;
+      if (next && (this.previewCell?.contains(next) || this.preview?.contains(next))) return;
+      this.deferPreviewHide();
+    });
+    this.el.addEventListener('scroll', () => this.hidePreview());
+    this.el.addEventListener('mousedown', () => this.hidePreview());
+    window.addEventListener('blur', () => this.hidePreview());
+    window.addEventListener('resize', () => this.hidePreview());
     this.header.addEventListener('mousedown', (e) => this.onHeaderDown(e));
     this.el.addEventListener('keydown', (e) => this.onKeyDown(e));
   }
@@ -198,6 +211,7 @@ export class Grid {
   }
 
   private renderBody(): void {
+    this.hidePreview();
     const top = Math.max(0, this.el.scrollTop - HH);
     const height = this.el.clientHeight || 600;
     const first = Math.max(0, Math.floor(top / RH) - OVERSCAN);
@@ -227,6 +241,58 @@ export class Grid {
       html += '</div>';
     }
     this.body.innerHTML = html;
+  }
+
+  private hidePreview(): void {
+    clearTimeout(this.previewTimer);
+    this.preview?.remove();
+    this.preview = undefined;
+    this.previewCell = undefined;
+  }
+
+  private deferPreviewHide(): void {
+    clearTimeout(this.previewTimer);
+    this.previewTimer = setTimeout(() => this.hidePreview(), 180);
+  }
+
+  private onCellHover(e: MouseEvent): void {
+    const cell = (e.target as HTMLElement).closest<HTMLElement>('.gc[data-c]');
+    if (cell === this.previewCell) {
+      clearTimeout(this.previewTimer);
+      return;
+    }
+    this.hidePreview();
+    const hit = this.hit(e);
+    if (!cell || !hit || hit.rownum || this.editor) return;
+    const value = this.rows[this.order[hit.v]][hit.c];
+    if (value === null || value === undefined) return;
+    const full = display(value, Infinity);
+    if (cell.scrollWidth <= cell.clientWidth && full === display(value, 200) && !/[\r\n\t]/.test(full)) return;
+    this.previewCell = cell;
+    this.previewTimer = setTimeout(() => {
+      if (!cell.isConnected) return;
+      let text = raw(value);
+      if (typeof value === 'string' && (/^\s*[[{]/.test(value) || /\bjsonb?\b/i.test(this.columns[hit.c].type ?? ''))) {
+        try {
+          text = JSON.stringify(JSON.parse(value), null, 2);
+        } catch {
+          // Keep invalid JSON readable as its original text.
+        }
+      }
+      const preview = h('div.grid-preview', { role: 'tooltip' }, h('div.grid-preview-heading', null, this.columns[hit.c].name), h('pre', null, text));
+      preview.addEventListener('mouseenter', () => clearTimeout(this.previewTimer));
+      preview.addEventListener('mouseleave', () => this.deferPreviewHide());
+      preview.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') this.hidePreview();
+      });
+      document.body.appendChild(preview);
+      this.preview = preview;
+      const rect = cell.getBoundingClientRect();
+      const bounds = preview.getBoundingClientRect();
+      preview.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - bounds.width - 8))}px`;
+      const below = rect.bottom + 4;
+      preview.style.top = `${Math.max(8, below + bounds.height <= window.innerHeight - 8 ? below : rect.top - bounds.height - 4)}px`;
+    }, 400);
   }
 
   private hit(e: MouseEvent): { v: number; c: number; rownum: boolean } | null {
@@ -332,6 +398,7 @@ export class Grid {
   }
 
   private onKeyDown(e: KeyboardEvent): void {
+    this.hidePreview();
     if (this.editor) return;
     if (this.opts.onKey?.(e)) return;
     const mod = e.metaKey || e.ctrlKey;
@@ -433,6 +500,7 @@ export class Grid {
   }
 
   startEdit(v: number, c: number): void {
+    this.hidePreview();
     this.closeEditor(true);
     this.ensureVisible(v, c);
     const r = this.order[v];
