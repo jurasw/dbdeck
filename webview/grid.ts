@@ -48,7 +48,8 @@ export class Grid {
   private frame = 0;
   private preview?: HTMLDivElement;
   private previewCell?: HTMLElement;
-  private previewTimer?: ReturnType<typeof setTimeout>;
+  private previewShowTimer?: ReturnType<typeof setTimeout>;
+  private previewHideTimer?: ReturnType<typeof setTimeout>;
   emptyText = 'No rows';
 
   constructor(private readonly opts: GridOptions = {}) {
@@ -63,6 +64,7 @@ export class Grid {
     this.body.addEventListener('dblclick', (e) => this.onDblClick(e));
     this.body.addEventListener('contextmenu', (e) => this.onContext(e));
     this.body.addEventListener('mouseover', (e) => this.onCellHover(e));
+    this.body.addEventListener('mousemove', (e) => this.onCellHover(e));
     this.body.addEventListener('mouseout', (e) => {
       const next = e.relatedTarget as Node | null;
       if (next && (this.previewCell?.contains(next) || this.preview?.contains(next))) return;
@@ -244,22 +246,27 @@ export class Grid {
   }
 
   private hidePreview(): void {
-    clearTimeout(this.previewTimer);
+    clearTimeout(this.previewShowTimer);
+    clearTimeout(this.previewHideTimer);
+    this.previewShowTimer = undefined;
+    this.previewHideTimer = undefined;
     this.preview?.remove();
     this.preview = undefined;
     this.previewCell = undefined;
   }
 
   private deferPreviewHide(): void {
-    clearTimeout(this.previewTimer);
-    this.previewTimer = setTimeout(() => this.hidePreview(), 180);
+    clearTimeout(this.previewShowTimer);
+    this.previewShowTimer = undefined;
+    clearTimeout(this.previewHideTimer);
+    this.previewHideTimer = setTimeout(() => this.hidePreview(), 180);
   }
 
   private onCellHover(e: MouseEvent): void {
     const cell = (e.target as HTMLElement).closest<HTMLElement>('.gc[data-c]');
     if (cell === this.previewCell) {
-      clearTimeout(this.previewTimer);
-      return;
+      clearTimeout(this.previewHideTimer);
+      if (this.preview || this.previewShowTimer) return;
     }
     this.hidePreview();
     const hit = this.hit(e);
@@ -269,7 +276,8 @@ export class Grid {
     const full = display(value, Infinity);
     if (cell.scrollWidth <= cell.clientWidth && full === display(value, 200) && !/[\r\n\t]/.test(full)) return;
     this.previewCell = cell;
-    this.previewTimer = setTimeout(() => {
+    this.previewShowTimer = setTimeout(() => {
+      this.previewShowTimer = undefined;
       if (!cell.isConnected) return;
       let text = raw(value);
       if (typeof value === 'string' && (/^\s*[[{]/.test(value) || /\bjsonb?\b/i.test(this.columns[hit.c].type ?? ''))) {
@@ -280,7 +288,7 @@ export class Grid {
         }
       }
       const preview = h('div.grid-preview', { role: 'tooltip' }, h('div.grid-preview-heading', null, this.columns[hit.c].name), h('pre', null, text));
-      preview.addEventListener('mouseenter', () => clearTimeout(this.previewTimer));
+      preview.addEventListener('mouseenter', () => clearTimeout(this.previewHideTimer));
       preview.addEventListener('mouseleave', () => this.deferPreviewHide());
       preview.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') this.hidePreview();

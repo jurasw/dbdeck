@@ -410,12 +410,14 @@ textarea {
 .grid-wrap {
   position: relative;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
 }
 .grid {
   position: relative;
   flex: 1;
+  min-width: 0;
   overflow: auto;
   outline: none;
   font-family: var(--mono);
