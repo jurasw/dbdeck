@@ -1,5 +1,6 @@
 import { Grid, GridColumn } from './grid';
 import { parseCellValue } from './cell-value';
+import { duplicateRow } from './row-duplicate';
 import { jsonView } from './json';
 import { btn, clear, contextMenu, fmtMs, fmtNum, h, icon, INIT, jsonEditor, loading, MenuItem, modal, raw, rpc, toast, toCsv, toObjects, toTsv } from './lib';
 
@@ -183,6 +184,7 @@ function menuFor(r: number, c: number): MenuItem[] {
       '-',
       { label: 'Edit cell', icon: 'edit', action: () => grid.startEdit(rowsView(r), c) },
       { label: 'Set NULL', icon: 'circle-slash', action: () => setCell(r, c, null) },
+      { label: sel.length > 1 ? `Duplicate ${sel.length} rows` : 'Duplicate row', icon: 'copy', action: duplicateRows },
       { label: deleted.has(r) ? 'Restore row(s)' : 'Delete row(s)', icon: 'trash', danger: !deleted.has(r), action: () => void deleteSelected() },
     );
   }
@@ -289,6 +291,18 @@ function addRow(): void {
   grid.scrollToRow(r);
   const first = columns.findIndex((c) => !/auto_increment|nextval|identity/i.test(`${c.type ?? ''}`));
   grid.startEdit(grid.viewCount - 1, Math.max(0, first));
+  updateActions();
+}
+
+function duplicateRows(): void {
+  const sel = grid.selectedRows().filter((r) => !deleted.has(r));
+  if (!sel.length) return;
+  for (const r of sel) {
+    added.add(rows.length);
+    rows.push(duplicateRow(columns, rows[r]));
+  }
+  grid.setData(columns, rows, true);
+  grid.scrollToRow(rows.length - 1);
   updateActions();
 }
 
@@ -409,6 +423,7 @@ function updateActions(): void {
   if (isSql && I.editable && pkCols().length) {
     left.push(
       btn('Add row', { icon: 'add', class: 'sm outline', onClick: addRow }),
+      btn('Duplicate', { icon: 'copy', class: 'sm outline', title: 'Duplicate selected rows', disabled: !sel, onClick: duplicateRows }),
       btn('Delete', { icon: 'trash', class: 'sm outline', disabled: !sel, onClick: () => void deleteSelected() }),
     );
     if (pendingCount) {

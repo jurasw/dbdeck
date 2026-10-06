@@ -1,4 +1,4 @@
-import { Pool, PoolClient, types as pgTypes } from 'pg';
+import { Pool, PoolClient, QueryArrayConfig, types as pgTypes } from 'pg';
 import { ColumnMeta, DbNode, QueryResult, TableRef } from '../types';
 import { formatCount, toCell } from '../util';
 import { Exec, SqlDriver } from './sql';
@@ -72,12 +72,29 @@ export class PostgresDriver extends SqlDriver {
     const p = await this.pool(database || this.defaultDb);
     const t = Date.now();
     const r = await p.query({ text: sql, values: params, rowMode: 'array' });
-    const durationMs = Date.now() - t;
-    const res = Array.isArray(r) ? r[r.length - 1] : r;
+    return this.result(Array.isArray(r) ? r[r.length - 1] : r, Date.now() - t);
+  }
+
+  protected async readOnly(sql: string, database?: string): Promise<QueryResult> {
+    const p = await this.pool(database || this.defaultDb);
+    const c: PoolClient = await p.connect();
+    try {
+      await c.query('BEGIN READ ONLY');
+      await c.query("SET LOCAL statement_timeout = '30s'");
+      const t = Date.now();
+      const r = await c.query({ text: sql, rowMode: 'array', queryMode: 'extended' } as QueryArrayConfig);
+      return this.result(r, Date.now() - t);
+    } finally {
+      await c.query('ROLLBACK').catch(() => undefined);
+      c.release();
+    }
+  }
+
+  private result(res: { fields?: { name: string; dataTypeID: number }[]; rows: unknown[]; rowCount: number | null; command?: string }, durationMs: number): QueryResult {
     const fields = res.fields ?? [];
     const isRows = fields.length > 0;
     return {
-      columns: fields.map((f: { name: string; dataTypeID: number }) => ({ name: f.name, type: this.typeNames.get(f.dataTypeID) })),
+      columns: fields.map((f) => ({ name: f.name, type: this.typeNames.get(f.dataTypeID) })),
       rows: isRows ? (res.rows as unknown[][]).map((row) => row.map(toCell)) : [],
       affectedRows: isRows ? undefined : (res.rowCount ?? undefined),
       message: isRows ? undefined : `${res.command ?? 'OK'}${res.rowCount != null ? ` · ${res.rowCount} row(s)` : ''}`,

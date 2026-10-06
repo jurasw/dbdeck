@@ -54,27 +54,45 @@ export class MysqlDriver extends SqlDriver {
     const c = await this.pool!.getConnection();
     try {
       if (database) await c.query(`USE ${this.quote(database)}`);
-      const t = Date.now();
-      let [rows, fields] = (await c.query({ sql, rowsAsArray: true, values: params })) as [unknown, unknown];
-      const durationMs = Date.now() - t;
-      if (Array.isArray(fields) && Array.isArray(fields[0])) {
-        rows = (rows as unknown[])[0];
-        fields = fields[0];
-      }
-      if (!Array.isArray(rows)) {
-        const h = rows as mysql.ResultSetHeader;
-        const extra = h.insertId ? ` · insertId ${h.insertId}` : '';
-        return { columns: [], rows: [], affectedRows: h.affectedRows, message: `${h.affectedRows} row(s) affected${extra}`, durationMs };
-      }
-      const f = (fields as mysql.FieldPacket[]) ?? [];
-      return {
-        columns: f.map((x) => ({ name: x.name, type: TYPE_NAMES.get(x.type ?? -1) })),
-        rows: (rows as unknown[][]).map((r) => r.map(toCell)),
-        durationMs,
-      };
+      return await this.exec(c, { sql, rowsAsArray: true, values: params });
     } finally {
       c.release();
     }
+  }
+
+  protected async readOnly(sql: string, database?: string): Promise<QueryResult> {
+    const c = await this.pool!.getConnection();
+    try {
+      if (database) await c.query(`USE ${this.quote(database)}`);
+      await c.query('START TRANSACTION READ ONLY');
+      return await this.exec(c, { sql, rowsAsArray: true, timeout: 30000 });
+    } finally {
+      await c.query('ROLLBACK').then(
+        () => c.release(),
+        () => c.destroy(),
+      );
+    }
+  }
+
+  private async exec(c: mysql.PoolConnection, options: mysql.QueryOptions): Promise<QueryResult> {
+    const t = Date.now();
+    let [rows, fields] = (await c.query(options)) as [unknown, unknown];
+    const durationMs = Date.now() - t;
+    if (Array.isArray(fields) && Array.isArray(fields[0])) {
+      rows = (rows as unknown[])[0];
+      fields = fields[0];
+    }
+    if (!Array.isArray(rows)) {
+      const h = rows as mysql.ResultSetHeader;
+      const extra = h.insertId ? ` · insertId ${h.insertId}` : '';
+      return { columns: [], rows: [], affectedRows: h.affectedRows, message: `${h.affectedRows} row(s) affected${extra}`, durationMs };
+    }
+    const f = (fields as mysql.FieldPacket[]) ?? [];
+    return {
+      columns: f.map((x) => ({ name: x.name, type: TYPE_NAMES.get(x.type ?? -1) })),
+      rows: (rows as unknown[][]).map((r) => r.map(toCell)),
+      durationMs,
+    };
   }
 
   protected async transaction(database: string | undefined, statements: Exec[]): Promise<number> {

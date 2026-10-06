@@ -48,8 +48,8 @@ export class ClickHouseDriver extends SqlDriver {
     throw new Error('Editing is not supported for ClickHouse tables');
   }
 
-  private async exec(sql: string, database?: string): Promise<string> {
-    const qs = new URLSearchParams({ default_format: 'JSONCompact', output_format_json_quote_64bit_integers: '1' });
+  private async exec(sql: string, database?: string, settings: Record<string, string> = {}): Promise<string> {
+    const qs = new URLSearchParams({ default_format: 'JSONCompact', output_format_json_quote_64bit_integers: '1', ...settings });
     const db = database || this.config.database;
     if (db) qs.set('database', db);
     const headers: Record<string, string> = { 'content-type': 'text/plain; charset=utf-8' };
@@ -76,9 +76,9 @@ export class ClickHouseDriver extends SqlDriver {
     return j.data.map((row) => Object.fromEntries(j.meta.map((m, i) => [m.name, row[i]])) as T);
   }
 
-  async run(sql: string, database?: string): Promise<QueryResult> {
+  async run(sql: string, database?: string, _params?: unknown[], settings?: Record<string, string>): Promise<QueryResult> {
     const t = Date.now();
-    const body = await this.exec(sql, database);
+    const body = await this.exec(sql, database, settings);
     const durationMs = Date.now() - t;
     if (!body.trim()) return { columns: [], rows: [], message: 'OK', durationMs };
     try {
@@ -93,6 +93,10 @@ export class ClickHouseDriver extends SqlDriver {
       const lines = body.replace(/\n$/, '').split('\n');
       return { columns: [{ name: 'result' }], rows: lines.map((l) => [l]), durationMs };
     }
+  }
+
+  protected readOnly(sql: string, database?: string): Promise<QueryResult> {
+    return this.run(sql, database, undefined, { readonly: '1', max_execution_time: '30' });
   }
 
   private lit(s: string): string {

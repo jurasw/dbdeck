@@ -21,7 +21,11 @@ const questions = [
   },
   {
     q: "What does the AI query feature send?",
-    a: "Only your written request and the table and column names, types and keys you select. Rows, passwords and connection strings are never sent. You choose the provider: ChatGPT sign-in, your own API key or a local Ollama model.",
+    a: "Only your written request and the table and column names, types and keys you select. Rows, passwords and connection strings are never sent. You choose the provider: ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model.",
+  },
+  {
+    q: "Can AI agents like Claude Code use my databases?",
+    a: "Yes, if you turn on the local MCP server. It listens on your machine only and needs an access token. Agents ask before they read a connection, run only read-only queries, and open any change in an editor for you to review. Results they read go to the agent's AI provider.",
   },
   {
     q: "Can I use it against production safely?",

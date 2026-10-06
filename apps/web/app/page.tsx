@@ -286,7 +286,8 @@ function Privacy() {
             <SmallList
               items={[
                 "AI queries share table names, never rows",
-                "Bring ChatGPT, your own API key or Ollama",
+                "Bring ChatGPT, Claude, your own API key or Ollama",
+                "AI agents read through MCP, read-only",
                 "Destructive actions always ask first",
               ]}
             />

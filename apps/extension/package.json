@@ -34,6 +34,12 @@
     "onLanguage:dbdeck-es"
   ],
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "dbdeck.mcp",
+        "label": "DBDeck"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -345,6 +351,12 @@
         "command": "dbdeck.aiDisconnect",
         "title": "Disconnect AI Provider",
         "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.mcpSetup",
+        "title": "Connect AI Agents (MCP)",
+        "category": "DBDeck",
+        "icon": "$(plug)"
       }
     ],
     "menus": {
@@ -368,6 +380,11 @@
           "command": "dbdeck.importConnections",
           "when": "view == dbdeck.connections",
           "group": "more@2"
+        },
+        {
+          "command": "dbdeck.mcpSetup",
+          "when": "view == dbdeck.connections",
+          "group": "more@3"
         },
         {
           "command": "dbdeck.searchObjects",
@@ -600,6 +617,11 @@
           "command": "dbdeck.aiQuery",
           "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|table|view) sql\\b/",
           "group": "2_query@3"
+        },
+        {
+          "command": "dbdeck.aiQuery",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema) sql\\b/",
+          "group": "inline@3"
         }
       ],
       "editor/title": [
@@ -787,6 +809,18 @@
           "type": "boolean",
           "default": true,
           "description": "Show ▶ Run above each statement in bound editors."
+        },
+        "dbdeck.mcp.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run a local MCP server on 127.0.0.1 so AI agents (Claude Code, Cursor, Copilot, Codex) can read schema and run read-only queries on SQL connections you allow."
+        },
+        "dbdeck.mcp.maxRows": {
+          "type": "number",
+          "default": 200,
+          "minimum": 1,
+          "maximum": 5000,
+          "description": "Maximum rows returned to an AI agent from one MCP query."
         }
       }
     }
@@ -806,13 +840,16 @@
     "package:check": "vsce ls --no-dependencies"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@aws-sdk/client-s3": "^3.1146.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "bson": "^6.10.4",
     "ioredis": "^5.4.1",
     "mongodb": "^6.10.0",
     "mysql2": "^3.11.0",
     "pg": "^8.13.0",
-    "ssh2": "^1.16.0"
+    "ssh2": "^1.16.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",

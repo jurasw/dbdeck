@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { AiService } from './ai-service';
 import { AiPanel } from './panels/ai-panel';
+import { McpService } from './mcp';
 import { ConnectionManager, ConnectionStore } from './connections';
 import { DockerDriver } from './drivers/docker';
 import { ElasticDriver } from './drivers/elastic';
@@ -30,6 +31,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   const results = new ResultsView(ctx.extensionUri);
   const editors = new QueryEditors(ctx, manager, results);
   const ai = new AiService(ctx);
+  const mcp = new McpService(ctx, manager, editors);
 
   const refreshParent = (n?: DbNode) => tree.refresh(n ? tree.getParent(n) : undefined);
 
@@ -49,7 +51,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
   const pickNode = async (n?: DbNode) => n ?? view.selection[0];
 
-  ctx.subscriptions.push(manager, view, editors, vscode.window.registerWebviewViewProvider(ResultsView.id, results, { webviewOptions: { retainContextWhenHidden: true } }));
+  ctx.subscriptions.push(manager, view, editors, mcp, vscode.window.registerWebviewViewProvider(ResultsView.id, results, { webviewOptions: { retainContextWhenHidden: true } }));
+
+  void mcp.sync();
 
   const openForm = (existing?: Partial<ConnectionConfig>) => ConnectionPanel.show(ctx.extensionUri, manager, () => tree.refresh(), existing);
 
@@ -72,8 +76,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
       if (group) root = (await tree.getChildren(group)).find((n) => n.connId === config!.id);
     }
     if (!root) return;
+    const source = config.group ? `${config.group} › ${config.name}` : config.name;
     const picker = vscode.window.createQuickPick<vscode.QuickPickItem & { node?: DbNode }>();
-    picker.title = `Search objects · ${config.name}`;
+    picker.title = `Search objects · ${source}`;
     picker.placeholder = 'Search tables, schemas, databases, views and functions…';
     picker.matchOnDescription = true;
     picker.matchOnDetail = true;
@@ -98,7 +103,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
       )) {
         items.push({
           label: node.label,
-          description: node.kind,
+          description: `${node.kind} · ${source}`,
           detail: [node.database, node.schema, node.description].filter(Boolean).join(' · '),
           node: node.kind === 'error' ? undefined : node,
         });
@@ -146,6 +151,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   cmd('dbdeck.aiConfigure', () => ai.configure());
   cmd('dbdeck.aiSignIn', () => ai.signIn());
   cmd('dbdeck.aiDisconnect', () => ai.disconnect());
+  cmd('dbdeck.mcpSetup', () => mcp.setup());
 
   cmd('dbdeck.newQuery', async (n?: DbNode) => {
     n = await pickNode(n);

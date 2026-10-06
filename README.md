@@ -90,7 +90,8 @@ Nothing leaves your machine except the queries you send to your own databases.
 
 - **Inline row edits** for PostgreSQL and MySQL tables with a primary key. Changes are staged and saved in one transaction.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
-- **AI queries** with ChatGPT sign-in, your own API key or a local Ollama model. Only table and column names are shared, never rows.
+- **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
+- **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
 - **S3, MinIO and R2** buckets in the same tree: open, upload, download, copy the `s3://` URI.
 - **Read-only connections** block every write, and destructive actions always ask first.
 
@@ -134,6 +135,7 @@ flowchart LR
   host --> secrets[("OS keychain<br>SecretStorage")]
   drivers -- "SSH tunnel or direct" --> dbs["Your databases"]
   host -. "only when you ask" .-> ai["Your AI provider"]
+  agents["AI agents<br>Claude Code, Cursor, …"] -. "local MCP, read-only" .-> host
 ```
 
 | Path             | What it is                                                                         |

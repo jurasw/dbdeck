@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Duplicate rows in PostgreSQL and MySQL tables from the right-click menu or the Duplicate button. Primary keys stay empty so the database fills them.
+- Search Database Objects shows the folder and connection of every result.
+- Smaller table header in the data panel.
+- Generate queries with Claude using your own Anthropic API key.
+- Connect AI agents (Claude Code, Cursor, Copilot, Codex) to your SQL connections through a local MCP server. Agents read schema and run read-only queries on connections you allow; changes open in a query editor for your review.
+- Sparkle button on SQL connections, databases and schemas opens Generate Query with AI.
+
 ## 0.2.0 — 2026-10-06
 
 - AI SQL generation with a preview, selected schema context, Continue with ChatGPT, user-owned API providers and local Ollama.

@@ -72,6 +72,13 @@ const usage = btn('ChatGPT usage', {
     void rpc('usage');
   },
 });
+const agents = btn('AI agents (MCP)', {
+  icon: 'plug',
+  title: 'Let Claude Code, Cursor or Copilot read this database through MCP',
+  onClick: () => {
+    void rpc('mcp');
+  },
+});
 const controls = [configure, signIn, model, disconnect];
 const insert = btn('Open in query editor', {
   icon: 'go-to-file',
@@ -136,7 +143,7 @@ clear(
     { style: 'max-width:900px;margin:24px auto;padding:0 24px;display:flex;flex-direction:column;gap:12px' },
     h('h1', null, 'AI Query'),
     h('p', null, `${INIT.connection} › ${INIT.database} · ${INIT.dialect}`),
-    h('div', { style: 'display:flex;flex-wrap:wrap;gap:8px' }, configure, signIn, model, disconnect, usage),
+    h('div', { style: 'display:flex;flex-wrap:wrap;gap:8px' }, configure, signIn, model, disconnect, usage, agents),
     status,
     h(
       'p',

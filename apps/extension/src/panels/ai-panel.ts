@@ -58,6 +58,7 @@ export class AiPanel {
         return ai.status();
       },
       usage: () => vscode.env.openExternal(vscode.Uri.parse('https://chatgpt.com/settings/usage')),
+      mcp: () => vscode.commands.executeCommand('dbdeck.mcpSetup'),
       cancel: () => request?.abort(),
       generate: async (params: { prompt: string; tables: number[] }) => {
         if (request) throw new Error('A query is already being generated.');

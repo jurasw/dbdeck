@@ -1,4 +1,5 @@
 import { ColumnMeta, QueryResult, TableRef } from '../types';
+import { splitSql, stripComments } from '../sqlSplit';
 import { BaseDriver } from './base';
 
 export interface PageOptions {
@@ -24,6 +25,7 @@ export abstract class SqlDriver extends BaseDriver {
   readonly editable: boolean = true;
 
   abstract run(sql: string, database?: string, params?: unknown[]): Promise<QueryResult>;
+  protected abstract readOnly(sql: string, database?: string): Promise<QueryResult>;
   abstract quote(name: string): string;
   abstract columns(t: TableRef): Promise<ColumnMeta[]>;
   abstract ddl(t: TableRef, kind: string): Promise<string>;
@@ -31,6 +33,15 @@ export abstract class SqlDriver extends BaseDriver {
   abstract databases(): Promise<string[]>;
   protected abstract param(i: number): string;
   protected abstract transaction(database: string | undefined, statements: Exec[]): Promise<number>;
+
+  async runReadOnly(sql: string, database?: string): Promise<QueryResult> {
+    const statements = splitSql(sql, this.dialect);
+    if (statements.length !== 1) throw new Error('Run exactly one SQL statement.');
+    const text = stripComments(statements[0].text).trim();
+    if (!/^(select|with|show|describe|desc|explain|table|values)\b/i.test(text) || /\binto\s+(outfile|dumpfile)\b/i.test(text))
+      throw new Error('Only read-only SELECT, WITH, SHOW, DESCRIBE and EXPLAIN statements can run here.');
+    return this.readOnly(statements[0].text, database);
+  }
 
   qualified(t: TableRef): string {
     const owner = this.dialect === 'postgres' ? t.schema : t.database;

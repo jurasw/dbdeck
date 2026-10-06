@@ -3,6 +3,7 @@ import { withLocalLock } from './local-lock';
 import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
 import { AiOptions, generateQuery, validateEndpoint } from './ai-client';
+import { listClaudeModels } from './claude-client';
 import { ChatGptAccount, refreshChatGpt, revokeChatGpt, signInChatGpt } from './openai-auth';
 
 const optionsKey = 'dbdeck.ai.options';
@@ -49,6 +50,7 @@ export class AiService {
       [
         { label: 'OpenAI · Continue with ChatGPT', description: 'Use your own ChatGPT plan', provider: 'chatgpt' as const },
         { label: 'OpenAI · API key', description: 'Billed to your own API account', provider: 'openai' as const },
+        { label: 'Anthropic · Claude API key', description: 'Billed to your own Claude Console account', provider: 'anthropic' as const },
         { label: 'OpenAI-compatible API', description: 'Your own provider and API key', provider: 'compatible' as const },
         { label: 'Ollama · Local', description: 'Run models on your computer', provider: 'ollama' as const },
       ],
@@ -56,7 +58,7 @@ export class AiService {
     );
     if (!picked) return;
     const previous = this.options();
-    let baseUrl = picked.provider === 'ollama' ? 'http://127.0.0.1:11434/v1' : 'https://api.openai.com/v1';
+    let baseUrl = picked.provider === 'ollama' ? 'http://127.0.0.1:11434/v1' : picked.provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1';
     if (picked.provider === 'compatible' || picked.provider === 'ollama') {
       const url = await vscode.window.showInputBox({
         title: 'AI API base URL',
@@ -74,9 +76,9 @@ export class AiService {
       if (!url) return;
       baseUrl = validateEndpoint(url);
     }
-    if (picked.provider === 'openai' || picked.provider === 'compatible') {
+    if (picked.provider === 'openai' || picked.provider === 'anthropic' || picked.provider === 'compatible') {
       const key = await vscode.window.showInputBox({
-        title: 'Your AI provider API key',
+        title: picked.provider === 'anthropic' ? 'Your Claude API key from platform.claude.com' : 'Your AI provider API key',
         password: true,
         ignoreFocusOut: true,
         prompt: 'Stored only in your editor’s SecretStorage. Requests are billed to your account.',
@@ -190,6 +192,14 @@ export class AiService {
       if (!items.length) throw new Error('No models are available for this ChatGPT account.');
       const model = await vscode.window.showQuickPick(items, { title: 'ChatGPT model', placeHolder: 'Usage comes from your ChatGPT plan or credits' });
       if (model) await this.ctx.globalState.update(optionsKey, { ...options, model: model.description });
+    } else if (options.provider === 'anthropic') {
+      const models = await listClaudeModels((await this.token(options))!);
+      if (!models.length) throw new Error('No Claude models are available for this API key.');
+      const model = await vscode.window.showQuickPick(
+        models.map((m) => ({ label: m.name, description: m.id === 'claude-opus-5-5' ? `${m.id} · recommended` : m.id, id: m.id })),
+        { title: 'Claude model', placeHolder: 'Usage is billed to your Claude Console account' },
+      );
+      if (model) await this.ctx.globalState.update(optionsKey, { ...options, model: model.id });
     } else {
       const model = await vscode.window.showInputBox({
         title: 'AI model',

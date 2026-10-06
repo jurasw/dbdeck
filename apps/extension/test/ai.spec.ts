@@ -70,6 +70,61 @@ test('Ollama uses a local compatible endpoint without user credentials', async (
     globalThis.fetch = original;
   }
 });
+test('Claude uses the user API key, server-side fallback and returns clean SQL', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    assert.equal(String(url), 'https://api.anthropic.com/v1/messages?beta=true');
+    const headers = new Headers(init?.headers);
+    assert.equal(headers.get('x-api-key'), 'user-key');
+    assert.equal(headers.get('authorization'), null);
+    assert.equal(headers.get('anthropic-beta'), 'server-side-fallback-2026-07-01');
+    const body = JSON.parse(String(init?.body));
+    assert.equal(body.model, 'claude-opus-5-5');
+    assert.equal(body.fallbacks, 'default');
+    assert.match(body.system, /single postgres SQL query/);
+    assert.deepEqual(body.messages, [{ role: 'user', content: 'Database schema (metadata only):\nusers(id int)\n\nUser request:\nList users' }]);
+    return Response.json({
+      id: 'msg',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-opus-5-5',
+      stop_reason: 'end_turn',
+      content: [{ type: 'text', text: '```sql\nSELECT id FROM users;\n```' }],
+      usage: { input_tokens: 1, output_tokens: 1 },
+    });
+  };
+  try {
+    assert.equal(
+      await generateQuery({ provider: 'anthropic', baseUrl: 'https://api.anthropic.com', model: 'claude-opus-5-5' }, 'user-key', 'List users', 'users(id int)', 'postgres'),
+      'SELECT id FROM users;',
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+test('Claude refusals and rejected keys become readable errors', async () => {
+  const original = globalThis.fetch;
+  const options = { provider: 'anthropic' as const, baseUrl: '', model: 'claude-haiku-4-5' };
+  try {
+    globalThis.fetch = async (_url, init) => {
+      assert.equal(JSON.parse(String(init?.body)).fallbacks, undefined);
+      return Response.json({
+        id: 'msg',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-haiku-4-5',
+        stop_reason: 'refusal',
+        content: [],
+        usage: { input_tokens: 1, output_tokens: 0 },
+      });
+    };
+    await assert.rejects(generateQuery(options, 'user-key', 'x', '{}', 'mysql'), /declined/);
+    globalThis.fetch = async () => Response.json({ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }, { status: 401 });
+    await assert.rejects(generateQuery(options, 'bad-key', 'x', '{}', 'mysql'), /rejected the API key/);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
 test('OpenAI identity validates signature, issuer, audience, nonce and expiry', () => {
   const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
   const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'test' };
