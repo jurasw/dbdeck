@@ -442,6 +442,7 @@ textarea {
   flex-direction: column;
   justify-content: center;
   padding: 0 10px;
+  border-right: 1px solid var(--border);
   background: var(--bg);
   cursor: default;
   user-select: none;
@@ -487,12 +488,11 @@ textarea {
 .gh .resizer {
   position: absolute;
   right: 0;
-  top: 8px;
-  bottom: 8px;
+  top: 0;
+  bottom: 0;
   width: 5px;
   cursor: col-resize;
   z-index: 2;
-  border-right: 1px solid var(--border);
 }
 .gh .resizer:hover,
 .gh .resizer.active {
@@ -553,6 +553,7 @@ textarea {
 .gc {
   flex: none;
   padding: 0 10px;
+  border-right: 1px solid var(--border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

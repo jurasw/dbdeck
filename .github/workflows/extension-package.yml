@@ -10,6 +10,9 @@ permissions:
 jobs:
   package:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/extension
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -18,6 +21,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+          cache-dependency-path: apps/extension/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Validate
@@ -28,5 +32,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dbdeck-vsix
-          path: '*.vsix'
+          path: apps/extension/*.vsix
           if-no-files-found: error

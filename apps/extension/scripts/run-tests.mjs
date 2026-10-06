@@ -1,7 +1,7 @@
 import { build } from 'esbuild';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 // Compile TypeScript specs with the existing bundler, then use Node's test runner.
@@ -15,7 +15,10 @@ try {
   const specs = readdirSync(output, { recursive: true })
     .filter((file) => file.endsWith('.js'))
     .map((file) => join(output, file));
-  const result = spawnSync(process.execPath, ['--test', ...specs], { stdio: 'inherit' });
+  const result = spawnSync(process.execPath, ['--test', ...specs], {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_PATH: [resolve('node_modules'), process.env.NODE_PATH].filter(Boolean).join(delimiter) },
+  });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 } finally {

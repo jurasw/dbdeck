@@ -99,7 +99,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
 
 function describe(c: ConnectionConfig): string {
   if (c.type === 'docker') return c.useSocket !== false ? c.socketPath || 'local socket' : `${c.host}:${c.port ?? 2375}`;
-  if (c.type === 'mongodb' && c.useUri) return 'connection string';
+  if (c.type === 'mongodb' && c.useUri) return '';
   if (c.type === 's3') return [c.endpoint ? c.endpoint.replace(/^https?:\/\//, '') : `AWS ${c.region || 'us-east-1'}`, c.database].filter(Boolean).join(' · ');
   const user = c.user ? `${c.user}@` : '';
   return `${user}${c.host || '127.0.0.1'}${c.port ? `:${c.port}` : ''}`;

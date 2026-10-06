@@ -8,7 +8,7 @@ export interface GridColumn {
 }
 
 export interface GridOptions {
-  editable?: () => boolean;
+  editable?: (row: number, col: number) => boolean;
   sort?: 'client' | 'server' | 'none';
   onSort?: (col: number, dir: 'asc' | 'desc' | null) => void;
   onEdit?: (row: number, col: number, value: string | null) => void;
@@ -347,7 +347,7 @@ export class Grid {
   private onDblClick(e: MouseEvent): void {
     const hit = this.hit(e);
     if (!hit || hit.rownum) return;
-    if (this.opts.editable?.()) this.startEdit(hit.v, hit.c);
+    if (this.opts.editable?.(this.order[hit.v], hit.c)) this.startEdit(hit.v, hit.c);
     else this.opts.onActivate?.(this.order[hit.v], hit.c);
   }
 
@@ -462,7 +462,7 @@ export class Grid {
       case 'Enter':
       case 'F2':
         e.preventDefault();
-        if (this.opts.editable?.()) this.startEdit(f.v, f.c);
+        if (this.opts.editable?.(this.order[f.v], f.c)) this.startEdit(f.v, f.c);
         else this.opts.onActivate?.(this.order[f.v], f.c);
         return;
       case 'Escape':
@@ -508,6 +508,7 @@ export class Grid {
   }
 
   startEdit(v: number, c: number): void {
+    if (!this.opts.editable?.(this.order[v], c)) return;
     this.hidePreview();
     this.closeEditor(true);
     this.ensureVisible(v, c);

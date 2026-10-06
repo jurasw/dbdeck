@@ -193,6 +193,18 @@ export class MongoDriver extends BaseDriver {
     if (!r.matchedCount) throw new Error('Document not found');
   }
 
+  async updateField(db: string, coll: string, id: unknown, field: string, text: string): Promise<void> {
+    if (this.config.readonly) throw new Error('This connection is read-only');
+    if (!field || field === '_id' || field.startsWith('$') || field.includes('.') || field.includes('\0')) throw new Error('This field cannot be edited inline');
+    if (id === undefined) throw new Error('Document ID is missing');
+    const _id = EJSON.deserialize({ v: id } as Document, { relaxed: true }).v;
+    const value = EJSON.parse(text, { relaxed: true });
+    const r = await this.db(db)
+      .collection(coll)
+      .updateOne({ _id }, { $set: { [field]: value } });
+    if (!r.matchedCount) throw new Error('Document not found');
+  }
+
   async insert(db: string, coll: string, text: string): Promise<void> {
     if (this.config.readonly) throw new Error('This connection is read-only');
     const parsed = EJSON.parse(text, { relaxed: true }) as Document | Document[];

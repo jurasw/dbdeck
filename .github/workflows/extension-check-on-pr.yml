@@ -2,8 +2,10 @@ name: Check Extension on PR
 
 on:
   pull_request:
+    paths: ['apps/extension/**', '.github/workflows/extension-*.yml', '.nvmrc']
   push:
     branches: [main]
+    paths: ['apps/extension/**', '.github/workflows/extension-*.yml', '.nvmrc']
   workflow_dispatch:
 
 permissions:
@@ -16,6 +18,9 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/extension
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -24,6 +29,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+          cache-dependency-path: apps/extension/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Type check
@@ -40,5 +46,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dbdeck-vsix
-          path: '*.vsix'
+          path: apps/extension/*.vsix
           if-no-files-found: error

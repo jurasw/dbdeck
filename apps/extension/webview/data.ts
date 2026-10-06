@@ -1,4 +1,5 @@
 import { Grid, GridColumn } from './grid';
+import { parseCellValue } from './cell-value';
 import { jsonView } from './json';
 import { btn, clear, contextMenu, fmtMs, fmtNum, h, icon, INIT, jsonEditor, loading, MenuItem, modal, raw, rpc, toast, toCsv, toObjects, toTsv } from './lib';
 
@@ -32,6 +33,8 @@ const deleted = new Set<number>();
 
 const pkCols = () => columns.map((c, i) => (c.pk ? i : -1)).filter((i) => i >= 0);
 const canEditRows = () => I.editable && isSql && pkCols().length > 0;
+const savingCells = new Set<string>();
+const canEditCell = (r: number, c: number) => (isSql ? canEditRows() : I.editable && docs[r]?._id !== undefined && columns[c]?.name !== '_id' && !savingCells.has(`${r}:${c}`));
 const dirty = () => edits.size > 0 || added.size > 0 || deleted.size > 0;
 
 const quote = (n: string) => (I.dialect === 'postgres' ? `"${n.replace(/"/g, '""')}"` : `\`${n.replace(/`/g, '``')}\``);
@@ -48,7 +51,7 @@ const inputs = {
 
 const grid = new Grid({
   sort: 'server',
-  editable: canEditRows,
+  editable: canEditCell,
   rowOffset: () => page * pageSize,
   onSort: (c, dir) => {
     const name = columns[c].name;
@@ -57,8 +60,8 @@ const grid = new Grid({
     else inputs.b.value = dir ? `${name} ${dir}` : '';
     void load(true);
   },
-  onEdit: (r, c, value) => setCell(r, c, value),
-  onActivate: (r, c) => (isSql ? viewValue(columns[c].name, rows[r][c]) : I.editable ? editDoc(r) : viewValue('Document', docs[r])),
+  onEdit: (r, c, value) => (isSql ? setCell(r, c, value) : void saveDocCell(r, c, value)),
+  onActivate: (r, c) => viewValue(columns[c].name, rows[r][c]),
   onContextMenu: (e, r, c) => contextMenu(e.clientX, e.clientY, menuFor(r, c)),
   onSelect: () => updateActions(),
   onKey: (e) => {
@@ -72,6 +75,26 @@ const grid = new Grid({
   rowClass: (r) => (deleted.has(r) ? 'deleted' : added.has(r) ? 'added' : ''),
   cellClass: (r, c) => (edits.get(r)?.has(c) ? 'dirty' : ''),
 });
+
+async function saveDocCell(r: number, c: number, text: string | null): Promise<void> {
+  const key = `${r}:${c}`;
+  const doc = docs[r];
+  const row = rows[r];
+  const field = columns[c].name;
+  savingCells.add(key);
+  try {
+    const value = parseCellValue(text, row[c]);
+    await rpc('updateField', { id: doc._id, field, text: JSON.stringify(value) });
+    Object.defineProperty(doc, field, { value, enumerable: true, writable: true, configurable: true });
+    row[c] = value;
+    grid.refresh();
+    toast('Value saved', 'success');
+  } catch (e) {
+    toast((e as Error).message, 'error');
+  } finally {
+    savingCells.delete(key);
+  }
+}
 
 function setCell(r: number, c: number, value: unknown): void {
   if (!added.has(r) && !originals.has(r)) originals.set(r, rows[r].slice());
@@ -166,8 +189,9 @@ function menuFor(r: number, c: number): MenuItem[] {
   if (!isSql && I.editable) {
     items.push(
       '-',
+      ...(canEditCell(r, c) ? [{ label: 'Edit cell', icon: 'edit', action: () => grid.startEdit(rowsView(r), c) }] : []),
       { label: 'Edit document', icon: 'edit', action: () => editDoc(r) },
-      { label: 'Clone document', icon: 'copy', action: () => insertDoc(docs[r]) },
+      { label: 'Duplicate row', icon: 'copy', action: () => insertDoc(docs[r]) },
       { label: `Delete ${sel.length > 1 ? `${sel.length} documents` : 'document'}`, icon: 'trash', danger: true, action: () => void deleteSelected() },
     );
   }
@@ -203,7 +227,7 @@ function editDoc(r: number): void {
 }
 
 function insertDoc(template?: Record<string, unknown>): void {
-  const base = template ? { ...template } : {};
+  const base = { ...(template ?? docs[0]) };
   delete base._id;
   const ta = jsonEditor(JSON.stringify(base, null, 2) === '{}' ? (I.mode === 'es' ? '{\n  "_id": "",\n  \n}' : '{\n  \n}') : JSON.stringify(base, null, 2), 22);
   modal(
@@ -413,6 +437,7 @@ function updateActions(): void {
       left.push(
         btn(I.mode === 'mongo' ? 'Insert' : 'Add', { icon: 'add', class: 'sm outline', onClick: () => insertDoc() }),
         btn('Edit', { icon: 'edit', class: 'sm outline', disabled: sel !== 1, onClick: () => editDoc(grid.selectedRows()[0]) }),
+        btn('Duplicate row', { icon: 'copy', class: 'sm outline', disabled: sel !== 1, onClick: () => insertDoc(docs[grid.selectedRows()[0]]) }),
         btn('Delete', { icon: 'trash', class: 'sm outline', disabled: !sel, onClick: () => void deleteSelected() }),
       );
     }
@@ -533,6 +558,7 @@ function render(): void {
     content,
   );
   renderBody();
+  updateActions();
 }
 
 document.addEventListener('keydown', (e) => {

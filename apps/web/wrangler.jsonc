@@ -1,0 +1,13 @@
+{
+  "name": "dbdeck",
+  "account_id": "1185239ba27e9677adc3afb821b7e042",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "dbdeck.dev", "custom_domain": true },
+    { "pattern": "www.dbdeck.dev", "custom_domain": true }
+  ]
+}

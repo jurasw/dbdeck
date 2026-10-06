@@ -1,0 +1,70 @@
+# DBDeck dev processes. Works with phrocs and mprocs (brew install mprocs):
+#   phrocs        (run from the repository root)
+# `groups` / `default_group` / `group_order` are phrocs features - mprocs ignores them.
+# EDITOR_CLI picks the editor for the Extension Development Host (default: code).
+procs:
+  info:
+    shell: |
+      echo ''
+      printf '  \033[1mDBDeck\033[0m\n'
+      echo ''
+      printf '  \033[38;2;91;140;255mweb\033[0m             landing page on http://localhost:3000\n'
+      printf '  \033[38;2;91;140;255mextension\033[0m       esbuild + tailwind watch for apps/extension\n'
+      printf '  \033[38;2;91;140;255mdev-host\033[0m        editor window with the extension from source\n'
+      printf '  \033[38;2;91;140;255mtest-dbs\033[0m        Postgres, MySQL, Mongo, Redis, ClickHouse, ES, S3\n'
+      printf '  \033[38;2;91;140;255mvalidate\033[0m        check, lint, test and build the extension\n'
+      printf '  \033[38;2;91;140;255mpackage\033[0m         build dbdeck-<version>.vsix\n'
+      printf '  \033[38;2;91;140;255minstall-vsix\033[0m    install that VSIX into your editor\n'
+      printf '  \033[38;2;91;140;255mweb-deploy\033[0m      build and deploy dbdeck.dev to Cloudflare\n'
+      echo ''
+      printf '  \033[1mSidebar:\033[0m  s start   x stop   r restart   g grouping (phrocs)\n'
+      echo ''
+    autostart: true
+    groups: { layer: pinned, app: pinned }
+
+  web:
+    shell: cd apps/web && npm run dev
+    autostart: true
+    groups: &web_dev { layer: dev, app: web }
+
+  extension:
+    shell: cd apps/extension && npm run watch
+    autostart: true
+    groups: &extension_dev { layer: dev, app: extension }
+
+  dev-host:
+    shell: ${EDITOR_CLI:-code} --new-window --extensionDevelopmentPath="$PWD/apps/extension"
+    autostart: false
+    groups: *extension_dev
+
+  test-dbs:
+    shell: docker compose -f apps/extension/test/docker-compose.yml up
+    autostart: false
+    groups: { layer: infrastructure, app: extension }
+
+  validate:
+    shell: cd apps/extension && npm run validate
+    autostart: false
+    groups: &extension_tools { layer: tools, app: extension }
+
+  package:
+    shell: cd apps/extension && npm run package
+    autostart: false
+    groups: *extension_tools
+
+  install-vsix:
+    shell: cd apps/extension && ${EDITOR_CLI:-code} --install-extension "dbdeck-$(node -p "require('./package.json').version").vsix" --force
+    autostart: false
+    groups: *extension_tools
+
+  web-deploy:
+    shell: cd apps/web && npm run deploy
+    autostart: false
+    groups: { layer: tools, app: web }
+
+default_group: layer
+group_order:
+  layer: [pinned, dev, infrastructure, tools]
+  app: [pinned, web, extension]
+proc_list_width: 22
+scrollback: 10000
