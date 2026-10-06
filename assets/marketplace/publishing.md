@@ -41,10 +41,25 @@ npx ovsx publish apps/extension/dbdeck-<version>.vsix -p <token>
 
 The listing appears at https://open-vsx.org/extension/dbdeck/dbdeck.
 
-## 4. GitHub Release
+## 4. Automatic releases
+
+`.github/workflows/extension-publish.yml` runs on every push to `main` that changes `apps/extension/package.json`, and by hand from the Actions tab. To release, bump the version and its CHANGELOG section, then push:
 
 ```bash
-gh release create v<version> apps/extension/dbdeck-<version>.vsix --title "DBDeck <version>" --notes-file <notes.md>
+cd apps/extension && npm version minor --no-git-tag-version
+```
+
+The workflow checks each target and only publishes what is missing for that version:
+
+- VS Code Marketplace, when the `VSCE_PAT` repository secret exists.
+- Open VSX, when the `OVSX_PAT` repository secret exists.
+- GitHub release `extension-v<version>` with the VSIX and the CHANGELOG section.
+
+A store without its token is skipped with a warning. After adding the token, run the workflow by hand to publish the current version there. Store the tokens as repository secrets, never in the repository:
+
+```bash
+gh secret set VSCE_PAT
+gh secret set OVSX_PAT
 ```
 
 ## 5. Website
@@ -56,4 +71,10 @@ npm run deploy           # next build + wrangler deploy → dbdeck.dev, www.dbde
 
 `wrangler.jsonc` holds the Worker name, account and custom domains. Run `npx wrangler login` first if the token has expired.
 
-Never commit publishing tokens. A CI publishing workflow, if added later, should read them from a protected GitHub Environment.
+CI deploys on every push to `main` that touches `apps/web` (`.github/workflows/web-prod-deploy.yml`, also runnable by hand from the Actions tab). It needs one repository secret, `CLOUDFLARE_API_TOKEN`: create it at https://dash.cloudflare.com/profile/api-tokens from the **Edit Cloudflare Workers** template, limited to this account and the `dbdeck.dev` zone, then:
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN
+```
+
+Never commit publishing tokens.

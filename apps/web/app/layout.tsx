@@ -24,10 +24,10 @@ export const metadata: Metadata = {
     description,
     url: "https://dbdeck.dev",
     siteName: "DBDeck",
-    images: [{ url: "/screenshots/data-grid.png", width: 1920, height: 1200 }],
+    images: [{ url: "/og.png", width: 2400, height: 1260, alt: "DBDeck — your databases, inside your editor" }],
     type: "website",
   },
-  twitter: { card: "summary_large_image", images: ["/screenshots/data-grid.png"] },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
 };
 
 export const viewport: Viewport = { themeColor: "#0d1220", colorScheme: "dark" };

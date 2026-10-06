@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@500;600;700&family=Geist+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; background: #06080e; }
+  body { position: relative; font-family: "Funnel Display", system-ui, sans-serif; color: #f5f7fb; }
+  .glow { position: absolute; inset: 0;
+    background:
+      radial-gradient(620px 420px at 88% 18%, rgba(78, 124, 255, .30), transparent 70%),
+      radial-gradient(520px 360px at 6% 104%, rgba(78, 124, 255, .14), transparent 70%); }
+  .grid { position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.10) 1px, transparent 1px);
+    background-size: 24px 24px;
+    -webkit-mask-image: radial-gradient(900px 520px at 30% 40%, #000 20%, transparent 75%); }
+  .top { position: absolute; left: 72px; right: 72px; top: 60px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 600; letter-spacing: -.01em; }
+  .brand img { width: 44px; height: 44px; border-radius: 10px; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+  .pill { font-family: "Geist Mono", monospace; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: #9aa6c4;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03); display: flex; align-items: center; gap: 10px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #6b97ff; box-shadow: 0 0 12px #6b97ff; }
+  .copy { position: absolute; left: 72px; top: 196px; width: 600px; }
+  h1 { font-size: 64px; line-height: 1.04; white-space: nowrap; font-weight: 600; letter-spacing: -.035em; }
+  h1 span { display: block; }
+  h1 .muted { color: #7d89a8; }
+  .sub { margin-top: 28px; font-family: "Geist Mono", monospace; font-size: 18px; line-height: 1.6; color: #aab4cf; }
+  .sub b { color: #f5f7fb; font-weight: 500; }
+  .types { position: absolute; left: 72px; bottom: 64px; display: flex; gap: 10px; }
+  .types div { width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.035);
+    display: grid; place-items: center; }
+  .types img { width: 24px; height: 24px; }
+  .shot { position: absolute; left: 700px; top: 150px; width: 860px;
+    transform: perspective(1800px) rotateY(-14deg) rotateX(6deg) rotateZ(-1deg); transform-origin: left center; }
+  .frame { border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.12); background: #0d1220;
+    box-shadow: 0 40px 120px rgba(0,0,0,.65), 0 0 0 1px rgba(107,151,255,.10), 0 0 80px rgba(78,124,255,.18); }
+  .chrome { height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 14px; background: rgba(255,255,255,.035); border-bottom: 1px solid rgba(255,255,255,.07); }
+  .chrome i { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.16); }
+  .frame img { display: block; width: 100%; }
+  .fade { position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, transparent 72%, #06080e 100%), linear-gradient(90deg, transparent 88%, rgba(6,8,14,.6) 100%); }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="grid"></div>
+  <div class="top">
+    <div class="brand"><img src="../icon-128.png" alt="">DBDeck</div>
+    <div class="pill"><span class="dot"></span>dbdeck.dev</div>
+  </div>
+  <div class="copy">
+    <h1><span>Your databases.</span><span class="muted">Inside your editor.</span></h1>
+    <p class="sub">Free, open source client for <b>VS Code</b> and <b>Cursor</b>.<br>No account. No paywall. No telemetry.</p>
+  </div>
+  <div class="types">
+    <div><img src="../../../apps/web/public/types/postgres-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/mysql-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/clickhouse-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/mongodb-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/redis-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/elasticsearch-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/s3-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/docker-on.svg" alt=""></div>
+  </div>
+  <div class="shot">
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i></div>
+      <img src="../../screenshots/data-grid.png" alt="">
+    </div>
+  </div>
+  <div class="fade"></div>
+</body>
+</html>

@@ -2,10 +2,21 @@ name: Check Extension on PR
 
 on:
   pull_request:
-    paths: ['apps/extension/**', '.github/workflows/extension-*.yml', '.nvmrc']
+    branches:
+      - '**'
+    paths:
+      - 'apps/extension/**'
+      - '.github/workflows/extension-*.yml'
+      - '.github/templates/setup-npm/**'
+      - '.nvmrc'
   push:
-    branches: [main]
-    paths: ['apps/extension/**', '.github/workflows/extension-*.yml', '.nvmrc']
+    branches:
+      - main
+    paths:
+      - 'apps/extension/**'
+      - '.github/workflows/extension-*.yml'
+      - '.github/templates/setup-npm/**'
+      - '.nvmrc'
   workflow_dispatch:
 
 permissions:
@@ -24,24 +35,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+
+      - name: Setup
+        uses: ./.github/templates/setup-npm
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: apps/extension/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: apps/extension
+
       - name: Type check
         run: npm run check
+
       - name: Lint and format check
         run: npm run lint
-      - name: Run tests
+
+      - name: Test
         run: npm test
+
       - name: Build
         run: npm run build
-      - name: Package extension
+
+      - name: Package
         run: npm run package
+
       - name: Upload VSIX for review
         uses: actions/upload-artifact@v4
         with:

@@ -18,11 +18,11 @@ Trace the affected flow and callers before editing. Reuse existing helpers and p
 - Extension: `npm run check`, `npm run lint`, `npm test` and `npm run build`; `npm run validate` runs all four.
 - Web: `npm run lint` and `npm run build` in `apps/web`.
 - Lock dependency changes with each package's `package-lock.json`. Use Node 22 (`.nvmrc`) and `npm ci` in CI.
-- Workflow names follow `<area>-<task>-on-pr.yml` and `<area>-package.yml`.
+- Workflow names follow `<area>-check-on-pr.yml`, `<area>-prod-deploy.yml`, `<area>-publish.yml` and `<area>-package.yml`. Shared setup steps live in `.github/templates/` as composite actions.
 
 ## Release boundary
 
-Build and inspect VSIX artifacts locally. Publishing to Marketplace, Open VSX or GitHub Releases and deploying the website need an explicit request. Do not register a publisher or store publishing credentials in the repository.
+Build and inspect VSIX artifacts locally. Publishing to Marketplace, Open VSX or GitHub Releases, bumping the extension version on `main` and deploying the website need an explicit request. On `main`, changes in `apps/web` deploy dbdeck.dev and a new version in `apps/extension/package.json` publishes the extension through CI. Do not register a publisher or store publishing credentials in the repository.
 
 ## Local extension updates
 

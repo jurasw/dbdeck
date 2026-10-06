@@ -1,0 +1,121 @@
+name: Publish Extension
+
+# Bumping the version in apps/extension/package.json on main releases it.
+# Every target is checked first, so a version that is already on the
+# Marketplace, Open VSX or GitHub Releases is not published there again.
+# A store is skipped while its token secret is missing; re-run this workflow
+# by hand after adding it.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/extension/package.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: extension-publish
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/extension
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      marketplace: ${{ steps.plan.outputs.marketplace }}
+      openvsx: ${{ steps.plan.outputs.openvsx }}
+      release: ${{ steps.plan.outputs.release }}
+      any: ${{ steps.plan.outputs.any }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Find what is missing
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_VSCE_PAT: ${{ secrets.VSCE_PAT != '' }}
+          HAS_OVSX_PAT: ${{ secrets.OVSX_PAT != '' }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          id=$(node -p "const p = require('./package.json'); p.publisher + '/' + p.name")
+
+          marketplace=false
+          if ! npx -y @vscode/vsce show "${id/\//.}" --json 2>/dev/null | node -e "
+            let s = ''; process.stdin.on('data', d => s += d).on('end', () => {
+              process.exit(JSON.parse(s).versions.some(v => v.version === '$version') ? 0 : 1);
+            });"; then
+            if [ "$HAS_VSCE_PAT" = true ]; then marketplace=true; else echo "::warning::VSCE_PAT is not set, skipping the Marketplace."; fi
+          fi
+
+          openvsx=false
+          if [ "$(curl -s -o /dev/null -w '%{http_code}' "https://open-vsx.org/api/$id/$version")" != 200 ]; then
+            if [ "$HAS_OVSX_PAT" = true ]; then openvsx=true; else echo "::warning::OVSX_PAT is not set, skipping Open VSX."; fi
+          fi
+
+          release=false
+          gh release view "extension-v$version" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || release=true
+
+          any=false
+          [ "$marketplace$openvsx$release" != falsefalsefalse ] && any=true
+          echo "DBDeck $version: marketplace=$marketplace openvsx=$openvsx release=$release"
+          {
+            echo "version=$version"
+            echo "marketplace=$marketplace"
+            echo "openvsx=$openvsx"
+            echo "release=$release"
+            echo "any=$any"
+          } >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: plan
+    if: needs.plan.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/extension
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/extension
+
+      - name: Validate
+        run: npm run validate
+
+      - name: Package
+        run: |
+          npm run package
+          echo "VSIX=$PWD/dbdeck-$VERSION.vsix" >> "$GITHUB_ENV"
+
+      - name: Publish to the VS Code Marketplace
+        if: needs.plan.outputs.marketplace == 'true'
+        run: npx @vscode/vsce publish --packagePath "$VSIX"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX
+        if: needs.plan.outputs.openvsx == 'true'
+        run: npx -y ovsx publish "$VSIX"
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+      - name: GitHub release
+        if: needs.plan.outputs.release == 'true'
+        run: |
+          awk -v v="$VERSION" '/^## /{p = index($0, v) > 0; next} p' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          test -s "$RUNNER_TEMP/notes.md" || echo "DBDeck $VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release create "extension-v$VERSION" "$VSIX" --target "$GITHUB_SHA" --title "DBDeck $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+        env:
+          GH_TOKEN: ${{ github.token }}

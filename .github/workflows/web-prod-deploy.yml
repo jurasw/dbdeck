@@ -1,0 +1,60 @@
+name: Deploy web (prod)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web-*.yml'
+      - '.github/templates/setup-npm/**'
+      - '.nvmrc'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://dbdeck.dev
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/web
+
+      - name: Lint
+        run: npm run lint -- --max-warnings 0
+
+      - name: Build
+        run: npm run build
+
+      # The account and the dbdeck.dev / www.dbdeck.dev routes come from
+      # wrangler.jsonc, so the token only needs the Workers edit scopes.
+      - name: Deploy to Cloudflare
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Smoke test
+        run: |
+          for url in https://dbdeck.dev https://www.dbdeck.dev https://dbdeck.dev/screenshots/data-grid.png; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 3 --retry-all-errors "$url")
+            echo "$url $code"
+            [ "$code" = 200 ] || { echo "::error::$url returned $code"; exit 1; }
+          done

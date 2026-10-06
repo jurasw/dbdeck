@@ -35,4 +35,4 @@ Document visible changes and update `apps/extension/CHANGELOG.md`. Do not includ
 
 ## Release preparation
 
-See [Publishing](assets/marketplace/publishing.md). CI uploads VSIX artifacts for review. Publication is a separate maintainer action.
+See [Publishing](assets/marketplace/publishing.md). Pull requests run `extension-check-on-pr` and `web-check-on-pr`, and the extension check uploads the VSIX for review. A push to `main` that touches `apps/web` deploys dbdeck.dev (`web-prod-deploy`). Bumping the version in `apps/extension/package.json` on `main` publishes the extension (`extension-publish`): Marketplace and Open VSX when their tokens are set, plus a GitHub release.

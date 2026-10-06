@@ -1,6 +1,6 @@
 name: Package Extension
 
-# Preparation only: no Marketplace publishing or GitHub release creation.
+# Builds a VSIX for manual review. Publishing lives in extension-publish.yml.
 on:
   workflow_dispatch:
 
@@ -16,18 +16,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+
+      - name: Setup
+        uses: ./.github/templates/setup-npm
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: apps/extension/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+          directory: apps/extension
+
       - name: Validate
         run: npm run validate
-      - name: Package extension
+
+      - name: Package
         run: npm run package
+
       - name: Upload VSIX for review
         uses: actions/upload-artifact@v4
         with:

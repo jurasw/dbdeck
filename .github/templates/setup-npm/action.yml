@@ -1,0 +1,22 @@
+name: "Setup npm package"
+description: "Install Node.js from .nvmrc and run npm ci inside one package of the monorepo"
+
+inputs:
+  directory:
+    description: "Package folder, e.g. apps/extension or apps/web"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: ${{ inputs.directory }}/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+      shell: bash
+      working-directory: ${{ inputs.directory }}

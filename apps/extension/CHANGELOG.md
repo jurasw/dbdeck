@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 — Unreleased
+## 0.2.0 — 2026-10-06
 
 - AI SQL generation with a preview, selected schema context, Continue with ChatGPT, user-owned API providers and local Ollama.
 - Search Database Objects command for tables, views and routines across connections.
