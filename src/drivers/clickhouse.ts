@@ -11,6 +11,15 @@ interface JsonCompact {
   statistics?: { elapsed: number; rows_read: number; bytes_read: number };
 }
 
+function extractError(body: string): string | undefined {
+  try {
+    return (JSON.parse(body) as { exception?: string })?.exception?.trim();
+  } catch {
+    const m = /"exception":\s*"((?:\\.|[^"\\])*)"/.exec(body);
+    return m ? (JSON.parse(`"${m[1]}"`) as string).trim() : undefined;
+  }
+}
+
 export class ClickHouseDriver extends SqlDriver {
   readonly dialect = 'clickhouse' as const;
   readonly editable = false;
@@ -53,7 +62,11 @@ export class ClickHouseDriver extends SqlDriver {
       body: sql,
       rejectUnauthorized: this.config.rejectUnauthorized ?? false,
     });
-    if (r.status !== 200) throw new Error(r.body.trim() || `HTTP ${r.status}`);
+    if (r.status !== 200) throw new Error(extractError(r.body) || r.body.trim() || `HTTP ${r.status}`);
+    if (r.body.includes('"exception"')) {
+      const mid = extractError(r.body);
+      if (mid) throw new Error(mid);
+    }
     return r.body;
   }
 

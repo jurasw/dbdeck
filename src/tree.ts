@@ -13,16 +13,12 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
   private readonly emitter = new vscode.EventEmitter<DbNode | undefined | void>();
   readonly onDidChangeTreeData = this.emitter.event;
   private parents = new Map<string, DbNode>();
-  private connNodes = new Map<string, DbNode>();
 
   constructor(
     private readonly manager: ConnectionManager,
     private readonly extUri: vscode.Uri,
   ) {
-    manager.onDidChange((id) => {
-      const n = this.connNodes.get(id);
-      this.emitter.fire(n);
-    });
+    manager.onDidChange(() => this.emitter.fire());
   }
 
   refresh(n?: DbNode): void {
@@ -34,7 +30,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
   }
 
   private connectionNode(c: ConnectionConfig): DbNode {
-    const n: DbNode = {
+    return {
       connId: c.id,
       kind: 'connection',
       label: c.name,
@@ -42,8 +38,6 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
       tooltip: `${TYPE_LABEL[c.type]}\n${describe(c)}${c.ssh?.enabled ? `\nvia SSH ${c.ssh.username}@${c.ssh.host}` : ''}${c.readonly ? '\nread-only' : ''}`,
       tags: `conn ${FAMILY[c.type]} ${c.type}`,
     };
-    this.connNodes.set(c.id, n);
-    return n;
   }
 
   async getChildren(parent?: DbNode): Promise<DbNode[]> {

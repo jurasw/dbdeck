@@ -45,7 +45,10 @@ export abstract class SqlDriver extends BaseDriver {
   }
 
   async page(t: TableRef, o: PageOptions): Promise<QueryResult> {
-    const [cols, res] = await Promise.all([this.columns(t).catch(() => [] as ColumnMeta[]), this.run(this.selectSql(t, o), t.database)]);
+    const cols = await this.columns(t).catch(() => [] as ColumnMeta[]);
+    const pk = cols.filter((c) => c.pk).map((c) => this.quote(c.name));
+    const orderBy = o.orderBy?.trim() || (this.dialect !== 'clickhouse' && pk.length ? pk.join(', ') : undefined);
+    const res = await this.run(this.selectSql(t, { ...o, orderBy }), t.database);
     const byName = new Map(cols.map((c) => [c.name, c]));
     res.columns = res.columns.map((c) => ({ ...c, ...byName.get(c.name), name: c.name }));
     return res;

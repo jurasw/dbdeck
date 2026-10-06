@@ -44,7 +44,7 @@ export class QueryEditors implements vscode.Disposable {
         onDidChangeCodeLenses: this.lensEmitter.event,
         provideCodeLenses: (doc) => this.lenses(doc),
       }),
-      vscode.languages.registerCompletionItemProvider({ language: 'sql' }, { provideCompletionItems: (doc, pos) => this.complete(doc, pos) }, '.', ' '),
+      vscode.languages.registerCompletionItemProvider({ language: 'sql' }, { provideCompletionItems: (doc, pos) => this.complete(doc, pos) }, '.'),
       manager.onDidChange(() => this.schemaCache.clear()),
     );
     this.updateStatus();

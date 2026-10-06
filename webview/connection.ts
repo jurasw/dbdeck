@@ -33,6 +33,7 @@ interface Conn {
   socketPath?: string;
   showSystem?: boolean;
   readonly?: boolean;
+  savePassword?: boolean;
   ssh?: Ssh;
 }
 
@@ -235,7 +236,17 @@ function render(): void {
     field('Group', groupInput, 'w4'),
     h('datalist', { id: 'groups' }, I.groups.map((g) => h('option', { value: g }))),
   ]);
-  const server = section(c.type === 'docker' ? 'Docker engine' : 'Server', c.type === 'docker' ? 'vm' : 'server', serverFields());
+  const serverBody = serverFields();
+  if (c.type !== 'docker')
+    serverBody.push(
+      toggle(
+        'Remember password',
+        'On: OS keychain. Off: asked on connect, kept in memory only.',
+        () => c.savePassword !== false,
+        (v) => (c.savePassword = v),
+      ),
+    );
+  const server = section(c.type === 'docker' ? 'Docker engine' : 'Server', c.type === 'docker' ? 'vm' : 'server', serverBody);
   const advanced = section(
     'Options',
     'settings-gear',
@@ -271,6 +282,7 @@ function render(): void {
     if (ssh.authType === 'password') sshBody.push(field('SSH password', password(() => ssh.password, (v) => (ssh.password = v)), 'w4'));
     else {
       const keyInput = sshText('privateKeyPath', { placeholder: '~/.ssh/id_ed25519' });
+      keyInput.style.flex = '1';
       sshBody.push(
         field(
           'Private key',
@@ -315,7 +327,7 @@ function render(): void {
         'div.form',
         null,
         titleEl,
-        h('div.sub', null, 'Credentials are stored in your OS keychain through VS Code SecretStorage.'),
+        h('div.sub', null, 'Everything stays on this machine. No accounts, no telemetry, no cloud sync.'),
         isNew ? typeCards : null,
         general,
         server,

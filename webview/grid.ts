@@ -217,7 +217,7 @@ export class Grid {
         if (val === null) content = '<span class="null">NULL</span>';
         else if (val === undefined) content = '<span class="undef"></span>';
         else if (typeof val === 'boolean') content = `<span class="bool">${val}</span>`;
-        else if (typeof val === 'object') content = `<span class="json">${esc(display(val, 200))}</span>`;
+        else if (typeof val === 'object') content = `<span class="jv">${esc(display(val, 200))}</span>`;
         else content = esc(display(val, 200));
         if (this.focus && this.focus.v === v && this.focus.c === c) cls += ' focus';
         const extra = this.opts.cellClass?.(r, c);
@@ -256,9 +256,18 @@ export class Grid {
       this.anchor = hit.v;
     }
     this.focus = { v: hit.v, c: hit.c };
-    this.renderBody();
+    this.paint();
     this.el.focus({ preventScroll: true });
     this.opts.onSelect?.();
+  }
+
+  private paint(): void {
+    for (const rowEl of Array.from(this.body.children) as HTMLElement[]) {
+      const v = Number(rowEl.dataset.v);
+      rowEl.classList.toggle('selected', this.selected.has(this.order[v]));
+      const cells = rowEl.children;
+      for (let i = 1; i < cells.length; i++) cells[i].classList.toggle('focus', !!this.focus && this.focus.v === v && this.focus.c === i - 1);
+    }
   }
 
   private onDblClick(e: MouseEvent): void {
@@ -278,7 +287,7 @@ export class Grid {
       this.anchor = hit.v;
     }
     this.focus = { v: hit.v, c: hit.c };
-    this.renderBody();
+    this.paint();
     this.opts.onSelect?.();
     this.opts.onContextMenu?.(e, r, hit.c);
   }

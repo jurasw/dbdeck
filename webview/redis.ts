@@ -14,7 +14,7 @@ const I = INIT as { key: string; db: number; location: string; readonly: boolean
 const app = document.getElementById('app')!;
 let key = I.key;
 let data: KeyValue | undefined;
-let stringMode: 'text' | 'json' = 'text';
+let stringMode: 'text' | 'json' | undefined;
 let filterText = '';
 
 const TYPE_STYLE: Record<string, [string, string]> = {
@@ -145,6 +145,7 @@ function renderString(d: KeyValue): HTMLElement {
   } catch {
     parsed = undefined;
   }
+  stringMode ??= parsed !== undefined ? 'json' : 'text';
   const ta = jsonEditor(stringMode === 'json' && parsed !== undefined ? JSON.stringify(parsed, null, 2) : text);
   ta.readOnly = I.readonly;
   const saveBtn = btn('Save', {

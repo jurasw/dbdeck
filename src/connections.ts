@@ -39,6 +39,8 @@ export function createDriver(c: ConnectionConfig): BaseDriver {
 }
 
 export class ConnectionStore {
+  private session = new Map<string, Secrets>();
+
   constructor(private readonly ctx: vscode.ExtensionContext) {}
 
   list(): ConnectionConfig[] {
@@ -52,8 +54,8 @@ export class ConnectionStore {
   async full(id: string): Promise<ConnectionConfig | undefined> {
     const c = this.get(id);
     if (!c) return undefined;
-    const raw = await this.ctx.secrets.get(`dbdeck.secret.${id}`);
-    const s: Secrets = raw ? JSON.parse(raw) : {};
+    const raw = c.savePassword === false ? undefined : await this.ctx.secrets.get(`dbdeck.secret.${id}`);
+    const s: Secrets = raw ? JSON.parse(raw) : this.session.get(id) ?? {};
     return {
       ...c,
       password: s.password,
@@ -71,7 +73,10 @@ export class ConnectionStore {
     const i = list.findIndex((x) => x.id === c.id);
     if (i >= 0) list[i] = plain;
     else list.push(plain);
-    await this.ctx.secrets.store(`dbdeck.secret.${c.id}`, JSON.stringify(s));
+    if (c.savePassword === false) {
+      this.session.set(c.id, Object.fromEntries(Object.entries(s).filter(([, v]) => v)) as Secrets);
+      await this.ctx.secrets.delete(`dbdeck.secret.${c.id}`);
+    } else await this.ctx.secrets.store(`dbdeck.secret.${c.id}`, JSON.stringify(s));
     await this.ctx.globalState.update(LIST_KEY, list);
   }
 
@@ -81,6 +86,37 @@ export class ConnectionStore {
       this.list().filter((c) => c.id !== id),
     );
     await this.ctx.secrets.delete(`dbdeck.secret.${id}`);
+    this.session.delete(id);
+  }
+
+  async askSecrets(c: ConnectionConfig): Promise<ConnectionConfig | undefined> {
+    if (c.savePassword !== false) return c;
+    const s = this.session.get(c.id) ?? {};
+    const needsPassword = c.type !== 'docker' && !(c.type === 'mongodb' && c.useUri) && !!c.user && s.password === undefined;
+    const needsUri = c.type === 'mongodb' && c.useUri && !s.uri;
+    const needsSsh = !!c.ssh?.enabled && c.ssh.authType === 'password' && s.sshPassword === undefined;
+    if (needsUri) {
+      const v = await vscode.window.showInputBox({ title: c.name, prompt: 'Connection string (kept in memory for this session only)', password: true, ignoreFocusOut: true });
+      if (v === undefined) return undefined;
+      s.uri = v;
+    }
+    if (needsPassword) {
+      const v = await vscode.window.showInputBox({ title: c.name, prompt: `Password for ${c.user} (kept in memory for this session only)`, password: true, ignoreFocusOut: true });
+      if (v === undefined) return undefined;
+      s.password = v;
+    }
+    if (needsSsh) {
+      const v = await vscode.window.showInputBox({ title: c.name, prompt: `SSH password for ${c.ssh!.username}@${c.ssh!.host}`, password: true, ignoreFocusOut: true });
+      if (v === undefined) return undefined;
+      s.sshPassword = v;
+    }
+    this.session.set(c.id, s);
+    return { ...c, password: s.password, uri: s.uri, apiKey: s.apiKey, ssh: c.ssh ? { ...c.ssh, password: s.sshPassword, passphrase: s.sshPassphrase } : undefined };
+  }
+
+  forget(id: string): void {
+    const c = this.get(id);
+    if (c?.savePassword === false) this.session.delete(id);
   }
 }
 
@@ -102,13 +138,16 @@ export class ConnectionManager implements vscode.Disposable {
     let p = this.pending.get(id);
     if (!p) {
       p = (async () => {
-        const cfg = await this.store.full(id);
-        if (!cfg) throw new Error('Connection not found');
+        const full = await this.store.full(id);
+        if (!full) throw new Error('Connection not found');
+        const cfg = await this.store.askSecrets(full);
+        if (!cfg) throw new Error('Connection cancelled');
         const driver = createDriver(cfg);
         try {
           await driver.connect();
         } catch (e) {
           await driver.close();
+          this.store.forget(id);
           throw e;
         }
         this.drivers.set(id, driver);

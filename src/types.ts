@@ -63,6 +63,7 @@ export interface ConnectionConfig {
   socketPath?: string;
   showSystem?: boolean;
   readonly?: boolean;
+  savePassword?: boolean;
   ssh?: SshConfig;
 }
 

@@ -30,7 +30,9 @@ function node(key: string | undefined, value: unknown, depth: number, expandDept
   }
   const wrap = h('div');
   const tog = h('span.tog', null, '▾');
-  const preview = h('span.p', null, ` ${isArr ? `${entries.length} items` : `${entries.length} keys`} `);
+  const idEntry = !isArr ? entries.find(([k]) => k === '_id') : undefined;
+  const summary = isArr ? `${entries.length} items` : idEntry ? `_id: ${ejson(idEntry[1] as Record<string, unknown>) ?? JSON.stringify(idEntry[1])} · ${entries.length} keys` : `${entries.length} keys`;
+  const preview = h('span.p', null, ` ${summary} `);
   const head = h('div.jl', null, tog, ...keyEl, open, preview);
   const kids = h('div.jc');
   const tail = h('div.jl', null, h('span.tog'), `${close}${comma}`);
@@ -45,7 +47,7 @@ function node(key: string | undefined, value: unknown, depth: number, expandDept
     if (open_) build();
     kids.classList.toggle('hidden', !open_);
     tail.classList.toggle('hidden', !open_);
-    preview.textContent = open_ ? '' : ` ${isArr ? `${entries.length} items` : `${entries.length} keys`} ${close}${comma}`;
+    preview.textContent = open_ ? '' : ` ${summary} ${close}${comma}`;
     tog.textContent = open_ ? '▾' : '▸';
   };
   tog.addEventListener('click', () => set(kids.classList.contains('hidden')));
@@ -64,6 +66,7 @@ function scalar(v: unknown): HTMLElement {
 }
 
 function ejson(v: Record<string, unknown>): string | undefined {
+  if (!v || typeof v !== 'object') return undefined;
   const keys = Object.keys(v);
   if (keys.length !== 1) return undefined;
   const k = keys[0];

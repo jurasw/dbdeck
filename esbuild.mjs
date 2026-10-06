@@ -1,9 +1,10 @@
 import * as esbuild from 'esbuild';
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync } from 'node:fs';
 
 const watch = process.argv.includes('--watch');
 const production = process.argv.includes('--production');
 
+if (production) rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/webview', { recursive: true });
 cpSync('node_modules/@vscode/codicons/dist/codicon.css', 'dist/webview/codicon.css');
 cpSync('node_modules/@vscode/codicons/dist/codicon.ttf', 'dist/webview/codicon.ttf');

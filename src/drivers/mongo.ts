@@ -43,7 +43,27 @@ function shellGlobals(): Record<string, unknown> {
 }
 
 export function toPlain(doc: unknown): unknown {
-  return EJSON.serialize(doc, { relaxed: true });
+  return relax(EJSON.serialize(doc, { relaxed: false }));
+}
+
+function relax(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(relax);
+  if (!v || typeof v !== 'object') return v;
+  const o = v as Record<string, unknown>;
+  const keys = Object.keys(o);
+  if (keys.length === 1) {
+    const [k] = keys;
+    const x = o[k];
+    if (k === '$numberInt') return Number(x);
+    if (k === '$numberDouble') return /^-?(Infinity|NaN)$/.test(String(x)) ? o : Number(x);
+    if (k === '$numberLong') return Number.isSafeInteger(Number(x)) ? Number(x) : o;
+    if (k === '$date') {
+      const ms = Number((x as { $numberLong?: string })?.$numberLong ?? NaN);
+      const d = new Date(ms);
+      return isNaN(d.getTime()) || d.getUTCFullYear() < 1970 || d.getUTCFullYear() > 9999 ? o : { $date: d.toISOString() };
+    }
+  }
+  return Object.fromEntries(keys.map((k) => [k, relax(o[k])]));
 }
 
 export class MongoDriver extends BaseDriver {
