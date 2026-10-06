@@ -317,6 +317,12 @@
         "title": "Show Schema Diagram",
         "category": "DBDeck",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "dbdeck.searchObjects",
+        "title": "Search Database Objects",
+        "category": "DBDeck",
+        "icon": "$(search)"
       }
     ],
     "menus": {
@@ -340,6 +346,11 @@
           "command": "dbdeck.importConnections",
           "when": "view == dbdeck.connections",
           "group": "more@2"
+        },
+        {
+          "command": "dbdeck.searchObjects",
+          "when": "view == dbdeck.connections",
+          "group": "navigation@0"
         }
       ],
       "view/item/context": [

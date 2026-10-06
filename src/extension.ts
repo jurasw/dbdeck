@@ -16,6 +16,7 @@ import { RedisPanel } from './panels/redisPanel';
 import { ResultsView } from './panels/resultsView';
 import { openRedisCli } from './redisCli';
 import { ConnectionTree } from './tree';
+import { searchObjects } from './object-search';
 import { ConnectionConfig, DbNode } from './types';
 import { errorMessage, formatBytes, uid } from './util';
 
@@ -50,6 +51,72 @@ export function activate(ctx: vscode.ExtensionContext): void {
   const openForm = (existing?: Partial<ConnectionConfig>) => ConnectionPanel.show(ctx.extensionUri, manager, () => tree.refresh(), existing);
 
   cmd('dbdeck.addConnection', () => openForm());
+  cmd('dbdeck.searchObjects', async () => {
+    const supported = store.list().filter((c) => ['mysql', 'postgres', 'clickhouse', 'mongodb', 'elasticsearch'].includes(c.type));
+    let config = supported.find((c) => c.id === view.selection[0]?.connId);
+    if (!config) {
+      const choice = await vscode.window.showQuickPick(
+        supported.map((c) => ({ label: c.name, description: c.type, config: c })),
+        { placeHolder: 'Choose a connection to search' },
+      );
+      config = choice?.config;
+    }
+    if (!config) return;
+    const roots = await tree.getChildren();
+    let root = roots.find((n) => n.connId === config!.id);
+    if (!root && config.group) {
+      const group = roots.find((n) => n.kind === 'group' && n.label === config!.group);
+      if (group) root = (await tree.getChildren(group)).find((n) => n.connId === config!.id);
+    }
+    if (!root) return;
+    const picker = vscode.window.createQuickPick<vscode.QuickPickItem & { node?: DbNode }>();
+    picker.title = `Search objects · ${config.name}`;
+    picker.placeholder = 'Search tables, schemas, databases, views and functions…';
+    picker.matchOnDescription = true;
+    picker.matchOnDetail = true;
+    picker.busy = true;
+    let cancelled = false;
+    const items: (vscode.QuickPickItem & { node?: DbNode })[] = [];
+    const hidden = picker.onDidHide(() => {
+      cancelled = true;
+    });
+    const accepted = picker.onDidAccept(() => {
+      const node = picker.selectedItems[0]?.node;
+      if (!node) return;
+      picker.hide();
+      void Promise.resolve(view.reveal(node, { select: true, focus: true })).catch((e) => vscode.window.showErrorMessage(errorMessage(e)));
+    });
+    picker.show();
+    try {
+      for await (const node of searchObjects(
+        root,
+        (n) => tree.getChildren(n),
+        () => cancelled,
+      )) {
+        items.push({
+          label: node.label,
+          description: node.kind,
+          detail: [node.database, node.schema, node.description].filter(Boolean).join(' · '),
+          node: node.kind === 'error' ? undefined : node,
+        });
+        picker.items = [...items];
+      }
+      if (!cancelled) {
+        picker.busy = false;
+        picker.placeholder = items.length ? 'Search tables, schemas, databases, views and functions…' : 'No objects found';
+        await new Promise<void>((resolve) => {
+          const subscription = picker.onDidHide(() => {
+            subscription.dispose();
+            resolve();
+          });
+        });
+      }
+    } finally {
+      hidden.dispose();
+      accepted.dispose();
+      picker.dispose();
+    }
+  });
   cmd('dbdeck.editConnection', (n: DbNode) => openForm({ id: n.connId }));
   cmd('dbdeck.duplicateConnection', async (n: DbNode) => {
     const full = await store.full(n.connId);

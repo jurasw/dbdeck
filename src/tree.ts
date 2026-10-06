@@ -47,7 +47,11 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
       const out: DbNode[] = groups.map((g) => ({ connId: '', kind: 'group', label: g, icon: 'folder', tags: 'group', expanded: true }));
       return out.concat(conns.filter((c) => !c.group).map((c) => this.connectionNode(c)));
     }
-    if (parent.kind === 'group') return conns.filter((c) => c.group === parent.label).map((c) => this.connectionNode(c));
+    if (parent.kind === 'group') {
+      const kids = conns.filter((c) => c.group === parent.label).map((c) => this.connectionNode(c));
+      for (const k of kids) this.parents.set(nodeId(k), parent);
+      return kids;
+    }
     try {
       const driver = await this.manager.get(parent.connId);
       const kids = await driver.children(parent.kind === 'connection' ? undefined : parent);
