@@ -323,6 +323,27 @@
         "title": "Search Database Objects",
         "category": "DBDeck",
         "icon": "$(search)"
+      },
+      {
+        "command": "dbdeck.aiQuery",
+        "title": "Generate Query with AI",
+        "category": "DBDeck",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "dbdeck.aiConfigure",
+        "title": "Configure AI Provider",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.aiSignIn",
+        "title": "Continue with ChatGPT",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.aiDisconnect",
+        "title": "Disconnect AI Provider",
+        "category": "DBDeck"
       }
     ],
     "menus": {
@@ -573,6 +594,11 @@
           "command": "dbdeck.showSchema",
           "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) sql\\b/",
           "group": "inline@2"
+        },
+        {
+          "command": "dbdeck.aiQuery",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|table|view) sql\\b/",
+          "group": "2_query@3"
         }
       ],
       "editor/title": [
@@ -580,6 +606,11 @@
           "command": "dbdeck.runQuery",
           "when": "dbdeck.boundEditor",
           "group": "navigation@1"
+        },
+        {
+          "command": "dbdeck.aiQuery",
+          "when": "dbdeck.boundEditor && editorLangId == sql",
+          "group": "navigation@2"
         }
       ],
       "editor/context": [

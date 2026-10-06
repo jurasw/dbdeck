@@ -1,6 +1,8 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { AiService } from './ai-service';
+import { AiPanel } from './panels/ai-panel';
 import { ConnectionManager, ConnectionStore } from './connections';
 import { DockerDriver } from './drivers/docker';
 import { ElasticDriver } from './drivers/elastic';
@@ -27,6 +29,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   const view = vscode.window.createTreeView('dbdeck.connections', { treeDataProvider: tree, showCollapseAll: true });
   const results = new ResultsView(ctx.extensionUri);
   const editors = new QueryEditors(ctx, manager, results);
+  const ai = new AiService(ctx);
 
   const refreshParent = (n?: DbNode) => tree.refresh(n ? tree.getParent(n) : undefined);
 
@@ -138,6 +141,11 @@ export function activate(ctx: vscode.ExtensionContext): void {
     if (n?.kind === 'redisDb' || n?.kind === 'redisFolder') (await manager.get<RedisDriver>(n.connId)).invalidate(Number(n.database));
     tree.refresh(n);
   });
+
+  cmd('dbdeck.aiQuery', (node?: DbNode) => AiPanel.show(ctx, manager, editors, ai, node && typeof node.connId === 'string' ? node : undefined));
+  cmd('dbdeck.aiConfigure', () => ai.configure());
+  cmd('dbdeck.aiSignIn', () => ai.signIn());
+  cmd('dbdeck.aiDisconnect', () => ai.disconnect());
 
   cmd('dbdeck.newQuery', async (n?: DbNode) => {
     n = await pickNode(n);
