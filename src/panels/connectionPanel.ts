@@ -20,7 +20,7 @@ export class ConnectionPanel {
     panel.iconPath = vscode.Uri.joinPath(extUri, 'media', 'activity.svg');
     ConnectionPanel.open.set(key, panel);
     const groups = [...new Set(manager.store.list().map((c) => c.group).filter(Boolean))];
-    panel.webview.html = webviewHtml(panel.webview, extUri, 'connection', 'Connection', {
+    const init = {
       connection: full ?? null,
       defaults: DEFAULT_PORT,
       dockerSocket: defaultSocket(),
@@ -28,7 +28,8 @@ export class ConnectionPanel {
       icons: Object.fromEntries(
         Object.keys(DEFAULT_PORT).map((t) => [t, panel.webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'media', 'types', `${t}.svg`)).toString()]),
       ),
-    });
+    };
+    panel.webview.html = webviewHtml(panel.webview, extUri, 'connection', 'Connection', init, ['connection.css']);
     const sub = bindRpc(panel.webview, {
       test: (c: ConnectionConfig) => manager.test(normalize(c)),
       save: async (c: ConnectionConfig) => {

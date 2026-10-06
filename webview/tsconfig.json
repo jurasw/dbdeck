@@ -7,7 +7,9 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": []
+    "types": [],
+    "jsx": "react-jsx",
+    "paths": { "@/*": ["./ui/*"] }
   },
   "include": ["."]
 }

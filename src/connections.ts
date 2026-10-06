@@ -7,6 +7,7 @@ import { MongoDriver } from './drivers/mongo';
 import { MysqlDriver } from './drivers/mysql';
 import { PostgresDriver } from './drivers/postgres';
 import { RedisDriver } from './drivers/redis';
+import { S3Driver } from './drivers/s3';
 import { ConnectionConfig } from './types';
 
 const LIST_KEY = 'dbdeck.connections';
@@ -35,6 +36,8 @@ export function createDriver(c: ConnectionConfig): BaseDriver {
       return new ElasticDriver(c);
     case 'docker':
       return new DockerDriver(c);
+    case 's3':
+      return new S3Driver(c);
   }
 }
 
@@ -101,7 +104,7 @@ export class ConnectionStore {
       s.uri = v;
     }
     if (needsPassword) {
-      const v = await vscode.window.showInputBox({ title: c.name, prompt: `Password for ${c.user} (kept in memory for this session only)`, password: true, ignoreFocusOut: true });
+      const v = await vscode.window.showInputBox({ title: c.name, prompt: `${c.type === 's3' ? 'Secret access key' : 'Password'} for ${c.user} (kept in memory for this session only)`, password: true, ignoreFocusOut: true });
       if (v === undefined) return undefined;
       s.password = v;
     }

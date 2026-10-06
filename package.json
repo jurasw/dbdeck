@@ -1,7 +1,7 @@
 {
   "name": "dbdeck",
   "displayName": "DBDeck — Database Client",
-  "description": "Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch and Docker. No paywalls, no telemetry.",
+  "description": "Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
   "version": "0.1.0",
   "publisher": "dbdeck",
   "license": "MIT",
@@ -20,6 +20,8 @@
     "redis",
     "elasticsearch",
     "clickhouse",
+    "s3",
+    "minio",
     "docker",
     "database",
     "sql"
@@ -65,7 +67,7 @@
     "viewsWelcome": [
       {
         "view": "dbdeck.connections",
-        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch and Docker.\n[Import Connections](command:dbdeck.importConnections)"
+        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker.\n[Import Connections](command:dbdeck.importConnections)"
       }
     ],
     "languages": [
@@ -232,6 +234,36 @@
         "icon": "$(trash)"
       },
       {
+        "command": "dbdeck.s3.open",
+        "title": "Open",
+        "category": "DBDeck",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "dbdeck.s3.download",
+        "title": "Download…",
+        "category": "DBDeck",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "dbdeck.s3.upload",
+        "title": "Upload Files…",
+        "category": "DBDeck",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "dbdeck.s3.copyUri",
+        "title": "Copy S3 URI",
+        "category": "DBDeck",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "dbdeck.s3.delete",
+        "title": "Delete",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
         "command": "dbdeck.docker.start",
         "title": "Start",
         "category": "DBDeck",
@@ -326,7 +358,7 @@
         },
         {
           "command": "dbdeck.refresh",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn on|database|schema|folder|redisDb|redisFolder|dockerFolder)\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn on|database|schema|folder|redisDb|redisFolder|dockerFolder|s3Bucket|s3Prefix)\\b/",
           "group": "inline@9"
         },
         {
@@ -381,7 +413,7 @@
         },
         {
           "command": "dbdeck.copyName",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema|table|view|column|collection|redisKey|esIndex|esField|container|image|volume|routine)\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema|table|view|column|collection|redisKey|esIndex|esField|container|image|volume|routine|s3Bucket|s3Object)\\b/",
           "group": "2_copy@1"
         },
         {
@@ -460,6 +492,41 @@
           "group": "9_danger@1"
         },
         {
+          "command": "dbdeck.s3.upload",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(s3Bucket|s3Prefix)\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.s3.download",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bs3Object\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.s3.open",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bs3Object\\b/",
+          "group": "1_s3@1"
+        },
+        {
+          "command": "dbdeck.s3.download",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bs3Object\\b/",
+          "group": "1_s3@2"
+        },
+        {
+          "command": "dbdeck.s3.upload",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(s3Bucket|s3Prefix)\\b/",
+          "group": "1_s3@1"
+        },
+        {
+          "command": "dbdeck.s3.copyUri",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(s3Bucket|s3Prefix|s3Object)\\b/",
+          "group": "2_copy@2"
+        },
+        {
+          "command": "dbdeck.s3.delete",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(s3Prefix|s3Object)\\b/",
+          "group": "9_danger@1"
+        },
+        {
           "command": "dbdeck.editConnection",
           "when": "view == dbdeck.connections && viewItem =~ /\\bconn\\b/",
           "group": "7_conn@1"
@@ -476,7 +543,7 @@
         },
         {
           "command": "dbdeck.refresh",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|folder|redisDb|redisFolder|dockerFolder)\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|folder|redisDb|redisFolder|dockerFolder|s3Bucket|s3Prefix)\\b/",
           "group": "7_conn@4"
         },
         {
@@ -601,6 +668,26 @@
         {
           "command": "dbdeck.docker.addConnection",
           "when": "false"
+        },
+        {
+          "command": "dbdeck.s3.open",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.s3.download",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.s3.upload",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.s3.copyUri",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.s3.delete",
+          "when": "false"
         }
       ]
     },
@@ -656,6 +743,7 @@
     "package": "node esbuild.mjs --production && vsce package --no-dependencies"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
     "bson": "^6.10.4",
     "ioredis": "^5.4.1",
     "mongodb": "^6.10.0",
@@ -664,13 +752,25 @@
     "ssh2": "^1.16.0"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^20.14.0",
     "@types/pg": "^8.11.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/ssh2": "^1.15.0",
     "@types/vscode": "^1.85.0",
     "@vscode/codicons": "^0.0.36",
     "@vscode/vsce": "^3.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "esbuild": "^0.24.0",
+    "lucide-react": "^1.52.0",
+    "radix-ui": "^1.7.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0",
     "typescript": "^5.6.0"
   }
 }

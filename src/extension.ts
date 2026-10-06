@@ -1,9 +1,12 @@
+import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { ConnectionManager, ConnectionStore } from './connections';
 import { DockerDriver } from './drivers/docker';
 import { ElasticDriver } from './drivers/elastic';
 import { MongoDriver } from './drivers/mongo';
 import { RedisDriver } from './drivers/redis';
+import { S3Driver } from './drivers/s3';
 import { SqlDriver } from './drivers/sql';
 import { QueryEditors } from './editor';
 import { ConnectionPanel } from './panels/connectionPanel';
@@ -13,7 +16,7 @@ import { ResultsView } from './panels/resultsView';
 import { openRedisCli } from './redisCli';
 import { ConnectionTree } from './tree';
 import { ConnectionConfig, DbNode } from './types';
-import { errorMessage, uid } from './util';
+import { errorMessage, formatBytes, uid } from './util';
 
 export function activate(ctx: vscode.ExtensionContext): void {
   const store = new ConnectionStore(ctx);
@@ -226,6 +229,56 @@ export function activate(ctx: vscode.ExtensionContext): void {
     const d = await manager.get<ElasticDriver>(n.connId);
     const r = await d.request('DELETE', `/${encodeURIComponent(n.table!)}`);
     if (r.status >= 400) throw new Error(JSON.stringify(r.body));
+    refreshParent(n);
+  });
+
+  const s3Uri = (n: DbNode) => `s3://${n.database}/${n.key ?? n.prefix ?? ''}`;
+  const s3Progress = <T>(title: string, task: () => Promise<T>) => vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title }, task);
+  cmd('dbdeck.s3.open', async (n: DbNode) => {
+    const d = await manager.get<S3Driver>(n.connId);
+    const size = Number(n.extra?.size ?? 0);
+    if (size > 50 * 1024 * 1024 && !(await confirm(`${n.label} is ${formatBytes(size)}. Download and open it?`, 'Open'))) return;
+    const safeKey = n.key!.split('/').filter((s) => s && s !== '.' && s !== '..').join(path.sep);
+    const file = path.join(os.tmpdir(), 'dbdeck-s3', n.connId, n.database!, safeKey || 'object');
+    await s3Progress(`Downloading ${n.label}`, () => d.download(n.database!, n.key!, file));
+    await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
+  });
+  cmd('dbdeck.s3.download', async (n: DbNode) => {
+    const d = await manager.get<S3Driver>(n.connId);
+    const dir = vscode.workspace.workspaceFolders?.[0]?.uri ?? vscode.Uri.file(os.homedir());
+    const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.joinPath(dir, path.posix.basename(n.key!)), saveLabel: 'Download' });
+    if (!uri) return;
+    await s3Progress(`Downloading ${n.label}`, () => d.download(n.database!, n.key!, uri.fsPath));
+    vscode.window.setStatusBarMessage(`Downloaded ${s3Uri(n)}`, 3000);
+  });
+  cmd('dbdeck.s3.upload', async (n: DbNode) => {
+    const d = await manager.get<S3Driver>(n.connId);
+    if (d.config.readonly) throw new Error('This connection is read-only');
+    const files = await vscode.window.showOpenDialog({ canSelectMany: true, openLabel: 'Upload' });
+    if (!files?.length) return;
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Uploading to ${s3Uri(n)}` }, async (p) => {
+      for (const [i, f] of files.entries()) {
+        p.report({ message: `${i + 1}/${files.length} ${path.basename(f.fsPath)}` });
+        await d.upload(n.database!, (n.prefix ?? '') + path.basename(f.fsPath), f.fsPath);
+      }
+    });
+    tree.refresh(n);
+  });
+  cmd('dbdeck.s3.copyUri', async (n: DbNode) => {
+    await vscode.env.clipboard.writeText(s3Uri(n));
+    vscode.window.setStatusBarMessage(`Copied ${s3Uri(n)}`, 2000);
+  });
+  cmd('dbdeck.s3.delete', async (n: DbNode) => {
+    const d = await manager.get<S3Driver>(n.connId);
+    if (d.config.readonly) throw new Error('This connection is read-only');
+    if (n.kind === 's3Prefix') {
+      if (!(await confirm(`Delete every object under ${s3Uri(n)}?`, 'Delete'))) return;
+      const total = await s3Progress(`Deleting ${s3Uri(n)}`, () => d.removePrefix(n.database!, n.prefix!));
+      vscode.window.setStatusBarMessage(`Deleted ${total} objects`, 3000);
+    } else {
+      if (!(await confirm(`Delete ${s3Uri(n)}?`, 'Delete'))) return;
+      await d.remove(n.database!, n.key!);
+    }
     refreshParent(n);
   });
 

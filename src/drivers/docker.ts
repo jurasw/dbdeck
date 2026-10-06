@@ -203,6 +203,7 @@ export class DockerDriver extends BaseDriver {
       [/redis|valkey|keydb|dragonfly/, 'redis', 6379],
       [/elasticsearch|opensearch/, 'elasticsearch', 9200],
       [/clickhouse/, 'clickhouse', 8123],
+      [/minio|rustfs/, 's3', 9000],
     ];
     const hit = detect.find(([re]) => re.test(image));
     if (!hit) return undefined;
@@ -225,6 +226,14 @@ export class DockerDriver extends BaseDriver {
         return { ...base, user: env.ELASTIC_PASSWORD ? 'elastic' : undefined, password: env.ELASTIC_PASSWORD, ssl: env['xpack.security.http.ssl.enabled'] === 'true' };
       case 'clickhouse':
         return { ...base, user: env.CLICKHOUSE_USER || 'default', password: env.CLICKHOUSE_PASSWORD, database: env.CLICKHOUSE_DB };
+      case 's3':
+        return {
+          ...base,
+          endpoint: `http://${base.host}:${base.port}`,
+          forcePathStyle: true,
+          user: env.MINIO_ROOT_USER || env.RUSTFS_ACCESS_KEY || 'minioadmin',
+          password: env.MINIO_ROOT_PASSWORD || env.RUSTFS_SECRET_KEY || 'minioadmin',
+        };
     }
     return base;
   }

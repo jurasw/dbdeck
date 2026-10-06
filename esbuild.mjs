@@ -1,4 +1,5 @@
 import * as esbuild from 'esbuild';
+import { execFileSync, spawn } from 'node:child_process';
 import { cpSync, mkdirSync, rmSync } from 'node:fs';
 
 const watch = process.argv.includes('--watch');
@@ -9,6 +10,10 @@ mkdirSync('dist/webview', { recursive: true });
 cpSync('node_modules/@vscode/codicons/dist/codicon.css', 'dist/webview/codicon.css');
 cpSync('node_modules/@vscode/codicons/dist/codicon.ttf', 'dist/webview/codicon.ttf');
 cpSync('webview/style.css', 'dist/webview/style.css');
+
+const tailwind = ['-i', 'webview/ui/globals.css', '-o', 'dist/webview/connection.css', ...(production ? ['--minify'] : [])];
+if (watch) spawn('node_modules/.bin/tailwindcss', [...tailwind, '--watch'], { stdio: 'inherit' });
+else execFileSync('node_modules/.bin/tailwindcss', tailwind, { stdio: 'inherit' });
 
 const common = { bundle: true, minify: production, sourcemap: !production, logLevel: 'info' };
 
@@ -37,11 +42,12 @@ const extension = await esbuild.context({
 
 const webview = await esbuild.context({
   ...common,
-  entryPoints: ['webview/connection.ts', 'webview/data.ts', 'webview/results.ts', 'webview/redis.ts'],
+  entryPoints: ['webview/connection.tsx', 'webview/data.ts', 'webview/results.ts', 'webview/redis.ts'],
   outdir: 'dist/webview',
   platform: 'browser',
   format: 'iife',
   target: 'es2022',
+  define: { 'process.env.NODE_ENV': production ? '"production"' : '"development"' },
 });
 
 if (watch) {

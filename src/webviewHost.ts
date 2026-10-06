@@ -3,7 +3,14 @@ import { errorMessage } from './util';
 
 export type Handlers = Record<string, (params: any) => unknown>;
 
-export function webviewHtml(webview: vscode.Webview, extUri: vscode.Uri, script: string, title: string, init: unknown): string {
+export function webviewHtml(
+  webview: vscode.Webview,
+  extUri: vscode.Uri,
+  script: string,
+  title: string,
+  init: unknown,
+  styles = ['codicon.css', 'style.css'],
+): string {
   const asset = (f: string) => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'dist', 'webview', f)).toString();
   const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   const state = JSON.stringify(init ?? {}).replace(/</g, '\\u003c');
@@ -13,8 +20,7 @@ export function webviewHtml(webview: vscode.Webview, extUri: vscode.Uri, script:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}';">
-<link rel="stylesheet" href="${asset('codicon.css')}">
-<link rel="stylesheet" href="${asset('style.css')}">
+${styles.map((f) => `<link rel="stylesheet" href="${asset(f)}">`).join('\n')}
 <title>${title.replace(/</g, '&lt;')}</title>
 </head>
 <body>

@@ -38,3 +38,9 @@ services:
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: -Xms384m -Xmx384m
     ports: ["19200:9200"]
+  s3:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: dbdeck
+      RUSTFS_SECRET_KEY: dbdeck123
+    ports: ["19000:9000"]

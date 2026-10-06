@@ -2,7 +2,7 @@
 
 Free database client for **VS Code** and **Cursor**. No paywalls, accounts, telemetry or cloud sync.
 
-Supported: **PostgreSQL**, **MySQL / MariaDB**, **ClickHouse**, **MongoDB**, **Redis**, **Elasticsearch / OpenSearch**, **Docker**.
+Supported: **PostgreSQL**, **MySQL / MariaDB**, **ClickHouse**, **MongoDB**, **Redis**, **Elasticsearch / OpenSearch**, **S3 / MinIO / R2**, **Docker**.
 
 ## Features
 
@@ -16,6 +16,7 @@ Supported: **PostgreSQL**, **MySQL / MariaDB**, **ClickHouse**, **MongoDB**, **R
 - MongoDB: document grid and JSON view, filter / sort / projection, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
 - Redis: key tree grouped by separator, SCAN filter, editors for string (text / JSON), hash, list, set, sorted set, stream and RedisJSON, TTL and rename, built-in CLI terminal
 - Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files)
+- S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers
 - Docker: containers grouped by Compose project, start / stop / restart / remove, logs, shell, inspect, images, volumes, networks, and **Add as Database Connection** that reads credentials from container env
 
 ## Privacy

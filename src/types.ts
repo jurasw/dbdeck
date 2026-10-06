@@ -1,6 +1,6 @@
-export type DbType = 'mysql' | 'postgres' | 'clickhouse' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker';
+export type DbType = 'mysql' | 'postgres' | 'clickhouse' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
 
-export type Family = 'sql' | 'mongo' | 'redis' | 'es' | 'docker';
+export type Family = 'sql' | 'mongo' | 'redis' | 'es' | 'docker' | 's3';
 
 export const FAMILY: Record<DbType, Family> = {
   mysql: 'sql',
@@ -10,6 +10,7 @@ export const FAMILY: Record<DbType, Family> = {
   redis: 'redis',
   elasticsearch: 'es',
   docker: 'docker',
+  s3: 's3',
 };
 
 export const TYPE_LABEL: Record<DbType, string> = {
@@ -20,6 +21,7 @@ export const TYPE_LABEL: Record<DbType, string> = {
   redis: 'Redis',
   elasticsearch: 'Elasticsearch',
   docker: 'Docker',
+  s3: 'S3',
 };
 
 export const DEFAULT_PORT: Record<DbType, number> = {
@@ -30,6 +32,7 @@ export const DEFAULT_PORT: Record<DbType, number> = {
   redis: 6379,
   elasticsearch: 9200,
   docker: 2375,
+  s3: 443,
 };
 
 export interface SshConfig {
@@ -61,6 +64,9 @@ export interface ConnectionConfig {
   apiKey?: string;
   useSocket?: boolean;
   socketPath?: string;
+  endpoint?: string;
+  region?: string;
+  forcePathStyle?: boolean;
   showSystem?: boolean;
   readonly?: boolean;
   savePassword?: boolean;
@@ -88,6 +94,9 @@ export type NodeKind =
   | 'image'
   | 'volume'
   | 'network'
+  | 's3Bucket'
+  | 's3Prefix'
+  | 's3Object'
   | 'info'
   | 'error';
 

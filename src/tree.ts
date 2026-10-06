@@ -87,6 +87,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
     }
     if (OPEN_KINDS.has(n.kind)) item.command = { command: 'dbdeck.openTable', title: 'Open', arguments: [n] };
     else if (n.kind === 'redisKey') item.command = { command: 'dbdeck.redis.openKey', title: 'Open', arguments: [n] };
+    else if (n.kind === 's3Object') item.command = { command: 'dbdeck.s3.open', title: 'Open', arguments: [n] };
     else if (n.kind === 'routine') item.command = { command: 'dbdeck.showDdl', title: 'Open', arguments: [n] };
     return item;
   }
@@ -95,6 +96,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
 function describe(c: ConnectionConfig): string {
   if (c.type === 'docker') return c.useSocket !== false ? c.socketPath || 'local socket' : `${c.host}:${c.port ?? 2375}`;
   if (c.type === 'mongodb' && c.useUri) return 'connection string';
+  if (c.type === 's3') return [c.endpoint ? c.endpoint.replace(/^https?:\/\//, '') : `AWS ${c.region || 'us-east-1'}`, c.database].filter(Boolean).join(' · ');
   const user = c.user ? `${c.user}@` : '';
   return `${user}${c.host || '127.0.0.1'}${c.port ? `:${c.port}` : ''}`;
 }

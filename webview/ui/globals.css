@@ -1,0 +1,85 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+
+@source "../";
+
+@custom-variant dark (&:where(.vscode-dark, .vscode-dark *, .vscode-high-contrast, .vscode-high-contrast *));
+
+:root {
+  --radius: 0.5rem;
+  --background: var(--vscode-editor-background);
+  --foreground: var(--vscode-foreground);
+  --card: color-mix(in srgb, var(--vscode-editor-background) 95%, var(--vscode-foreground));
+  --card-foreground: var(--vscode-foreground);
+  --popover: var(--vscode-dropdown-background, var(--vscode-editorWidget-background));
+  --popover-foreground: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+  --primary: var(--vscode-button-background);
+  --primary-foreground: var(--vscode-button-foreground);
+  --secondary: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--vscode-foreground) 12%, transparent));
+  --secondary-foreground: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  --muted: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-foreground));
+  --muted-foreground: var(--vscode-descriptionForeground);
+  --accent: var(--vscode-list-hoverBackground);
+  --accent-foreground: var(--vscode-foreground);
+  --destructive: var(--vscode-errorForeground, #f14c4c);
+  --success: var(--vscode-charts-green, #3fb950);
+  --border: color-mix(in srgb, var(--vscode-foreground) 13%, transparent);
+  --input: var(--vscode-input-border, color-mix(in srgb, var(--vscode-foreground) 22%, transparent));
+  --input-background: var(--vscode-input-background);
+  --input-foreground: var(--vscode-input-foreground);
+  --ring: var(--vscode-focusBorder);
+}
+
+@theme inline {
+  --font-sans: var(--vscode-font-family);
+  --font-mono: var(--vscode-editor-font-family, ui-monospace, Menlo, monospace);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-input-foreground: var(--input-foreground);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #app {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background p-0 font-sans text-[13px] text-foreground;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-background);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+}
