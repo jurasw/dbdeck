@@ -16,3 +16,7 @@ Trace the affected flow and callers before editing. Reuse existing helpers and p
 ## Release boundary
 
 The current scope is release preparation. Build and inspect VSIX artifacts locally; do not publish to Marketplace, Open VSX or GitHub Releases without explicit authorization. Do not register a publisher or store publishing credentials as part of preparation.
+
+## Local extension updates
+
+After changing DBDeck, apply `.agents/skills/dbdeck-local-update/SKILL.md` to validate, package and update the locally installed VS Code extension.

@@ -205,11 +205,11 @@ export class PostgresDriver extends SqlDriver {
     return rows.map((r) => ({ name: r.name, type: r.type, nullable: r.nullable, defaultValue: r.def, comment: r.comment ?? undefined, pk: r.pk }));
   }
 
-  async objects(database?: string, schema?: string): Promise<{ name: string; schema?: string }[]> {
+  async objects(database?: string, schema?: string, limit: number | null = 5000): Promise<{ name: string; schema?: string }[]> {
     const rows = await this.q<{ name: string; schema: string }>(
       `SELECT c.relname AS name, ns.nspname AS schema FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
        WHERE c.relkind IN ('r','p','v','m','f') AND ns.nspname NOT LIKE 'pg\\_%' AND ns.nspname <> 'information_schema'
-       ${schema ? 'AND ns.nspname = $1' : ''} ORDER BY 1 LIMIT 5000`,
+       ${schema ? 'AND ns.nspname = $1' : ''} ORDER BY 1 ${limit === null ? '' : `LIMIT ${limit}`}`,
       schema ? [schema] : [],
       database,
     );

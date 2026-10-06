@@ -158,8 +158,10 @@ export class ClickHouseDriver extends SqlDriver {
     }));
   }
 
-  async objects(database?: string): Promise<{ name: string }[]> {
-    return this.rows<{ name: string }>(`SELECT name FROM system.tables WHERE database = ${this.lit(database ?? this.config.database ?? 'default')} ORDER BY name LIMIT 5000`);
+  async objects(database?: string, _schema?: string, limit: number | null = 5000): Promise<{ name: string }[]> {
+    return this.rows<{ name: string }>(
+      `SELECT name FROM system.tables WHERE database = ${this.lit(database ?? this.config.database ?? 'default')} ORDER BY name ${limit === null ? '' : `LIMIT ${limit}`}`,
+    );
   }
 
   async ddl(t: TableRef): Promise<string> {

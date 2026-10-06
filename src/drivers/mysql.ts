@@ -185,8 +185,8 @@ export class MysqlDriver extends SqlDriver {
     }));
   }
 
-  async objects(database?: string): Promise<{ name: string }[]> {
-    return this.q<{ name: string }>('SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ? ORDER BY 1 LIMIT 5000', [
+  async objects(database?: string, _schema?: string, limit: number | null = 5000): Promise<{ name: string }[]> {
+    return this.q<{ name: string }>(`SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ? ORDER BY 1 ${limit === null ? '' : `LIMIT ${limit}`}`, [
       database ?? this.config.database ?? '',
     ]);
   }

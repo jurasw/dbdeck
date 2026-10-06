@@ -132,3 +132,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for naming, checks and pull requests. Age
 ## License
 
 [MIT](LICENSE).
+
+### Schema diagram
+
+Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL and MySQL/MariaDB. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse displays tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.

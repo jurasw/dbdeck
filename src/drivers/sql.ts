@@ -27,7 +27,7 @@ export abstract class SqlDriver extends BaseDriver {
   abstract quote(name: string): string;
   abstract columns(t: TableRef): Promise<ColumnMeta[]>;
   abstract ddl(t: TableRef, kind: string): Promise<string>;
-  abstract objects(database?: string, schema?: string): Promise<{ name: string; schema?: string }[]>;
+  abstract objects(database?: string, schema?: string, limit?: number | null): Promise<{ name: string; schema?: string }[]>;
   abstract databases(): Promise<string[]>;
   protected abstract param(i: number): string;
   protected abstract transaction(database: string | undefined, statements: Exec[]): Promise<number>;

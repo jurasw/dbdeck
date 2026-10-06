@@ -1315,3 +1315,125 @@ textarea {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+.schema-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.schema-toolbar > strong {
+  margin-right: auto;
+}
+.schema-toolbar input {
+  width: 230px;
+  padding: 7px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.schema-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  touch-action: none;
+  background-image: radial-gradient(circle, var(--border-strong) 1px, transparent 1px);
+}
+.schema-viewport:active {
+  cursor: grabbing;
+}
+.schema-world {
+  position: absolute;
+  transform-origin: 0 0;
+}
+.schema-links {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+}
+.schema-links path {
+  fill: none;
+  stroke: var(--vscode-charts-blue, #5d9ee8);
+  stroke-width: 1.5;
+}
+.schema-links text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.schema-card {
+  position: absolute;
+  width: 270px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #0002;
+  overflow: hidden;
+}
+.schema-card-header {
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 12px;
+  background: var(--bg-3);
+  border-top: 4px solid var(--vscode-charts-blue, #5d9ee8);
+  cursor: grab;
+  user-select: none;
+}
+.schema-card-header strong,
+.schema-card-header small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.schema-card-header small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.schema-column {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.schema-key {
+  width: 18px;
+  flex-shrink: 0;
+  color: var(--vscode-charts-blue, #5d9ee8);
+  font-size: 9px;
+}
+.schema-column-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.schema-type {
+  max-width: 110px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.schema-dim {
+  opacity: 0.25;
+}
+.schema-footer {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}

@@ -10,6 +10,7 @@ import { S3Driver } from './drivers/s3';
 import { SqlDriver } from './drivers/sql';
 import { QueryEditors } from './editor';
 import { ConnectionPanel } from './panels/connectionPanel';
+import { SchemaPanel } from './panels/schema-panel';
 import { DataPanel } from './panels/dataPanel';
 import { RedisPanel } from './panels/redisPanel';
 import { ResultsView } from './panels/resultsView';
@@ -81,6 +82,11 @@ export function activate(ctx: vscode.ExtensionContext): void {
   cmd('dbdeck.openTable', async (n: DbNode) => {
     n = (await pickNode(n))!;
     await DataPanel.show(ctx.extensionUri, manager, n, () => refreshParent(n));
+  });
+  cmd('dbdeck.showSchema', async (n?: DbNode) => {
+    const node = await pickNode(n);
+    if (!node) throw new Error('Select a SQL database or schema in Connections.');
+    await SchemaPanel.show(ctx.extensionUri, manager, node);
   });
   cmd('dbdeck.selectTop', async (n: DbNode) => {
     const d = await manager.get<SqlDriver>(n.connId);

@@ -311,6 +311,12 @@
         "title": "Add as Database Connection",
         "category": "DBDeck",
         "icon": "$(plug)"
+      },
+      {
+        "command": "dbdeck.showSchema",
+        "title": "Show Schema Diagram",
+        "category": "DBDeck",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {
@@ -551,6 +557,11 @@
           "command": "dbdeck.deleteConnection",
           "when": "view == dbdeck.connections && viewItem =~ /\\bconn\\b/",
           "group": "9_danger@9"
+        },
+        {
+          "command": "dbdeck.showSchema",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) sql\\b/",
+          "group": "inline@2"
         }
       ],
       "editor/title": [
