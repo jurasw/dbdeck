@@ -24,6 +24,10 @@ Trace the affected flow and callers before editing. Reuse existing helpers and p
 
 Build and inspect VSIX artifacts locally. Publishing to Marketplace, Open VSX or GitHub Releases, bumping the extension version on `main` and deploying the website need an explicit request. On `main`, changes in `apps/web` deploy dbdeck.dev and a new version in `apps/extension/package.json` publishes the extension through CI. Do not register a publisher or store publishing credentials in the repository.
 
+## Feature documentation
+
+After a user-visible change, apply `.agents/skills/dbdeck-feature-docs/SKILL.md` to update the READMEs, landing page, CHANGELOG and store listing.
+
 ## Local extension updates
 
 After changing the extension, apply `.agents/skills/dbdeck-local-update/SKILL.md` to validate, package and update the locally installed extension.
