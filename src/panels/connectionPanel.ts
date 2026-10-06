@@ -19,15 +19,20 @@ export class ConnectionPanel {
     const panel = vscode.window.createWebviewPanel('dbdeck.connection', full?.name ? `Edit ${full.name}` : 'New Connection', vscode.ViewColumn.Active, webviewOptions(extUri));
     panel.iconPath = vscode.Uri.joinPath(extUri, 'media', 'activity.svg');
     ConnectionPanel.open.set(key, panel);
-    const groups = [...new Set(manager.store.list().map((c) => c.group).filter(Boolean))];
+    const groups = [
+      ...new Set(
+        manager.store
+          .list()
+          .map((c) => c.group)
+          .filter(Boolean),
+      ),
+    ];
     const init = {
       connection: full ?? null,
       defaults: DEFAULT_PORT,
       dockerSocket: defaultSocket(),
       groups,
-      icons: Object.fromEntries(
-        Object.keys(DEFAULT_PORT).map((t) => [t, panel.webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'media', 'types', `${t}.svg`)).toString()]),
-      ),
+      icons: Object.fromEntries(Object.keys(DEFAULT_PORT).map((t) => [t, panel.webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'media', 'types', `${t}.svg`)).toString()])),
     };
     panel.webview.html = webviewHtml(panel.webview, extUri, 'connection', 'Connection', init, ['connection.css']);
     const sub = bindRpc(panel.webview, {

@@ -266,7 +266,13 @@ function App() {
     if (t === 'docker') {
       return (
         <>
-          <Toggle id="useSocket" label="Local Docker socket" hint="Docker Desktop, OrbStack, Colima, Rancher" checked={c.useSocket !== false} onChange={(v) => set({ useSocket: v })} />
+          <Toggle
+            id="useSocket"
+            label="Local Docker socket"
+            hint="Docker Desktop, OrbStack, Colima, Rancher"
+            checked={c.useSocket !== false}
+            onChange={(v) => set({ useSocket: v })}
+          />
           {c.useSocket !== false ? (
             <Field label="Socket path" span={12} htmlFor="socketPath" hint="Leave empty to detect automatically.">
               {text('socketPath', I.dockerSocket, 'text', true)}
@@ -409,12 +415,7 @@ function App() {
         <Field label="Password" span={4} htmlFor="password">
           {password('password', c.password, (v) => set({ password: v }))}
         </Field>
-        <Field
-          label="Database"
-          span={4}
-          htmlFor="database"
-          hint={t === 'postgres' ? 'All databases are listed; this one is opened first.' : undefined}
-        >
+        <Field label="Database" span={4} htmlFor="database" hint={t === 'postgres' ? 'All databases are listed; this one is opened first.' : undefined}>
           {text('database', t === 'postgres' ? 'postgres' : 'optional')}
         </Field>
       </>

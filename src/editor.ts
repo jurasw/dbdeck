@@ -16,7 +16,9 @@ interface Binding {
 
 const LANGUAGE = { sql: 'sql', mongo: 'javascript', es: 'dbdeck-es' } as const;
 const SQL_KEYWORDS =
-  'SELECT FROM WHERE AND OR NOT IN IS NULL LIKE ILIKE BETWEEN EXISTS JOIN LEFT RIGHT INNER OUTER FULL CROSS ON USING GROUP BY ORDER HAVING LIMIT OFFSET UNION ALL DISTINCT AS CASE WHEN THEN ELSE END INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE VIEW INDEX DROP ALTER ADD COLUMN PRIMARY KEY FOREIGN REFERENCES DEFAULT CONSTRAINT UNIQUE CHECK RETURNING WITH RECURSIVE TRUNCATE BEGIN COMMIT ROLLBACK EXPLAIN ANALYZE COUNT SUM AVG MIN MAX COALESCE CAST NOW ASC DESC TRUE FALSE'.split(' ');
+  'SELECT FROM WHERE AND OR NOT IN IS NULL LIKE ILIKE BETWEEN EXISTS JOIN LEFT RIGHT INNER OUTER FULL CROSS ON USING GROUP BY ORDER HAVING LIMIT OFFSET UNION ALL DISTINCT AS CASE WHEN THEN ELSE END INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE VIEW INDEX DROP ALTER ADD COLUMN PRIMARY KEY FOREIGN REFERENCES DEFAULT CONSTRAINT UNIQUE CHECK RETURNING WITH RECURSIVE TRUNCATE BEGIN COMMIT ROLLBACK EXPLAIN ANALYZE COUNT SUM AVG MIN MAX COALESCE CAST NOW ASC DESC TRUE FALSE'.split(
+    ' ',
+  );
 
 export class QueryEditors implements vscode.Disposable {
   private bindings = new Map<string, Binding>();
@@ -123,9 +125,7 @@ export class QueryEditors implements vscode.Disposable {
     if (!pick) return;
     let database: string | undefined;
     if (FAMILY[pick.c.type] !== 'es') {
-      const driver = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Connecting ${pick.c.name}` }, () =>
-        this.manager.get(pick.c.id),
-      );
+      const driver = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Connecting ${pick.c.name}` }, () => this.manager.get(pick.c.id));
       const dbs = driver instanceof SqlDriver || driver instanceof MongoDriver ? await driver.databases() : [];
       if (dbs.length === 1) database = dbs[0];
       else {
@@ -157,7 +157,7 @@ export class QueryEditors implements vscode.Disposable {
       let pieces: string[];
       if (driver instanceof SqlDriver) {
         const stmts = splitSql(selected ?? text, driver.dialect);
-        pieces = selected || all ? stmts.map((s) => s.text) : [statementAt(stmts, offset)?.text].filter(Boolean) as string[];
+        pieces = selected || all ? stmts.map((s) => s.text) : ([statementAt(stmts, offset)?.text].filter(Boolean) as string[]);
       } else if (driver instanceof ElasticDriver) {
         const reqs = parseEsRequests(selected ?? text);
         pieces = (selected || all ? reqs : [reqs.find((r) => offset >= r.start && offset <= r.end) ?? reqs.filter((r) => r.start <= offset).pop() ?? reqs[0]])
@@ -233,7 +233,11 @@ export class QueryEditors implements vscode.Disposable {
         const driver = await this.manager.get(b.connId);
         if (driver instanceof SqlDriver) {
           const key = `${b.connId}/${b.database}`;
-          if (!this.schemaCache.has(key)) this.schemaCache.set(key, driver.objects(b.database).catch(() => []));
+          if (!this.schemaCache.has(key))
+            this.schemaCache.set(
+              key,
+              driver.objects(b.database).catch(() => []),
+            );
           const tables = await this.schemaCache.get(key)!;
           if (dot) {
             const word = dot[1].replace(/["`]/g, '');
@@ -242,7 +246,13 @@ export class QueryEditors implements vscode.Disposable {
             if (t) {
               const ck = `${key}/${t.schema}/${t.name}`;
               if (!this.columnCache.has(ck))
-                this.columnCache.set(ck, driver.columns({ database: b.database, schema: t.schema, table: t.name }).then((c) => c.map((x) => x.name)).catch(() => []));
+                this.columnCache.set(
+                  ck,
+                  driver
+                    .columns({ database: b.database, schema: t.schema, table: t.name })
+                    .then((c) => c.map((x) => x.name))
+                    .catch(() => []),
+                );
               for (const c of await this.columnCache.get(ck)!) items.push(new vscode.CompletionItem(c, vscode.CompletionItemKind.Field));
               return items;
             }

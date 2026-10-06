@@ -105,7 +105,10 @@ export class MongoDriver extends BaseDriver {
   async databases(): Promise<string[]> {
     try {
       const r = await this.client!.db('admin').admin().listDatabases({ nameOnly: true });
-      return r.databases.map((d) => d.name).filter((d) => this.config.showSystem || !SYSTEM_DBS.has(d)).sort();
+      return r.databases
+        .map((d) => d.name)
+        .filter((d) => this.config.showSystem || !SYSTEM_DBS.has(d))
+        .sort();
     } catch (e) {
       if (this.defaultDb) return [this.defaultDb];
       throw e;
@@ -126,7 +129,14 @@ export class MongoDriver extends BaseDriver {
       const cols = await this.db(n.database!).listCollections({}).toArray();
       const visible = cols.filter((c) => this.config.showSystem || !c.name.startsWith('system.'));
       const counts = await Promise.all(
-        visible.map((c) => (c.type === 'view' ? Promise.resolve(-1) : this.db(n.database!).collection(c.name).estimatedDocumentCount().catch(() => -1))),
+        visible.map((c) =>
+          c.type === 'view'
+            ? Promise.resolve(-1)
+            : this.db(n.database!)
+                .collection(c.name)
+                .estimatedDocumentCount()
+                .catch(() => -1),
+        ),
       );
       return visible
         .map((c, i) => ({ c, count: counts[i] }))
@@ -194,7 +204,9 @@ export class MongoDriver extends BaseDriver {
   async remove(db: string, coll: string, ids: unknown[]): Promise<number> {
     if (this.config.readonly) throw new Error('This connection is read-only');
     const _ids = ids.map((id) => EJSON.deserialize({ v: id } as Document, { relaxed: true }).v);
-    const r = await this.db(db).collection(coll).deleteMany({ _id: { $in: _ids } });
+    const r = await this.db(db)
+      .collection(coll)
+      .deleteMany({ _id: { $in: _ids } });
     return r.deletedCount;
   }
 
@@ -238,7 +250,12 @@ export class MongoDriver extends BaseDriver {
     const special: Record<string, unknown> = {
       getName: () => current,
       getCollection: (n: string) => wrapColl(n),
-      getCollectionNames: () => client.db(current).listCollections({}, { nameOnly: true }).toArray().then((l) => l.map((c) => c.name)),
+      getCollectionNames: () =>
+        client
+          .db(current)
+          .listCollections({}, { nameOnly: true })
+          .toArray()
+          .then((l) => l.map((c) => c.name)),
       getSiblingDB: (n: string) => {
         current = n;
         return dbProxy;
@@ -246,7 +263,11 @@ export class MongoDriver extends BaseDriver {
       runCommand: (cmd: Document) => client.db(current).command(cmd),
       adminCommand: (cmd: Document) => client.db('admin').command(cmd),
       stats: () => client.db(current).stats(),
-      createCollection: (n: string, o?: Document) => client.db(current).createCollection(n, o).then(() => ({ ok: 1 })),
+      createCollection: (n: string, o?: Document) =>
+        client
+          .db(current)
+          .createCollection(n, o)
+          .then(() => ({ ok: 1 })),
       dropDatabase: () => client.db(current).dropDatabase(),
     };
     const dbProxy: unknown = new Proxy({}, { get: (_t, p) => (typeof p === 'string' ? (p in special ? special[p] : wrapColl(p)) : undefined) });
@@ -289,7 +310,12 @@ export function docsToGrid(docs: unknown[]): { columns: { name: string }[]; rows
   const seen = new Set<string>();
   for (const d of docs) {
     if (d && typeof d === 'object' && !Array.isArray(d)) {
-      for (const k of Object.keys(d)) if (!seen.has(k)) seen.add(k), keys.push(k);
+      for (const k of Object.keys(d)) {
+        if (!seen.has(k)) {
+          seen.add(k);
+          keys.push(k);
+        }
+      }
     }
   }
   if (!keys.length) return { columns: [{ name: 'value' }], rows: docs.map((d) => [d]) };

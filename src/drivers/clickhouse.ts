@@ -114,7 +114,7 @@ export class ClickHouseDriver extends SqlDriver {
         `SELECT name, engine, total_rows, comment FROM system.tables WHERE database = ${this.lit(n.database!)} ORDER BY name`,
       );
       return rows.map((r) => {
-        const isView = /View$/.test(r.engine);
+        const isView = r.engine.endsWith('View');
         return this.node(isView ? 'view' : 'table', r.name, {
           database: n.database,
           table: r.name,
@@ -159,9 +159,7 @@ export class ClickHouseDriver extends SqlDriver {
   }
 
   async objects(database?: string): Promise<{ name: string }[]> {
-    return this.rows<{ name: string }>(
-      `SELECT name FROM system.tables WHERE database = ${this.lit(database ?? this.config.database ?? 'default')} ORDER BY name LIMIT 5000`,
-    );
+    return this.rows<{ name: string }>(`SELECT name FROM system.tables WHERE database = ${this.lit(database ?? this.config.database ?? 'default')} ORDER BY name LIMIT 5000`);
   }
 
   async ddl(t: TableRef): Promise<string> {

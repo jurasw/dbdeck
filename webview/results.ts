@@ -28,7 +28,21 @@ const grid = new Grid({
     contextMenu(e.clientX, e.clientY, [
       { label: 'Copy value', icon: 'copy', action: () => rpc('copy', { text: raw(res.rows[r][c]) }) },
       { label: 'Copy row(s)', icon: 'files', action: () => rpc('copy', { text: toTsv(grid.selectedRows().map((i) => res.rows[i])) }) },
-      { label: 'Copy row(s) as JSON', icon: 'json', action: () => rpc('copy', { text: JSON.stringify(toObjects(names(res), grid.selectedRows().map((i) => res.rows[i])), null, 2) }) },
+      {
+        label: 'Copy row(s) as JSON',
+        icon: 'json',
+        action: () =>
+          rpc('copy', {
+            text: JSON.stringify(
+              toObjects(
+                names(res),
+                grid.selectedRows().map((i) => res.rows[i]),
+              ),
+              null,
+              2,
+            ),
+          }),
+      },
       { label: 'Copy column name', icon: 'symbol-field', action: () => rpc('copy', { text: res.columns[c].name }) },
       '-',
       { label: 'View value', icon: 'eye', action: () => viewValue(res.columns[c].name, res.rows[r][c]) },
@@ -77,7 +91,15 @@ function renderEmpty(): void {
       null,
       icon('database'),
       h('div.big', null, 'No results yet'),
-      h('div', null, 'Open a query editor from the DBDeck view and press ', h('span.kbd', null, '⌘/Ctrl'), ' + ', h('span.kbd', null, 'Enter'), ' to run the statement under the cursor.'),
+      h(
+        'div',
+        null,
+        'Open a query editor from the DBDeck view and press ',
+        h('span.kbd', null, '⌘/Ctrl'),
+        ' + ',
+        h('span.kbd', null, 'Enter'),
+        ' to run the statement under the cursor.',
+      ),
     ),
   );
 }
@@ -128,13 +150,28 @@ function render(): void {
     h('div.sql-preview.grow', { title: r.sql ?? '' }, r.sql?.replace(/\s+/g, ' ') ?? ''),
     hasGrid
       ? [
-          btn(null, { icon: 'copy', class: 'ghost sm', title: 'Copy all as TSV', onClick: () => rpc('copy', { text: toTsv([names(r), ...grid.visibleRows()]) }).then(() => toast('Copied')) }),
+          btn(null, {
+            icon: 'copy',
+            class: 'ghost sm',
+            title: 'Copy all as TSV',
+            onClick: () => rpc('copy', { text: toTsv([names(r), ...grid.visibleRows()]) }).then(() => toast('Copied')),
+          }),
           btn('CSV', { icon: 'export', class: 'ghost sm', title: 'Export CSV', onClick: () => save(`${exportName}.csv`, toCsv(names(r), grid.visibleRows())) }),
-          btn('JSON', { icon: 'export', class: 'ghost sm', title: 'Export JSON', onClick: () => save(`${exportName}.json`, JSON.stringify(toObjects(names(r), grid.visibleRows()), null, 2)) }),
+          btn('JSON', {
+            icon: 'export',
+            class: 'ghost sm',
+            title: 'Export JSON',
+            onClick: () => save(`${exportName}.json`, JSON.stringify(toObjects(names(r), grid.visibleRows()), null, 2)),
+          }),
         ]
       : null,
     hasJson
-      ? btn(null, { icon: 'go-to-file', class: 'ghost sm', title: 'Open JSON in editor', onClick: () => rpc('openInEditor', { content: JSON.stringify(r.json, null, 2), language: 'json' }) })
+      ? btn(null, {
+          icon: 'go-to-file',
+          class: 'ghost sm',
+          title: 'Open JSON in editor',
+          onClick: () => rpc('openInEditor', { content: JSON.stringify(r.json, null, 2), language: 'json' }),
+        })
       : null,
   );
   if (r.error) {
@@ -152,7 +189,12 @@ function render(): void {
       h(
         'div.scroll',
         null,
-        h('div.message.ok', null, h('div.head', null, icon('pass-filled'), r.affectedRows !== undefined ? `${fmtNum(r.affectedRows)} row(s) affected` : 'Success'), r.message ?? ''),
+        h(
+          'div.message.ok',
+          null,
+          h('div.head', null, icon('pass-filled'), r.affectedRows !== undefined ? `${fmtNum(r.affectedRows)} row(s) affected` : 'Success'),
+          r.message ?? '',
+        ),
       ),
     );
   }
@@ -197,8 +239,11 @@ onMessage('results', (m) => {
   filter = '';
   side.classList.add('hidden');
   const firstErr = results.findIndex((r) => r.error);
-  const firstGrid = results.map((r, i) => (r.columns.length ? i : -1)).filter((i) => i >= 0).pop();
-  active = firstErr >= 0 ? firstErr : firstGrid ?? results.length - 1;
+  const firstGrid = results
+    .map((r, i) => (r.columns.length ? i : -1))
+    .filter((i) => i >= 0)
+    .pop();
+  active = firstErr >= 0 ? firstErr : (firstGrid ?? results.length - 1);
   mode = results[active]?.columns.length ? 'grid' : 'json';
   render();
 });

@@ -186,10 +186,9 @@ export class MysqlDriver extends SqlDriver {
   }
 
   async objects(database?: string): Promise<{ name: string }[]> {
-    return this.q<{ name: string }>(
-      'SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ? ORDER BY 1 LIMIT 5000',
-      [database ?? this.config.database ?? ''],
-    );
+    return this.q<{ name: string }>('SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ? ORDER BY 1 LIMIT 5000', [
+      database ?? this.config.database ?? '',
+    ]);
   }
 
   async ddl(t: TableRef, kind: string): Promise<string> {

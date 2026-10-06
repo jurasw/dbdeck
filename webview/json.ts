@@ -31,7 +31,11 @@ function node(key: string | undefined, value: unknown, depth: number, expandDept
   const wrap = h('div');
   const tog = h('span.tog', null, '▾');
   const idEntry = !isArr ? entries.find(([k]) => k === '_id') : undefined;
-  const summary = isArr ? `${entries.length} items` : idEntry ? `_id: ${ejson(idEntry[1] as Record<string, unknown>) ?? JSON.stringify(idEntry[1])} · ${entries.length} keys` : `${entries.length} keys`;
+  const summary = isArr
+    ? `${entries.length} items`
+    : idEntry
+      ? `_id: ${ejson(idEntry[1] as Record<string, unknown>) ?? JSON.stringify(idEntry[1])} · ${entries.length} keys`
+      : `${entries.length} keys`;
   const preview = h('span.p', null, ` ${summary} `);
   const head = h('div.jl', null, tog, ...keyEl, open, preview);
   const kids = h('div.jc');

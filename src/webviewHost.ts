@@ -3,14 +3,7 @@ import { errorMessage } from './util';
 
 export type Handlers = Record<string, (params: any) => unknown>;
 
-export function webviewHtml(
-  webview: vscode.Webview,
-  extUri: vscode.Uri,
-  script: string,
-  title: string,
-  init: unknown,
-  styles = ['codicon.css', 'style.css'],
-): string {
+export function webviewHtml(webview: vscode.Webview, extUri: vscode.Uri, script: string, title: string, init: unknown, styles = ['codicon.css', 'style.css']): string {
   const asset = (f: string) => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'dist', 'webview', f)).toString();
   const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   const state = JSON.stringify(init ?? {}).replace(/</g, '\\u003c');

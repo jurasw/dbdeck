@@ -44,15 +44,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
   const pickNode = async (n?: DbNode) => n ?? view.selection[0];
 
-  ctx.subscriptions.push(
-    manager,
-    view,
-    editors,
-    vscode.window.registerWebviewViewProvider(ResultsView.id, results, { webviewOptions: { retainContextWhenHidden: true } }),
-  );
+  ctx.subscriptions.push(manager, view, editors, vscode.window.registerWebviewViewProvider(ResultsView.id, results, { webviewOptions: { retainContextWhenHidden: true } }));
 
-  const openForm = (existing?: Partial<ConnectionConfig>) =>
-    ConnectionPanel.show(ctx.extensionUri, manager, () => tree.refresh(), existing);
+  const openForm = (existing?: Partial<ConnectionConfig>) => ConnectionPanel.show(ctx.extensionUri, manager, () => tree.refresh(), existing);
 
   cmd('dbdeck.addConnection', () => openForm());
   cmd('dbdeck.editConnection', (n: DbNode) => openForm({ id: n.connId }));
@@ -238,7 +232,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
     const d = await manager.get<S3Driver>(n.connId);
     const size = Number(n.extra?.size ?? 0);
     if (size > 50 * 1024 * 1024 && !(await confirm(`${n.label} is ${formatBytes(size)}. Download and open it?`, 'Open'))) return;
-    const safeKey = n.key!.split('/').filter((s) => s && s !== '.' && s !== '..').join(path.sep);
+    const safeKey = n
+      .key!.split('/')
+      .filter((s) => s && s !== '.' && s !== '..')
+      .join(path.sep);
     const file = path.join(os.tmpdir(), 'dbdeck-s3', n.connId, n.database!, safeKey || 'object');
     await s3Progress(`Downloading ${n.label}`, () => d.download(n.database!, n.key!, file));
     await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));

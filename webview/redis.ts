@@ -107,7 +107,14 @@ function renderHeader(d: KeyValue): HTMLElement {
       'div.col.grow',
       { style: 'gap:2px' },
       h('div.title.mono', { title: d.key }, d.key),
-      h('div.row', { style: 'gap:6px' }, h('span.badge.accent', null, d.type), ttl, h('span.badge', null, `${fmtNum(d.size)} ${d.type === 'string' ? 'chars' : 'items'}`), h('span.crumb', null, I.location)),
+      h(
+        'div.row',
+        { style: 'gap:6px' },
+        h('span.badge.accent', null, d.type),
+        ttl,
+        h('span.badge', null, `${fmtNum(d.size)} ${d.type === 'string' ? 'chars' : 'items'}`),
+        h('span.crumb', null, I.location),
+      ),
     ),
     btn(null, { icon: 'copy', class: 'sm ghost', title: 'Copy key name', onClick: () => rpc('copy', { text: key }).then(() => toast('Copied')) }),
     I.readonly
@@ -218,7 +225,17 @@ function table(headers: string[], rows: Row[], onAdd?: () => void, addLabel = 'A
       h(
         'table.kv',
         null,
-        h('thead', null, h('tr', null, h('th', null, '#'), headers.map((x) => h('th', null, x)), h('th'))),
+        h(
+          'thead',
+          null,
+          h(
+            'tr',
+            null,
+            h('th', null, '#'),
+            headers.map((x) => h('th', null, x)),
+            h('th'),
+          ),
+        ),
         h(
           'tbody',
           null,
@@ -255,11 +272,18 @@ function renderBody(d: KeyValue): HTMLElement {
         entries.map(([f, v]) => ({
           cells: [f, v],
           edit: () =>
-            prompt('Edit field', [{ label: 'Field', value: f }, { label: 'Value', value: v, multiline: true }], async ([nf, nv]) => {
-              if (nf !== f) await exec('HDEL', key, f);
-              await exec('HSET', key, nf, nv);
-              await load();
-            }),
+            prompt(
+              'Edit field',
+              [
+                { label: 'Field', value: f },
+                { label: 'Value', value: v, multiline: true },
+              ],
+              async ([nf, nv]) => {
+                if (nf !== f) await exec('HDEL', key, f);
+                await exec('HSET', key, nf, nv);
+                await load();
+              },
+            ),
           remove: () => run(() => exec('HDEL', key, f)),
         })),
         () => prompt('Add field', [{ label: 'Field' }, { label: 'Value', multiline: true }], async ([f, v]) => (await exec('HSET', key, f, v), load())),
@@ -280,10 +304,17 @@ function renderBody(d: KeyValue): HTMLElement {
             }),
         })),
         () =>
-          prompt('Push item', [{ label: 'Value', multiline: true }, { label: 'Position (head / tail)', value: 'tail' }], async ([v, pos]) => {
-            await exec(pos.trim().toLowerCase() === 'head' ? 'LPUSH' : 'RPUSH', key, v);
-            await load();
-          }),
+          prompt(
+            'Push item',
+            [
+              { label: 'Value', multiline: true },
+              { label: 'Position (head / tail)', value: 'tail' },
+            ],
+            async ([v, pos]) => {
+              await exec(pos.trim().toLowerCase() === 'head' ? 'LPUSH' : 'RPUSH', key, v);
+              await load();
+            },
+          ),
         'Push',
       );
     case 'set':
@@ -309,14 +340,29 @@ function renderBody(d: KeyValue): HTMLElement {
         (d.value as { member: string; score: number }[]).map((z) => ({
           cells: [z.score, z.member],
           edit: () =>
-            prompt('Edit member', [{ label: 'Score', value: String(z.score) }, { label: 'Member', value: z.member, multiline: true }], async ([s, m]) => {
-              if (m !== z.member) await exec('ZREM', key, z.member);
-              await exec('ZADD', key, s, m);
-              await load();
-            }),
+            prompt(
+              'Edit member',
+              [
+                { label: 'Score', value: String(z.score) },
+                { label: 'Member', value: z.member, multiline: true },
+              ],
+              async ([s, m]) => {
+                if (m !== z.member) await exec('ZREM', key, z.member);
+                await exec('ZADD', key, s, m);
+                await load();
+              },
+            ),
           remove: () => run(() => exec('ZREM', key, z.member)),
         })),
-        () => prompt('Add member', [{ label: 'Score', value: '0' }, { label: 'Member', multiline: true }], async ([s, m]) => (await exec('ZADD', key, s, m), load())),
+        () =>
+          prompt(
+            'Add member',
+            [
+              { label: 'Score', value: '0' },
+              { label: 'Member', multiline: true },
+            ],
+            async ([s, m]) => (await exec('ZADD', key, s, m), load()),
+          ),
         'Add member',
       );
     case 'stream':

@@ -6,23 +6,23 @@ services:
     environment:
       POSTGRES_PASSWORD: dbdeck
       POSTGRES_DB: shop
-    ports: ["15433:5432"]
+    ports: ['15433:5432']
   mysql:
     image: mariadb:10.11
     environment:
       MARIADB_ROOT_PASSWORD: dbdeck
       MARIADB_DATABASE: shop
-    ports: ["13306:3306"]
+    ports: ['13306:3306']
   mongo:
     image: mongo:7
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: dbdeck
-    ports: ["27018:27017"]
+    ports: ['27018:27017']
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "dbdeck"]
-    ports: ["16379:6379"]
+    command: ['redis-server', '--requirepass', 'dbdeck']
+    ports: ['16379:6379']
   clickhouse:
     image: clickhouse/clickhouse-server:24.8-alpine
     environment:
@@ -30,17 +30,17 @@ services:
       CLICKHOUSE_PASSWORD: dbdeck
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
-    ports: ["18123:8123"]
+    ports: ['18123:8123']
   elasticsearch:
     image: elasticsearch:8.11.3
     environment:
       discovery.type: single-node
-      xpack.security.enabled: "false"
+      xpack.security.enabled: 'false'
       ES_JAVA_OPTS: -Xms384m -Xmx384m
-    ports: ["19200:9200"]
+    ports: ['19200:9200']
   s3:
     image: rustfs/rustfs:latest
     environment:
       RUSTFS_ACCESS_KEY: dbdeck
       RUSTFS_SECRET_KEY: dbdeck123
-    ports: ["19000:9000"]
+    ports: ['19000:9000']

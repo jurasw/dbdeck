@@ -98,9 +98,7 @@ export class ElasticDriver extends BaseDriver {
     }
     if (n.kind === 'esIndex') {
       const fields = await this.fields(n.table!);
-      return fields.map((f) =>
-        this.node('esField', f.name, { table: n.table, description: f.type, icon: 'symbol-field', leaf: true, tags: 'esField' }),
-      );
+      return fields.map((f) => this.node('esField', f.name, { table: n.table, description: f.type, icon: 'symbol-field', leaf: true, tags: 'esField' }));
     }
     return [];
   }
@@ -137,7 +135,7 @@ export class ElasticDriver extends BaseDriver {
     const res = r.body as { hits: { total: number | { value: number }; hits: { _id: string; _source?: Record<string, unknown> }[] }; took: number };
     const docs = res.hits.hits.map((h) => ({ _id: h._id, ...h._source }));
     const grid = docsToGrid(docs);
-    const total = typeof res.hits.total === 'number' ? res.hits.total : res.hits.total?.value ?? docs.length;
+    const total = typeof res.hits.total === 'number' ? res.hits.total : (res.hits.total?.value ?? docs.length);
     return { ...grid, durationMs: r.durationMs, total, message: `took ${res.took} ms` };
   }
 }

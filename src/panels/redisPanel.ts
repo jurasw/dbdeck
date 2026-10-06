@@ -38,8 +38,7 @@ export class RedisPanel {
         if (cmd === 'DEL') panel.dispose();
         return r === null || r === undefined ? null : typeof r === 'object' ? JSON.parse(JSON.stringify(r)) : String(r);
       },
-      confirm: async ({ message, action }: { message: string; action: string }) =>
-        (await vscode.window.showWarningMessage(message, { modal: true }, action)) === action,
+      confirm: async ({ message, action }: { message: string; action: string }) => (await vscode.window.showWarningMessage(message, { modal: true }, action)) === action,
       copy: ({ text }: { text: string }) => vscode.env.clipboard.writeText(text),
     });
     panel.onDidDispose(() => {

@@ -1,0 +1,44 @@
+name: Check Extension on PR
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extension-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run check
+      - name: Lint and format check
+        run: npm run lint
+      - name: Run tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Package extension
+        run: npm run package
+      - name: Upload VSIX for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbdeck-vsix
+          path: '*.vsix'
+          if-no-files-found: error

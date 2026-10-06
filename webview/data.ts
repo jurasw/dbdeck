@@ -1,25 +1,6 @@
 import { Grid, GridColumn } from './grid';
 import { jsonView } from './json';
-import {
-  btn,
-  clear,
-  contextMenu,
-  fmtMs,
-  fmtNum,
-  h,
-  icon,
-  INIT,
-  jsonEditor,
-  loading,
-  MenuItem,
-  modal,
-  raw,
-  rpc,
-  toast,
-  toCsv,
-  toObjects,
-  toTsv,
-} from './lib';
+import { btn, clear, contextMenu, fmtMs, fmtNum, h, icon, INIT, jsonEditor, loading, MenuItem, modal, raw, rpc, toast, toCsv, toObjects, toTsv } from './lib';
 
 interface Init {
   mode: 'sql' | 'mongo' | 'es';
@@ -58,7 +39,9 @@ const sqlLiteral = (v: unknown) =>
   v === null ? 'NULL' : typeof v === 'number' || typeof v === 'boolean' ? String(v) : `'${(typeof v === 'object' ? JSON.stringify(v) : String(v)).replace(/'/g, "''")}'`;
 
 const inputs = {
-  a: h('input.input.mono', { placeholder: isSql ? "id > 10 AND status = 'active'" : I.mode === 'mongo' ? '{ "status": "active" }' : 'status:active AND age:>30  or  { "match": { ... } }' }) as HTMLInputElement,
+  a: h('input.input.mono', {
+    placeholder: isSql ? "id > 10 AND status = 'active'" : I.mode === 'mongo' ? '{ "status": "active" }' : 'status:active AND age:>30  or  { "match": { ... } }',
+  }) as HTMLInputElement,
   b: h('input.input.mono', { placeholder: isSql ? 'created_at DESC' : I.mode === 'mongo' ? '{ "_id": -1 }' : '@timestamp desc' }) as HTMLInputElement,
   c: h('input.input.mono', { placeholder: '{ "name": 1 }' }) as HTMLInputElement,
 };
@@ -77,7 +60,7 @@ const grid = new Grid({
   onEdit: (r, c, value) => setCell(r, c, value),
   onActivate: (r, c) => (isSql ? viewValue(columns[c].name, rows[r][c]) : I.editable ? editDoc(r) : viewValue('Document', docs[r])),
   onContextMenu: (e, r, c) => contextMenu(e.clientX, e.clientY, menuFor(r, c)),
-  onSelect: () => updateFooter(),
+  onSelect: () => updateActions(),
   onKey: (e) => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && (canEditRows() || (!isSql && I.editable))) {
       e.preventDefault();
@@ -103,7 +86,7 @@ function setCell(r: number, c: number, value: unknown): void {
     else edits.delete(r);
   }
   grid.refresh();
-  updateFooter();
+  updateActions();
 }
 
 const sideHead = h('div.sp-head');
@@ -140,14 +123,27 @@ function menuFor(r: number, c: number): MenuItem[] {
     {
       label: 'Copy as JSON',
       icon: 'json',
-      action: () => rpc('copy', { text: JSON.stringify(isSql ? toObjects(columns.map((x) => x.name), sel.map((i) => rows[i])) : sel.map((i) => docs[i]), null, 2) }),
+      action: () =>
+        rpc('copy', {
+          text: JSON.stringify(
+            isSql
+              ? toObjects(
+                  columns.map((x) => x.name),
+                  sel.map((i) => rows[i]),
+                )
+              : sel.map((i) => docs[i]),
+            null,
+            2,
+          ),
+        }),
     },
   ];
   if (isSql)
     items.push({
       label: 'Copy as INSERT',
       icon: 'code',
-      action: async () => rpc('copy', { text: await rpc('insertSql', { columns: columns.map((x) => x.name), rows: sel.map((i) => rows[i]) }) }).then(() => toast('INSERT statements copied')),
+      action: async () =>
+        rpc('copy', { text: await rpc('insertSql', { columns: columns.map((x) => x.name), rows: sel.map((i) => rows[i]) }) }).then(() => toast('INSERT statements copied')),
     });
   items.push('-', {
     label: `Filter by ${col} = ${v === null ? 'NULL' : 'this value'}`,
@@ -186,19 +182,24 @@ function rowsView(r: number): number {
 function editDoc(r: number): void {
   const doc = docs[r];
   const ta = jsonEditor(JSON.stringify(doc, null, 2), 22);
-  modal(`Edit document`, ta, [
-    { label: 'Cancel' },
-    {
-      label: 'Save',
-      primary: true,
-      onClick: async () => {
-        JSON.parse(ta.value);
-        await rpc('replace', { id: doc._id, text: ta.value });
-        toast('Document saved', 'success');
-        void load();
+  modal(
+    `Edit document`,
+    ta,
+    [
+      { label: 'Cancel' },
+      {
+        label: 'Save',
+        primary: true,
+        onClick: async () => {
+          JSON.parse(ta.value);
+          await rpc('replace', { id: doc._id, text: ta.value });
+          toast('Document saved', 'success');
+          void load();
+        },
       },
-    },
-  ], { icon: 'edit', wide: true });
+    ],
+    { icon: 'edit', wide: true },
+  );
 }
 
 function insertDoc(template?: Record<string, unknown>): void {
@@ -207,7 +208,16 @@ function insertDoc(template?: Record<string, unknown>): void {
   const ta = jsonEditor(JSON.stringify(base, null, 2) === '{}' ? (I.mode === 'es' ? '{\n  "_id": "",\n  \n}' : '{\n  \n}') : JSON.stringify(base, null, 2), 22);
   modal(
     I.mode === 'mongo' ? 'Insert document(s)' : 'Index document',
-    h('div.col', null, ta, h('div.muted', { style: 'font-size:11.5px' }, I.mode === 'mongo' ? 'Extended JSON. Paste an array to insert many documents.' : 'Leave out "_id" to let Elasticsearch generate one.')),
+    h(
+      'div.col',
+      null,
+      ta,
+      h(
+        'div.muted',
+        { style: 'font-size:11.5px' },
+        I.mode === 'mongo' ? 'Extended JSON. Paste an array to insert many documents.' : 'Leave out "_id" to let Elasticsearch generate one.',
+      ),
+    ),
     [
       { label: 'Cancel' },
       {
@@ -233,7 +243,7 @@ async function deleteSelected(): Promise<void> {
     const restore = sel.every((r) => deleted.has(r));
     sel.forEach((r) => (restore ? deleted.delete(r) : deleted.add(r)));
     grid.refresh();
-    updateFooter();
+    updateActions();
     return;
   }
   const ok = await rpc<boolean>('confirm', { message: `Delete ${sel.length} document(s)?`, action: 'Delete' });
@@ -255,7 +265,7 @@ function addRow(): void {
   grid.scrollToRow(r);
   const first = columns.findIndex((c) => !/auto_increment|nextval|identity/i.test(`${c.type ?? ''}`));
   grid.startEdit(grid.viewCount - 1, Math.max(0, first));
-  updateFooter();
+  updateActions();
 }
 
 async function save(): Promise<void> {
@@ -287,7 +297,7 @@ function discard(): void {
   added.clear();
   deleted.clear();
   grid.setData(columns, rows, true);
-  updateFooter();
+  updateActions();
 }
 
 function params(): Record<string, unknown> {
@@ -331,7 +341,7 @@ async function load(resetPage = false): Promise<void> {
           .then((n) => {
             if (seq === loadSeq) {
               total = n;
-              updateFooter();
+              updateActions();
             }
           })
           .catch(() => undefined);
@@ -343,29 +353,29 @@ async function load(resetPage = false): Promise<void> {
     errorBox.classList.remove('hidden');
   } finally {
     if (seq === loadSeq) loading(app, false);
-    updateFooter();
+    updateActions();
   }
 }
 
 const errorBox = h('div.message.error.hidden');
 const content = h('div.split');
-const footer = h('div.footer');
+const actions = h('div.toolbar.actions');
 
 function renderBody(): void {
   if (view === 'json' && !isSql) clear(content, h('div.scroll', null, jsonView(docs, 1)), side);
   else clear(content, h('div.grid-wrap', null, grid.el), side);
 }
 
-function updateFooter(): void {
+function updateActions(): void {
   const pages = total !== undefined ? Math.max(1, Math.ceil(total / pageSize)) : undefined;
   const from = rows.length ? page * pageSize + 1 : 0;
   const to = page * pageSize + rows.filter((_, i) => !added.has(i)).length;
   const sel = grid.selectedRows().length;
   const pendingCount = edits.size + added.size + deleted.size;
   const sizeSel = h(
-    'select.select',
-    { style: 'height:24px;padding:0 4px;font-size:12px', title: 'Rows per page' },
-    [25, 50, 100, 200, 500, 1000].map((n) => h('option', { value: String(n), selected: n === pageSize }, `${n} / page`)),
+    'select.select.sm',
+    { title: 'Rows per page' },
+    [25, 50, 100, 200, 500, 1000].map((n) => h('option', { value: String(n), selected: n === pageSize }, String(n))),
   ) as HTMLSelectElement;
   sizeSel.addEventListener('change', () => {
     pageSize = Number(sizeSel.value);
@@ -374,60 +384,65 @@ function updateFooter(): void {
   const left: (HTMLElement | null)[] = [];
   if (isSql && I.editable && pkCols().length) {
     left.push(
-      btn('Add row', { icon: 'add', class: 'sm', onClick: addRow }),
-      btn('Delete', { icon: 'trash', class: 'sm', disabled: !sel, onClick: () => void deleteSelected() }),
+      btn('Add row', { icon: 'add', class: 'sm outline', onClick: addRow }),
+      btn('Delete', { icon: 'trash', class: 'sm outline', disabled: !sel, onClick: () => void deleteSelected() }),
     );
     if (pendingCount) {
       left.push(
         h('div.sep'),
-        h('span.badge.warn', null, icon('circle-filled'), `${pendingCount} pending`),
+        h('span.badge.warn', null, `${pendingCount} pending`),
         btn('Save', { icon: 'save', class: 'sm primary', title: 'Save changes (⌘S)', onClick: () => void save() }),
         btn('Discard', { icon: 'discard', class: 'sm ghost', onClick: discard }),
       );
     }
   } else if (isSql && I.editable && columns.length) {
-    left.push(h('span.badge', { title: 'Rows can only be edited when the table has a primary key' }, icon('lock'), 'No primary key · read only'));
+    left.push(h('span.badge.outline', { title: 'Rows can only be edited when the table has a primary key' }, icon('lock'), 'No primary key · read only'));
   } else if (isSql && !I.editable) {
-    left.push(h('span.badge', null, icon('lock'), 'Read only'));
+    left.push(h('span.badge.outline', null, icon('lock'), 'Read only'));
   }
   if (!isSql) {
     left.push(
       h(
         'div.btn-group',
         null,
-        btn(null, { icon: 'table', class: `sm ${view === 'grid' ? 'active' : ''}`, title: 'Table view', onClick: () => ((view = 'grid'), renderBody(), updateFooter()) }),
-        btn(null, { icon: 'json', class: `sm ${view === 'json' ? 'active' : ''}`, title: 'JSON view', onClick: () => ((view = 'json'), renderBody(), updateFooter()) }),
+        btn(null, { icon: 'table', class: `sm outline ${view === 'grid' ? 'active' : ''}`, title: 'Table view', onClick: () => ((view = 'grid'), renderBody(), updateActions()) }),
+        btn(null, { icon: 'json', class: `sm outline ${view === 'json' ? 'active' : ''}`, title: 'JSON view', onClick: () => ((view = 'json'), renderBody(), updateActions()) }),
       ),
     );
     if (I.editable) {
       left.push(
-        btn(I.mode === 'mongo' ? 'Insert' : 'Add', { icon: 'add', class: 'sm', onClick: () => insertDoc() }),
-        btn('Edit', { icon: 'edit', class: 'sm', disabled: sel !== 1, onClick: () => editDoc(grid.selectedRows()[0]) }),
-        btn('Delete', { icon: 'trash', class: 'sm', disabled: !sel, onClick: () => void deleteSelected() }),
+        btn(I.mode === 'mongo' ? 'Insert' : 'Add', { icon: 'add', class: 'sm outline', onClick: () => insertDoc() }),
+        btn('Edit', { icon: 'edit', class: 'sm outline', disabled: sel !== 1, onClick: () => editDoc(grid.selectedRows()[0]) }),
+        btn('Delete', { icon: 'trash', class: 'sm outline', disabled: !sel, onClick: () => void deleteSelected() }),
       );
     }
   }
   clear(
-    footer,
+    actions,
     left,
     h('div.grow'),
-    sel > 1 ? h('span.muted', null, `${sel} selected`) : null,
-    h('span.muted', { style: 'font-variant-numeric:tabular-nums' }, rows.length ? `${fmtNum(from)}–${fmtNum(to)}${total !== undefined ? ` of ${fmtNum(total)}` : ''}` : total === 0 ? '0 rows' : ''),
-    h('span.badge', null, icon('clock'), fmtMs(duration)),
-    sizeSel,
+    h(
+      'span.muted',
+      { style: 'font-variant-numeric:tabular-nums' },
+      sel > 1 ? `${sel} selected · ` : '',
+      rows.length ? `${fmtNum(from)}–${fmtNum(to)}${total !== undefined ? ` of ${fmtNum(total)}` : ''}` : total === 0 ? '0 rows' : '',
+    ),
+    h('span.muted', null, fmtMs(duration)),
+    h('div.sep'),
+    h('label.row.muted', { style: 'gap:6px' }, 'Rows per page', sizeSel),
+    h('span.page', null, `Page ${page + 1}${pages ? ` of ${fmtNum(pages)}` : ''}`),
     h(
       'div.pager',
       null,
-      btn(null, { icon: 'chevron-left', class: 'sm ghost', title: 'Previous page', disabled: page === 0, onClick: () => go(page - 1) }),
-      h('span.page.muted', null, `${page + 1}${pages ? ` / ${fmtNum(pages)}` : ''}`),
+      btn(null, { icon: 'chevron-left', class: 'sm outline', title: 'Previous page', disabled: page === 0, onClick: () => go(page - 1) }),
       btn(null, {
         icon: 'chevron-right',
-        class: 'sm ghost',
+        class: 'sm outline',
         title: 'Next page',
         disabled: pages !== undefined ? page + 1 >= pages : rows.length < pageSize,
         onClick: () => go(page + 1),
       }),
-      pages ? btn(null, { icon: 'debug-step-over', class: 'sm ghost', title: 'Last page', disabled: page + 1 >= pages, onClick: () => go(pages - 1) }) : null,
+      pages ? btn(null, { icon: 'debug-step-over', class: 'sm outline', title: 'Last page', disabled: page + 1 >= pages, onClick: () => go(pages - 1) }) : null,
     ),
   );
 }
@@ -437,7 +452,7 @@ function go(p: number): void {
   void load();
 }
 
-function filterField(tag: string, input: HTMLInputElement, width: string, w = 70): HTMLElement {
+function filterField(tag: string, input: HTMLInputElement, width: string, w = 58): HTMLElement {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') void load(true);
   });
@@ -447,20 +462,38 @@ function filterField(tag: string, input: HTMLInputElement, width: string, w = 70
 async function exportData(kind: 'csv' | 'json'): Promise<void> {
   const name = `${I.title}-${new Date().toISOString().slice(0, 10)}.${kind}`;
   const content =
-    kind === 'csv' ? toCsv(columns.map((c) => c.name), rows) : JSON.stringify(isSql ? toObjects(columns.map((c) => c.name), rows) : docs, null, 2);
+    kind === 'csv'
+      ? toCsv(
+          columns.map((c) => c.name),
+          rows,
+        )
+      : JSON.stringify(
+          isSql
+            ? toObjects(
+                columns.map((c) => c.name),
+                rows,
+              )
+            : docs,
+          null,
+          2,
+        );
   const path = await rpc<string | undefined>('saveFile', { name, content });
   if (path) toast(`Exported ${rows.length} rows to ${path}`, 'success');
 }
 
 function render(): void {
   const stats = h('span.badge');
-  const statsLoader = isSql ? null : rpc<string>('stats').then((s) => (stats.textContent = s)).catch(() => stats.remove());
+  const statsLoader = isSql
+    ? null
+    : rpc<string>('stats')
+        .then((s) => (stats.textContent = s))
+        .catch(() => stats.remove());
   void statsLoader;
   const filters = isSql
-    ? [filterField('WHERE', inputs.a, '3'), filterField('ORDER BY', inputs.b, '1.3', 82)]
+    ? [filterField('WHERE', inputs.a, '3'), filterField('ORDER BY', inputs.b, '1.3', 76)]
     : I.mode === 'mongo'
-      ? [filterField('FILTER', inputs.a, '3'), filterField('SORT', inputs.b, '1.2', 56), filterField('PROJECT', inputs.c, '1.2', 72)]
-      : [filterField('QUERY', inputs.a, '3', 62), filterField('SORT', inputs.b, '1.2', 56)];
+      ? [filterField('FILTER', inputs.a, '3'), filterField('SORT', inputs.b, '1.2', 50), filterField('PROJECT', inputs.c, '1.2', 68)]
+      : [filterField('QUERY', inputs.a, '3'), filterField('SORT', inputs.b, '1.2', 50)];
   clear(
     app,
     h(
@@ -469,17 +502,21 @@ function render(): void {
       h('div.type-icon', null, icon(isSql ? 'table' : I.mode === 'mongo' ? 'symbol-array' : 'symbol-file')),
       h('div.col.grow', { style: 'gap:1px' }, h('div.title', null, I.title), h('div.crumb', null, I.location)),
       isSql ? null : stats,
-      isSql ? btn('DDL', { icon: 'code', class: 'sm ghost', title: 'Show CREATE statement', onClick: async () => rpc('openInEditor', { content: await rpc('ddl'), language: 'sql' }) }) : null,
-      I.mode === 'es' ? btn('Mapping', { icon: 'symbol-structure', class: 'sm ghost', onClick: async () => rpc('openInEditor', { content: await rpc('mapping'), language: 'json' }) }) : null,
+      isSql
+        ? btn('DDL', { icon: 'code', class: 'sm ghost', title: 'Show CREATE statement', onClick: async () => rpc('openInEditor', { content: await rpc('ddl'), language: 'sql' }) })
+        : null,
+      I.mode === 'es'
+        ? btn('Mapping', { icon: 'symbol-structure', class: 'sm ghost', onClick: async () => rpc('openInEditor', { content: await rpc('mapping'), language: 'json' }) })
+        : null,
       btn('CSV', { icon: 'export', class: 'sm ghost', title: 'Export current page as CSV', onClick: () => void exportData('csv') }),
       btn('JSON', { icon: 'export', class: 'sm ghost', title: 'Export current page as JSON', onClick: () => void exportData('json') }),
-      btn(null, { icon: 'refresh', class: 'sm', title: 'Refresh (F5)', onClick: () => void load() }),
+      btn(null, { icon: 'refresh', class: 'sm outline', title: 'Refresh (F5)', onClick: () => void load() }),
     ),
     h(
       'div.toolbar',
       null,
       filters,
-      btn('Apply', { icon: 'filter', class: 'sm primary', onClick: () => void load(true) }),
+      btn('Apply', { class: 'sm primary', onClick: () => void load(true) }),
       btn(null, {
         icon: 'clear-all',
         class: 'sm ghost',
@@ -491,9 +528,9 @@ function render(): void {
         },
       }),
     ),
+    actions,
     errorBox,
     content,
-    footer,
   );
   renderBody();
 }

@@ -34,7 +34,10 @@ export abstract class SqlDriver extends BaseDriver {
 
   qualified(t: TableRef): string {
     const owner = this.dialect === 'postgres' ? t.schema : t.database;
-    return [owner, t.table].filter(Boolean).map((x) => this.quote(x!)).join('.');
+    return [owner, t.table]
+      .filter(Boolean)
+      .map((x) => this.quote(x!))
+      .join('.');
   }
 
   selectSql(t: TableRef, o: PageOptions): string {

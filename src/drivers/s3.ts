@@ -48,9 +48,7 @@ export class S3Driver extends BaseDriver {
 
   async children(n?: DbNode): Promise<DbNode[]> {
     if (!n) {
-      const names = this.config.database
-        ? [this.config.database]
-        : ((await this.client.send(new ListBucketsCommand({}))).Buckets ?? []).map((b) => b.Name!).filter(Boolean);
+      const names = this.config.database ? [this.config.database] : ((await this.client.send(new ListBucketsCommand({}))).Buckets ?? []).map((b) => b.Name!).filter(Boolean);
       return names.map((b) => this.node('s3Bucket', b, { database: b, prefix: '', icon: 'archive', tags: 's3Bucket s3' }));
     }
     if (n.kind !== 's3Bucket' && n.kind !== 's3Prefix') return [];

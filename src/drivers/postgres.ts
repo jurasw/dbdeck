@@ -79,7 +79,7 @@ export class PostgresDriver extends SqlDriver {
     return {
       columns: fields.map((f: { name: string; dataTypeID: number }) => ({ name: f.name, type: this.typeNames.get(f.dataTypeID) })),
       rows: isRows ? (res.rows as unknown[][]).map((row) => row.map(toCell)) : [],
-      affectedRows: isRows ? undefined : res.rowCount ?? undefined,
+      affectedRows: isRows ? undefined : (res.rowCount ?? undefined),
       message: isRows ? undefined : `${res.command ?? 'OK'}${res.rowCount != null ? ` · ${res.rowCount} row(s)` : ''}`,
       durationMs,
     };
@@ -114,17 +114,13 @@ export class PostgresDriver extends SqlDriver {
   async children(n?: DbNode): Promise<DbNode[]> {
     if (!n) {
       const dbs = await this.databases();
-      return dbs.map((d) =>
-        this.node('database', d, { database: d, icon: 'database', tags: 'database sql', expanded: d === this.config.database }),
-      );
+      return dbs.map((d) => this.node('database', d, { database: d, icon: 'database', tags: 'database sql', expanded: d === this.config.database }));
     }
     const db = n.database!;
     if (n.kind === 'database') {
       const sys = this.config.showSystem ? '' : "WHERE nspname NOT LIKE 'pg\\_%' AND nspname <> 'information_schema'";
       const rows = await this.q<{ nspname: string }>(`SELECT nspname FROM pg_namespace ${sys} ORDER BY nspname = 'public' DESC, 1`, [], db);
-      return rows.map((r) =>
-        this.node('schema', r.nspname, { database: db, schema: r.nspname, icon: 'symbol-namespace', tags: 'schema sql', expanded: r.nspname === 'public' }),
-      );
+      return rows.map((r) => this.node('schema', r.nspname, { database: db, schema: r.nspname, icon: 'symbol-namespace', tags: 'schema sql', expanded: r.nspname === 'public' }));
     }
     if (n.kind === 'schema') {
       return [
@@ -247,9 +243,7 @@ export class PostgresDriver extends SqlDriver {
       [name],
       t.database,
     );
-    const lines = cols.map(
-      (c) => `  ${this.quote(c.name)} ${c.type}${c.nullable ? '' : ' NOT NULL'}${c.defaultValue ? ` DEFAULT ${c.defaultValue}` : ''}`,
-    );
+    const lines = cols.map((c) => `  ${this.quote(c.name)} ${c.type}${c.nullable ? '' : ' NOT NULL'}${c.defaultValue ? ` DEFAULT ${c.defaultValue}` : ''}`);
     for (const c of cons) lines.push(`  CONSTRAINT ${this.quote(c.name)} ${c.def}`);
     let out = `CREATE TABLE ${name} (\n${lines.join(',\n')}\n);\n`;
     for (const i of idx) out += `\n${i.def};`;

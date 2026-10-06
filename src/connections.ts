@@ -58,7 +58,7 @@ export class ConnectionStore {
     const c = this.get(id);
     if (!c) return undefined;
     const raw = c.savePassword === false ? undefined : await this.ctx.secrets.get(`dbdeck.secret.${id}`);
-    const s: Secrets = raw ? JSON.parse(raw) : this.session.get(id) ?? {};
+    const s: Secrets = raw ? JSON.parse(raw) : (this.session.get(id) ?? {});
     return {
       ...c,
       password: s.password,
@@ -104,7 +104,12 @@ export class ConnectionStore {
       s.uri = v;
     }
     if (needsPassword) {
-      const v = await vscode.window.showInputBox({ title: c.name, prompt: `${c.type === 's3' ? 'Secret access key' : 'Password'} for ${c.user} (kept in memory for this session only)`, password: true, ignoreFocusOut: true });
+      const v = await vscode.window.showInputBox({
+        title: c.name,
+        prompt: `${c.type === 's3' ? 'Secret access key' : 'Password'} for ${c.user} (kept in memory for this session only)`,
+        password: true,
+        ignoreFocusOut: true,
+      });
       if (v === undefined) return undefined;
       s.password = v;
     }

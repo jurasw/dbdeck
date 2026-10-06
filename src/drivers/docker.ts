@@ -87,7 +87,13 @@ export class DockerDriver extends BaseDriver {
       ]);
       const running = containers.filter((c) => c.State === 'running').length;
       return [
-        this.node('dockerFolder', 'Containers', { ref: 'containers', icon: 'layers', description: `${running}/${containers.length} running`, tags: 'dockerFolder', expanded: true }),
+        this.node('dockerFolder', 'Containers', {
+          ref: 'containers',
+          icon: 'layers',
+          description: `${running}/${containers.length} running`,
+          tags: 'dockerFolder',
+          expanded: true,
+        }),
         this.node('dockerFolder', 'Images', { ref: 'images', icon: 'file-binary', description: String(images.length), tags: 'dockerFolder' }),
         this.node('dockerFolder', 'Volumes', { ref: 'volumes', icon: 'archive', description: String(volumes.Volumes?.length ?? 0), tags: 'dockerFolder' }),
         this.node('dockerFolder', 'Networks', { ref: 'networks', icon: 'type-hierarchy', description: String(networks.length), tags: 'dockerFolder' }),
@@ -117,7 +123,10 @@ export class DockerDriver extends BaseDriver {
     }
     if (n.kind === 'dockerFolder' && n.ref?.startsWith('project:')) {
       const project = n.ref.slice(8);
-      const list = await this.api<ContainerInfo[]>('GET', `/containers/json?all=1&filters=${encodeURIComponent(JSON.stringify({ label: [`com.docker.compose.project=${project}`] }))}`);
+      const list = await this.api<ContainerInfo[]>(
+        'GET',
+        `/containers/json?all=1&filters=${encodeURIComponent(JSON.stringify({ label: [`com.docker.compose.project=${project}`] }))}`,
+      );
       return list.sort(byName).map((c) => this.containerNode(c, true));
     }
     if (n.kind === 'dockerFolder' && n.ref === 'images') {

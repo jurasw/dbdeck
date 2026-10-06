@@ -1,5 +1,5 @@
-@import "tailwindcss" source(none);
-@import "tw-animate-css";
+@import 'tailwindcss' source(none);
+@import 'tw-animate-css';
 
 @source "../";
 
@@ -8,26 +8,26 @@
 :root {
   --radius: 0.5rem;
   --background: var(--vscode-editor-background);
-  --foreground: var(--vscode-foreground);
-  --card: color-mix(in srgb, var(--vscode-editor-background) 95%, var(--vscode-foreground));
-  --card-foreground: var(--vscode-foreground);
-  --popover: var(--vscode-dropdown-background, var(--vscode-editorWidget-background));
-  --popover-foreground: var(--vscode-dropdown-foreground, var(--vscode-foreground));
-  --primary: var(--vscode-button-background);
-  --primary-foreground: var(--vscode-button-foreground);
-  --secondary: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--vscode-foreground) 12%, transparent));
-  --secondary-foreground: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
-  --muted: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-foreground));
-  --muted-foreground: var(--vscode-descriptionForeground);
-  --accent: var(--vscode-list-hoverBackground);
-  --accent-foreground: var(--vscode-foreground);
-  --destructive: var(--vscode-errorForeground, #f14c4c);
-  --success: var(--vscode-charts-green, #3fb950);
-  --border: color-mix(in srgb, var(--vscode-foreground) 13%, transparent);
-  --input: var(--vscode-input-border, color-mix(in srgb, var(--vscode-foreground) 22%, transparent));
-  --input-background: var(--vscode-input-background);
-  --input-foreground: var(--vscode-input-foreground);
-  --ring: var(--vscode-focusBorder);
+  --foreground: var(--vscode-editor-foreground, var(--vscode-foreground));
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --secondary: color-mix(in srgb, var(--foreground) 9%, var(--background));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 9%, var(--background));
+  --muted-foreground: color-mix(in srgb, var(--foreground) 60%, var(--background));
+  --accent: color-mix(in srgb, var(--foreground) 9%, var(--background));
+  --accent-foreground: var(--foreground);
+  --destructive: #ef4444;
+  --success: #22c55e;
+  --border: color-mix(in srgb, var(--foreground) 11%, var(--background));
+  --input: color-mix(in srgb, var(--foreground) 17%, var(--background));
+  --input-background: transparent;
+  --input-foreground: var(--foreground);
+  --ring: color-mix(in srgb, var(--foreground) 45%, var(--background));
 }
 
 @theme inline {

@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible DBDeck issue.
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Use disposable data and omit credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: DBDeck, editor, OS and database versions
+    validations:
+      required: true

@@ -27,9 +27,7 @@ export class DataPanel {
     DataPanel.panels.set(key, panel);
     const ref: TableRef = { database: n.database, schema: n.schema, table: n.table! };
     const location = [cfg.name, n.database, n.schema].filter(Boolean).join(' › ');
-    const editable =
-      !cfg.readonly &&
-      (family === 'mongo' || family === 'es' || (driver instanceof SqlDriver && driver.editable && n.kind === 'table'));
+    const editable = !cfg.readonly && (family === 'mongo' || family === 'es' || (driver instanceof SqlDriver && driver.editable && n.kind === 'table'));
 
     panel.webview.html = webviewHtml(panel.webview, extUri, 'data', title, {
       mode: family,
@@ -48,8 +46,7 @@ export class DataPanel {
       },
       copy: async ({ text }: { text: string }) => vscode.env.clipboard.writeText(text),
       info: ({ message }: { message: string }) => vscode.window.showInformationMessage(message),
-      confirm: async ({ message, action }: { message: string; action: string }) =>
-        (await vscode.window.showWarningMessage(message, { modal: true }, action)) === action,
+      confirm: async ({ message, action }: { message: string; action: string }) => (await vscode.window.showWarningMessage(message, { modal: true }, action)) === action,
     };
 
     let handlers: Record<string, (p: any) => unknown>;

@@ -1,12 +1,13 @@
 {
   "name": "dbdeck",
-  "displayName": "DBDeck — Database Client",
+  "displayName": "DBDeck \u2014 Database Client",
   "description": "Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
   "version": "0.1.0",
   "publisher": "dbdeck",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.85.0",
+    "node": ">=22"
   },
   "categories": [
     "Programming Languages",
@@ -241,13 +242,13 @@
       },
       {
         "command": "dbdeck.s3.download",
-        "title": "Download…",
+        "title": "Download\u2026",
         "category": "DBDeck",
         "icon": "$(cloud-download)"
       },
       {
         "command": "dbdeck.s3.upload",
-        "title": "Upload Files…",
+        "title": "Upload Files\u2026",
         "category": "DBDeck",
         "icon": "$(cloud-upload)"
       },
@@ -731,7 +732,7 @@
         "dbdeck.codeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Show ▶ Run above each statement in bound editors."
+          "description": "Show \u25b6 Run above each statement in bound editors."
         }
       }
     }
@@ -739,8 +740,16 @@
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p webview",
-    "package": "node esbuild.mjs --production && vsce package --no-dependencies"
+    "typecheck": "npm run check",
+    "package": "vsce package --no-dependencies",
+    "check": "tsc --noEmit -p . && tsc --noEmit -p webview",
+    "lint": "oxlint src webview test scripts --deny-warnings && npm run format:check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node scripts/run-tests.mjs",
+    "validate": "npm run check && npm run lint && npm test && npm run build",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package:check": "vsce ls --no-dependencies"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
@@ -765,6 +774,8 @@
     "clsx": "^2.1.1",
     "esbuild": "^0.24.0",
     "lucide-react": "^1.52.0",
+    "oxlint": "1.87.0",
+    "prettier": "3.9.9",
     "radix-ui": "^1.7.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -772,5 +783,18 @@
     "tailwindcss": "^4.3.3",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5.6.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jurasw/dbdeck.git"
+  },
+  "homepage": "https://github.com/jurasw/dbdeck#readme",
+  "bugs": {
+    "url": "https://github.com/jurasw/dbdeck/issues"
+  },
+  "galleryBanner": {
+    "color": "#111827",
+    "theme": "dark"
+  },
+  "preview": true
 }

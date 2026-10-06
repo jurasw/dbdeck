@@ -21,8 +21,8 @@ export interface GridOptions {
   rowOffset?: () => number;
 }
 
-const RH = 26;
-const HH = 34;
+const RH = 30;
+const HH = 40;
 const RN = 52;
 const OVERSCAN = 10;
 const NUMERIC = /int|float|double|decimal|numeric|real|serial|number|money|newdecimal|long|tiny|short/i;
@@ -136,9 +136,9 @@ export class Grid {
     const mono = cs.getPropertyValue('--vscode-editor-font-family') || 'monospace';
     const ui = cs.getPropertyValue('--vscode-font-family') || 'sans-serif';
     return this.columns.map((col, c) => {
-      ctx.font = `600 12px ${ui}`;
+      ctx.font = `500 13px ${ui}`;
       let w = ctx.measureText(col.name).width + (col.pk ? 18 : 0) + 30;
-      ctx.font = `10px ${ui}`;
+      ctx.font = `11px ${ui}`;
       if (col.type) w = Math.max(w, ctx.measureText(col.type).width + 22);
       ctx.font = `12px ${mono}`;
       const n = Math.min(this.rows.length, 60);
@@ -355,15 +355,35 @@ export class Grid {
     const page = Math.max(1, Math.floor(this.el.clientHeight / RH) - 2);
     let { v, c } = f;
     switch (e.key) {
-      case 'ArrowDown': v++; break;
-      case 'ArrowUp': v--; break;
-      case 'ArrowLeft': c--; break;
-      case 'ArrowRight': c++; break;
-      case 'Tab': c += e.shiftKey ? -1 : 1; break;
-      case 'PageDown': v += page; break;
-      case 'PageUp': v -= page; break;
-      case 'Home': if (mod) v = 0; else c = 0; break;
-      case 'End': if (mod) v = this.order.length - 1; else c = this.columns.length - 1; break;
+      case 'ArrowDown':
+        v++;
+        break;
+      case 'ArrowUp':
+        v--;
+        break;
+      case 'ArrowLeft':
+        c--;
+        break;
+      case 'ArrowRight':
+        c++;
+        break;
+      case 'Tab':
+        c += e.shiftKey ? -1 : 1;
+        break;
+      case 'PageDown':
+        v += page;
+        break;
+      case 'PageUp':
+        v -= page;
+        break;
+      case 'Home':
+        if (mod) v = 0;
+        else c = 0;
+        break;
+      case 'End':
+        if (mod) v = this.order.length - 1;
+        else c = this.columns.length - 1;
+        break;
       case 'Enter':
       case 'F2':
         e.preventDefault();
@@ -421,7 +441,7 @@ export class Grid {
     input.value = orig === null || orig === undefined ? '' : typeof orig === 'object' ? JSON.stringify(orig) : String(orig);
     input.placeholder = orig === null ? 'NULL' : '';
     const left = RN + this.widths.slice(0, c).reduce((a, b) => a + b, 0);
-    Object.assign(input.style, { left: `${left}px`, top: `${HH + v * RH - 1}px`, width: `${Math.max(this.widths[c], 160)}px`, height: `${RH + 2}px` });
+    Object.assign(input.style, { left: `${left}px`, top: `${HH + v * RH}px`, width: `${Math.max(this.widths[c], 160)}px`, height: `${RH - 1}px` });
     this.inner.appendChild(input);
     this.editor = input;
     input.focus();
