@@ -1,0 +1,16 @@
+{
+  "scopeName": "source.dbdeck-es",
+  "patterns": [
+    { "match": "^\\s*#.*$", "name": "comment.line.number-sign" },
+    {
+      "match": "^\\s*(GET|POST|PUT|DELETE|HEAD|PATCH)\\s+(\\S+)",
+      "captures": { "1": { "name": "keyword.control" }, "2": { "name": "string.unquoted.path" } }
+    },
+    {
+      "begin": "^\\s*(?=[\\{\\[])",
+      "end": "^(?=\\s*(GET|POST|PUT|DELETE|HEAD|PATCH)\\s)",
+      "contentName": "meta.embedded.block.json",
+      "patterns": [{ "include": "source.json" }]
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+import * as vm from 'vm';
+import { Binary, Decimal128, Document, EJSON, Int32, Long, ObjectId, Timestamp, UUID } from 'bson';
+import { MongoClient } from 'mongodb';
+import { DbNode, QueryResult } from '../types';
+import { formatBytes, formatCount } from '../util';
+import { BaseDriver } from './base';
+
+const SYSTEM_DBS = new Set(['admin', 'config', 'local']);
+const MAX_DOCS = 1000;
+
+export interface FindOptions {
+  filter?: string;
+  sort?: string;
+  projection?: string;
+  skip: number;
+  limit: number;
+}
+
+export function parseRelaxed(text: string | undefined): Document {
+  const t = text?.trim();
+  if (!t) return {};
+  try {
+    return EJSON.parse(t, { relaxed: true }) as Document;
+  } catch {
+    const v = vm.runInNewContext(`(${t})`, shellGlobals(), { timeout: 1000 });
+    return EJSON.parse(EJSON.stringify(v, { relaxed: false }), { relaxed: false }) as Document;
+  }
+}
+
+function shellGlobals(): Record<string, unknown> {
+  return {
+    ObjectId: (id?: string) => new ObjectId(id),
+    ISODate: (d?: string) => (d ? new Date(d) : new Date()),
+    Date,
+    NumberLong: (v: string | number) => Long.fromString(String(v)),
+    NumberInt: (v: number) => new Int32(v),
+    NumberDecimal: (v: string) => Decimal128.fromString(String(v)),
+    Timestamp: (t: number, i: number) => new Timestamp({ t, i }),
+    UUID: (v?: string) => new UUID(v),
+    BinData: (sub: number, b64: string) => new Binary(Buffer.from(b64, 'base64'), sub),
+    RegExp,
+  };
+}
+
+export function toPlain(doc: unknown): unknown {
+  return EJSON.serialize(doc, { relaxed: true });
+}
+
+export class MongoDriver extends BaseDriver {
+  private client?: MongoClient;
+
+  async connect(): Promise<void> {
+    let uri = this.config.useUri && this.config.uri ? this.config.uri : '';
+    if (!uri) {
+      const { host, port } = await this.endpoint(27017);
+      const auth = this.config.user ? `${encodeURIComponent(this.config.user)}:${encodeURIComponent(this.config.password ?? '')}@` : '';
+      const qs = new URLSearchParams({ directConnection: 'true' });
+      if (this.config.user) qs.set('authSource', this.config.authSource || 'admin');
+      if (this.config.ssl) qs.set('tls', 'true');
+      if (this.config.ssl && this.config.rejectUnauthorized === false) qs.set('tlsAllowInvalidCertificates', 'true');
+      uri = `mongodb://${auth}${host.includes(':') ? `[${host}]` : host}:${port}/?${qs}`;
+    }
+    this.client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000, appName: 'DBDeck' });
+    await this.client.connect();
+  }
+
+  protected async disconnect(): Promise<void> {
+    await this.client?.close();
+    this.client = undefined;
+  }
+
+  private get defaultDb(): string | undefined {
+    if (this.config.database) return this.config.database;
+    if (this.config.useUri && this.config.uri) {
+      const m = /^mongodb(?:\+srv)?:\/\/[^/]+\/([^?]+)/.exec(this.config.uri);
+      if (m) return decodeURIComponent(m[1]);
+    }
+    return undefined;
+  }
+
+  db(name: string) {
+    return this.client!.db(name);
+  }
+
+  async databases(): Promise<string[]> {
+    try {
+      const r = await this.client!.db('admin').admin().listDatabases({ nameOnly: true });
+      return r.databases.map((d) => d.name).filter((d) => this.config.showSystem || !SYSTEM_DBS.has(d)).sort();
+    } catch (e) {
+      if (this.defaultDb) return [this.defaultDb];
+      throw e;
+    }
+  }
+
+  async collections(db: string): Promise<string[]> {
+    const cols = await this.db(db).listCollections({}, { nameOnly: true }).toArray();
+    return cols.map((c) => c.name).sort();
+  }
+
+  async children(n?: DbNode): Promise<DbNode[]> {
+    if (!n) {
+      const dbs = await this.databases();
+      return dbs.map((d) => this.node('database', d, { database: d, icon: 'database', tags: 'database mongo', expanded: d === this.defaultDb }));
+    }
+    if (n.kind === 'database') {
+      const cols = await this.db(n.database!).listCollections({}).toArray();
+      const visible = cols.filter((c) => this.config.showSystem || !c.name.startsWith('system.'));
+      const counts = await Promise.all(
+        visible.map((c) => (c.type === 'view' ? Promise.resolve(-1) : this.db(n.database!).collection(c.name).estimatedDocumentCount().catch(() => -1))),
+      );
+      return visible
+        .map((c, i) => ({ c, count: counts[i] }))
+        .sort((a, b) => a.c.name.localeCompare(b.c.name))
+        .map(({ c, count }) =>
+          this.node('collection', c.name, {
+            database: n.database,
+            table: c.name,
+            icon: c.type === 'view' ? 'eye' : 'symbol-array',
+            description: count >= 0 ? `${formatCount(count)} docs` : c.type,
+            tags: 'collection mongo',
+          }),
+        );
+    }
+    if (n.kind === 'collection') {
+      const idx = await this.db(n.database!).collection(n.table!).indexes();
+      return idx.map((i) =>
+        this.node('info', i.name ?? '', {
+          database: n.database,
+          table: n.table,
+          description: JSON.stringify(i.key) + (i.unique ? ' · unique' : ''),
+          icon: 'list-tree',
+          leaf: true,
+          tags: 'index',
+        }),
+      );
+    }
+    return [];
+  }
+
+  async find(db: string, coll: string, o: FindOptions): Promise<{ docs: unknown[]; durationMs: number }> {
+    const t = Date.now();
+    let cur = this.db(db).collection(coll).find(parseRelaxed(o.filter));
+    const sort = parseRelaxed(o.sort);
+    if (Object.keys(sort).length) cur = cur.sort(sort);
+    const proj = parseRelaxed(o.projection);
+    if (Object.keys(proj).length) cur = cur.project(proj);
+    const docs = await cur.skip(o.skip).limit(o.limit).toArray();
+    return { docs: docs.map(toPlain), durationMs: Date.now() - t };
+  }
+
+  async count(db: string, coll: string, filter?: string): Promise<number> {
+    const f = parseRelaxed(filter);
+    const c = this.db(db).collection(coll);
+    return Object.keys(f).length ? c.countDocuments(f) : c.estimatedDocumentCount();
+  }
+
+  async replace(db: string, coll: string, id: unknown, text: string): Promise<void> {
+    if (this.config.readonly) throw new Error('This connection is read-only');
+    const doc = EJSON.parse(text, { relaxed: true }) as Document;
+    const _id = EJSON.deserialize({ v: id } as Document, { relaxed: true }).v;
+    delete doc._id;
+    const r = await this.db(db).collection(coll).replaceOne({ _id }, doc);
+    if (!r.matchedCount) throw new Error('Document not found');
+  }
+
+  async insert(db: string, coll: string, text: string): Promise<void> {
+    if (this.config.readonly) throw new Error('This connection is read-only');
+    const parsed = EJSON.parse(text, { relaxed: true }) as Document | Document[];
+    const c = this.db(db).collection(coll);
+    if (Array.isArray(parsed)) await c.insertMany(parsed);
+    else await c.insertOne(parsed);
+  }
+
+  async remove(db: string, coll: string, ids: unknown[]): Promise<number> {
+    if (this.config.readonly) throw new Error('This connection is read-only');
+    const _ids = ids.map((id) => EJSON.deserialize({ v: id } as Document, { relaxed: true }).v);
+    const r = await this.db(db).collection(coll).deleteMany({ _id: { $in: _ids } });
+    return r.deletedCount;
+  }
+
+  async stats(db: string, coll: string): Promise<string> {
+    const s = await this.db(db).command({ collStats: coll });
+    return `${formatCount(s.count ?? 0)} docs · ${formatBytes(s.size ?? 0)} data · ${formatBytes(s.totalIndexSize ?? 0)} indexes`;
+  }
+
+  async script(dbName: string, code: string): Promise<QueryResult> {
+    const logs: string[] = [];
+    let current = dbName;
+    const client = this.client!;
+    const wrapCursor = (c: object): unknown =>
+      new Proxy(c, {
+        get(target, prop, recv) {
+          if (prop === 'pretty') return () => recv;
+          if (prop === 'count') return () => (target as { count?: () => Promise<number> }).count?.();
+          const v = Reflect.get(target, prop, target);
+          if (typeof v !== 'function') return v;
+          return (...args: unknown[]) => {
+            const r = v.apply(target, args);
+            return r === target ? recv : r;
+          };
+        },
+      });
+    const wrapColl = (name: string) => {
+      const coll = client.db(current).collection(name);
+      return new Proxy(coll, {
+        get(target, prop) {
+          if (prop === 'find' || prop === 'aggregate' || prop === 'listIndexes')
+            return (...args: unknown[]) => wrapCursor((target[prop] as (...a: unknown[]) => object).apply(target, args));
+          if (prop === 'getIndexes') return () => target.indexes();
+          if (prop === 'count') return (f?: Document) => target.countDocuments(f ?? {});
+          if (prop === 'insert') return (d: Document | Document[]) => (Array.isArray(d) ? target.insertMany(d) : target.insertOne(d));
+          if (prop === 'remove') return (f: Document) => target.deleteMany(f);
+          const v = Reflect.get(target, prop, target);
+          return typeof v === 'function' ? v.bind(target) : v;
+        },
+      });
+    };
+    const special: Record<string, unknown> = {
+      getName: () => current,
+      getCollection: (n: string) => wrapColl(n),
+      getCollectionNames: () => client.db(current).listCollections({}, { nameOnly: true }).toArray().then((l) => l.map((c) => c.name)),
+      getSiblingDB: (n: string) => {
+        current = n;
+        return dbProxy;
+      },
+      runCommand: (cmd: Document) => client.db(current).command(cmd),
+      adminCommand: (cmd: Document) => client.db('admin').command(cmd),
+      stats: () => client.db(current).stats(),
+      createCollection: (n: string, o?: Document) => client.db(current).createCollection(n, o).then(() => ({ ok: 1 })),
+      dropDatabase: () => client.db(current).dropDatabase(),
+    };
+    const dbProxy: unknown = new Proxy({}, { get: (_t, p) => (typeof p === 'string' ? (p in special ? special[p] : wrapColl(p)) : undefined) });
+    const log = (...a: unknown[]) => logs.push(a.map((x) => (typeof x === 'string' ? x : EJSON.stringify(x, undefined, 2, { relaxed: true }))).join(' '));
+    const ctx = vm.createContext({
+      ...shellGlobals(),
+      db: dbProxy,
+      use: (n: string) => {
+        current = n;
+        return `switched to db ${n}`;
+      },
+      print: log,
+      printjson: log,
+      console: { log, info: log, warn: log, error: log },
+    });
+    const t = Date.now();
+    let value = new vm.Script(code, { filename: 'query.mongodb' }).runInContext(ctx, { timeout: 30000 });
+    if (value && typeof (value as { then?: unknown }).then === 'function') value = await value;
+    let docs: unknown[] | undefined;
+    if (value && typeof (value as { toArray?: unknown }).toArray === 'function') {
+      docs = [];
+      for await (const d of value as AsyncIterable<unknown>) {
+        docs.push(d);
+        if (docs.length >= MAX_DOCS) break;
+      }
+      await (value as { close?: () => Promise<void> }).close?.();
+    } else if (Array.isArray(value)) docs = value;
+    const durationMs = Date.now() - t;
+    if (docs) {
+      const plain = docs.map(toPlain);
+      return { ...docsToGrid(plain), durationMs, json: plain, truncated: docs.length >= MAX_DOCS, message: logs.join('\n') || undefined };
+    }
+    const plain = value === undefined ? undefined : toPlain(value);
+    return { columns: [], rows: [], durationMs, json: plain, message: logs.join('\n') || (plain === undefined ? 'OK' : undefined) };
+  }
+}
+
+export function docsToGrid(docs: unknown[]): { columns: { name: string }[]; rows: unknown[][] } {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const d of docs) {
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      for (const k of Object.keys(d)) if (!seen.has(k)) seen.add(k), keys.push(k);
+    }
+  }
+  if (!keys.length) return { columns: [{ name: 'value' }], rows: docs.map((d) => [d]) };
+  return { columns: keys.map((name) => ({ name })), rows: docs.map((d) => keys.map((k) => (d as Record<string, unknown>)?.[k] ?? undefined)) };
+}

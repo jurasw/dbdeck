@@ -1,0 +1,676 @@
+{
+  "name": "dbdeck",
+  "displayName": "DBDeck — Database Client",
+  "description": "Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch and Docker. No paywalls, no telemetry.",
+  "version": "0.1.0",
+  "publisher": "dbdeck",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "mysql",
+    "postgres",
+    "postgresql",
+    "mongodb",
+    "redis",
+    "elasticsearch",
+    "clickhouse",
+    "docker",
+    "database",
+    "sql"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:sql",
+    "onLanguage:dbdeck-es"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dbdeck",
+          "title": "DBDeck",
+          "icon": "media/activity.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "dbdeckPanel",
+          "title": "Query Results",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "dbdeck": [
+        {
+          "id": "dbdeck.connections",
+          "name": "Connections",
+          "icon": "media/activity.svg"
+        }
+      ],
+      "dbdeckPanel": [
+        {
+          "id": "dbdeck.results",
+          "name": "Results",
+          "type": "webview"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "dbdeck.connections",
+        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch and Docker.\n[Import Connections](command:dbdeck.importConnections)"
+      }
+    ],
+    "languages": [
+      {
+        "id": "dbdeck-es",
+        "aliases": [
+          "Elasticsearch Request",
+          "es"
+        ],
+        "extensions": [
+          ".esreq"
+        ],
+        "configuration": "./syntaxes/es-language.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "dbdeck-es",
+        "scopeName": "source.dbdeck-es",
+        "path": "./syntaxes/es.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.json": "json"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "dbdeck.addConnection",
+        "title": "Add Connection",
+        "category": "DBDeck",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dbdeck.refresh",
+        "title": "Refresh",
+        "category": "DBDeck",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dbdeck.editConnection",
+        "title": "Edit Connection",
+        "category": "DBDeck",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "dbdeck.duplicateConnection",
+        "title": "Duplicate Connection",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.deleteConnection",
+        "title": "Delete Connection",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbdeck.disconnect",
+        "title": "Disconnect",
+        "category": "DBDeck",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "dbdeck.newQuery",
+        "title": "New Query",
+        "category": "DBDeck",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "dbdeck.openTable",
+        "title": "Open Data",
+        "category": "DBDeck",
+        "icon": "$(table)"
+      },
+      {
+        "command": "dbdeck.selectTop",
+        "title": "Generate SELECT",
+        "category": "DBDeck",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dbdeck.showDdl",
+        "title": "Show DDL",
+        "category": "DBDeck",
+        "icon": "$(code)"
+      },
+      {
+        "command": "dbdeck.copyName",
+        "title": "Copy Name",
+        "category": "DBDeck",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "dbdeck.truncateTable",
+        "title": "Truncate Table",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.dropObject",
+        "title": "Drop",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbdeck.runQuery",
+        "title": "Run Query",
+        "category": "DBDeck",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dbdeck.runAll",
+        "title": "Run All Statements",
+        "category": "DBDeck",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "dbdeck.selectConnection",
+        "title": "Change Active Connection",
+        "category": "DBDeck",
+        "icon": "$(database)"
+      },
+      {
+        "command": "dbdeck.exportConnections",
+        "title": "Export Connections",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.importConnections",
+        "title": "Import Connections",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.redis.filter",
+        "title": "Filter Keys",
+        "category": "DBDeck",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "dbdeck.redis.newKey",
+        "title": "New Key",
+        "category": "DBDeck",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dbdeck.redis.cli",
+        "title": "Open Redis CLI",
+        "category": "DBDeck",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "dbdeck.redis.deleteKey",
+        "title": "Delete Key",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbdeck.redis.flushDb",
+        "title": "Flush Database",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.es.deleteIndex",
+        "title": "Delete Index",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbdeck.docker.start",
+        "title": "Start",
+        "category": "DBDeck",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "dbdeck.docker.stop",
+        "title": "Stop",
+        "category": "DBDeck",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "dbdeck.docker.restart",
+        "title": "Restart",
+        "category": "DBDeck",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "dbdeck.docker.remove",
+        "title": "Remove",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbdeck.docker.logs",
+        "title": "Show Logs",
+        "category": "DBDeck",
+        "icon": "$(output)"
+      },
+      {
+        "command": "dbdeck.docker.shell",
+        "title": "Attach Shell",
+        "category": "DBDeck",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "dbdeck.docker.inspect",
+        "title": "Inspect",
+        "category": "DBDeck",
+        "icon": "$(json)"
+      },
+      {
+        "command": "dbdeck.docker.addConnection",
+        "title": "Add as Database Connection",
+        "category": "DBDeck",
+        "icon": "$(plug)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dbdeck.addConnection",
+          "when": "view == dbdeck.connections",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbdeck.refresh",
+          "when": "view == dbdeck.connections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dbdeck.exportConnections",
+          "when": "view == dbdeck.connections",
+          "group": "more@1"
+        },
+        {
+          "command": "dbdeck.importConnections",
+          "when": "view == dbdeck.connections",
+          "group": "more@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dbdeck.newQuery",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema)\\b.*\\b(sql|mongo|es)\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.redis.cli",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|redisDb)\\b.*\\bredis\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.redis.filter",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bredisDb\\b/",
+          "group": "inline@2"
+        },
+        {
+          "command": "dbdeck.redis.newKey",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bredisDb\\b/",
+          "group": "inline@3"
+        },
+        {
+          "command": "dbdeck.refresh",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn on|database|schema|folder|redisDb|redisFolder|dockerFolder)\\b/",
+          "group": "inline@9"
+        },
+        {
+          "command": "dbdeck.openTable",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view|collection|esIndex)\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.docker.start",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer stopped\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.docker.stop",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer running\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.docker.logs",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer\\b/",
+          "group": "inline@2"
+        },
+        {
+          "command": "dbdeck.docker.shell",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer running\\b/",
+          "group": "inline@3"
+        },
+        {
+          "command": "dbdeck.newQuery",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema)\\b.*\\b(sql|mongo|es)\\b/",
+          "group": "1_query@1"
+        },
+        {
+          "command": "dbdeck.redis.cli",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|redisDb)\\b.*\\bredis\\b/",
+          "group": "1_query@1"
+        },
+        {
+          "command": "dbdeck.openTable",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view|collection|esIndex)\\b/",
+          "group": "1_query@1"
+        },
+        {
+          "command": "dbdeck.selectTop",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view) sql\\b/",
+          "group": "1_query@2"
+        },
+        {
+          "command": "dbdeck.showDdl",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view|routine) sql\\b/",
+          "group": "1_query@3"
+        },
+        {
+          "command": "dbdeck.copyName",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema|table|view|column|collection|redisKey|esIndex|esField|container|image|volume|routine)\\b/",
+          "group": "2_copy@1"
+        },
+        {
+          "command": "dbdeck.redis.filter",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bredisDb\\b/",
+          "group": "1_query@2"
+        },
+        {
+          "command": "dbdeck.redis.newKey",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bredisDb\\b/",
+          "group": "1_query@3"
+        },
+        {
+          "command": "dbdeck.redis.deleteKey",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(redisKey|redisFolder)\\b/",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "dbdeck.redis.flushDb",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bredisDb\\b/",
+          "group": "9_danger@2"
+        },
+        {
+          "command": "dbdeck.truncateTable",
+          "when": "view == dbdeck.connections && viewItem =~ /\\btable sql\\b/",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "dbdeck.dropObject",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view|collection|database)\\b.*\\b(sql|mongo)\\b/",
+          "group": "9_danger@2"
+        },
+        {
+          "command": "dbdeck.es.deleteIndex",
+          "when": "view == dbdeck.connections && viewItem =~ /\\besIndex\\b/",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "dbdeck.docker.start",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer stopped\\b/",
+          "group": "1_docker@1"
+        },
+        {
+          "command": "dbdeck.docker.stop",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer running\\b/",
+          "group": "1_docker@1"
+        },
+        {
+          "command": "dbdeck.docker.restart",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer\\b/",
+          "group": "1_docker@2"
+        },
+        {
+          "command": "dbdeck.docker.logs",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer\\b/",
+          "group": "1_docker@3"
+        },
+        {
+          "command": "dbdeck.docker.shell",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer running\\b/",
+          "group": "1_docker@4"
+        },
+        {
+          "command": "dbdeck.docker.addConnection",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bcontainer\\b/",
+          "group": "2_docker@1"
+        },
+        {
+          "command": "dbdeck.docker.inspect",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(container|image|volume|network)\\b/",
+          "group": "2_docker@2"
+        },
+        {
+          "command": "dbdeck.docker.remove",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(container|image|volume)\\b/",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "dbdeck.editConnection",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bconn\\b/",
+          "group": "7_conn@1"
+        },
+        {
+          "command": "dbdeck.duplicateConnection",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bconn\\b/",
+          "group": "7_conn@2"
+        },
+        {
+          "command": "dbdeck.disconnect",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bconn\\b.*\\bon\\b/",
+          "group": "7_conn@3"
+        },
+        {
+          "command": "dbdeck.refresh",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|folder|redisDb|redisFolder|dockerFolder)\\b/",
+          "group": "7_conn@4"
+        },
+        {
+          "command": "dbdeck.deleteConnection",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bconn\\b/",
+          "group": "9_danger@9"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "dbdeck.runQuery",
+          "when": "dbdeck.boundEditor",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dbdeck.runQuery",
+          "when": "dbdeck.boundEditor",
+          "group": "dbdeck@1"
+        },
+        {
+          "command": "dbdeck.runAll",
+          "when": "dbdeck.boundEditor",
+          "group": "dbdeck@2"
+        },
+        {
+          "command": "dbdeck.selectConnection",
+          "when": "dbdeck.boundEditor",
+          "group": "dbdeck@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dbdeck.editConnection",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.duplicateConnection",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.deleteConnection",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.disconnect",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.openTable",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.selectTop",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.showDdl",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.copyName",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.truncateTable",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.dropObject",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.redis.filter",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.redis.newKey",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.redis.deleteKey",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.redis.flushDb",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.es.deleteIndex",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.start",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.stop",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.restart",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.remove",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.logs",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.shell",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.inspect",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.docker.addConnection",
+          "when": "false"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "dbdeck.runQuery",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && dbdeck.boundEditor"
+      },
+      {
+        "command": "dbdeck.runAll",
+        "key": "ctrl+shift+enter",
+        "mac": "cmd+shift+enter",
+        "when": "editorTextFocus && dbdeck.boundEditor"
+      }
+    ],
+    "configuration": {
+      "title": "DBDeck",
+      "properties": {
+        "dbdeck.pageSize": {
+          "type": "number",
+          "default": 100,
+          "description": "Rows per page in the data viewer."
+        },
+        "dbdeck.maxResultRows": {
+          "type": "number",
+          "default": 5000,
+          "description": "Maximum rows kept from a single query result."
+        },
+        "dbdeck.redisScanLimit": {
+          "type": "number",
+          "default": 5000,
+          "description": "Maximum Redis keys loaded into the tree per database."
+        },
+        "dbdeck.redisKeySeparator": {
+          "type": "string",
+          "default": ":",
+          "description": "Separator used to group Redis keys into folders."
+        },
+        "dbdeck.codeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show ▶ Run above each statement in bound editors."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p webview",
+    "package": "node esbuild.mjs --production && vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "bson": "^6.10.4",
+    "ioredis": "^5.4.1",
+    "mongodb": "^6.10.0",
+    "mysql2": "^3.11.0",
+    "pg": "^8.13.0",
+    "ssh2": "^1.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "@types/ssh2": "^1.15.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}
