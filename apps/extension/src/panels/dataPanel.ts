@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import { AiService } from '../ai-service';
+import { QueryEditors } from '../editor';
+import { AiPanel } from './ai-panel';
 import { ConnectionManager } from '../connections';
 import { ElasticDriver, errorText } from '../drivers/elastic';
 import { docsToGrid, MongoDriver } from '../drivers/mongo';
@@ -10,7 +13,7 @@ import { nodeId } from '../tree';
 export class DataPanel {
   private static panels = new Map<string, vscode.WebviewPanel>();
 
-  static async show(extUri: vscode.Uri, manager: ConnectionManager, n: DbNode, onChanged: () => void): Promise<void> {
+  static async show(extUri: vscode.Uri, manager: ConnectionManager, n: DbNode, onChanged: () => void, ai?: AiService, editors?: QueryEditors): Promise<void> {
     const key = nodeId(n);
     const existing = DataPanel.panels.get(key);
     if (existing) {
@@ -54,6 +57,18 @@ export class DataPanel {
       if (driver instanceof SqlDriver) {
         handlers = {
           ...common,
+          aiFilter: async ({ prompt }: { prompt: string }) => {
+            if (!ai || !editors) throw new Error('AI is unavailable.');
+            const status = await ai.status();
+            if (!status.connected || !status.model) {
+              await AiPanel.show({ extensionUri: extUri }, manager, editors, ai, n, () => panel.reveal());
+              return null;
+            }
+            if (typeof prompt !== 'string' || !prompt.trim()) throw new Error('Describe the filter in the WHERE field first.');
+            const columns = await driver.columns(ref);
+            const schema = JSON.stringify({ table: ref.table, schema: ref.schema, columns: columns.map((c) => ({ name: c.name, type: c.type })) });
+            return ai.generate(prompt, schema, driver.dialect, new AbortController().signal, true);
+          },
           load: (o: PageOptions) => driver.page(ref, o),
           count: ({ where }: { where?: string }) => driver.count(ref, where),
           apply: async (ch: RowChanges) => {

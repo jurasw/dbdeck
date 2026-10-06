@@ -1,5 +1,5 @@
 import type { SchemaDiagram, DiagramTable } from '../src/schema-diagram';
-import { btn, h, INIT, rpc, vscode } from './lib';
+import { btn, h, INIT, reducedMotion, rpc, vscode } from './lib';
 
 type Point = { x: number; y: number };
 type Layout = { positions: Record<string, Point>; x: number; y: number; zoom: number };
@@ -10,6 +10,8 @@ let y = saved?.y ?? 40;
 let zoom = saved?.zoom ?? 1;
 let diagram: SchemaDiagram = { tables: [], relations: [] };
 const cards = new Map<string, HTMLElement>();
+let links: { group: SVGGElement; source: string; target: string }[] = [];
+let activeTable: string | null = null;
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 svg.classList.add('schema-links');
 const world = h('div.schema-world', null, svg);
@@ -21,12 +23,27 @@ const search = h('input', {
   'aria-label': 'Find table or column',
   onInput: () => {
     const query = search.value.toLowerCase();
-    for (const table of diagram.tables)
-      cards
-        .get(table.id)
-        ?.classList.toggle('schema-dim', !!query && ![table.table, table.schema ?? '', ...table.columns.map((c) => c.name)].some((name) => name.toLowerCase().includes(query)));
+    for (const table of diagram.tables) cards.get(table.id)?.classList.toggle('schema-dim', !!query && !matches(table, query));
+    highlight();
   },
 });
+function matches(table: DiagramTable, query: string): boolean {
+  return [table.table, table.schema ?? '', ...table.columns.map((c) => c.name)].some((name) => name.toLowerCase().includes(query));
+}
+function highlight(): void {
+  const query = search.value.toLowerCase();
+  const hits = new Set(query ? diagram.tables.filter((t) => matches(t, query)).map((t) => t.id) : []);
+  const related = new Set<string>();
+  for (const link of links) {
+    const on = activeTable ? link.source === activeTable || link.target === activeTable : hits.has(link.source) || hits.has(link.target);
+    link.group.classList.toggle('active', on);
+    if (on && activeTable) related.add(link.source === activeTable ? link.target : link.source);
+  }
+  for (const [id, card] of cards) {
+    card.classList.toggle('schema-active', id === activeTable);
+    card.classList.toggle('schema-related', related.has(id));
+  }
+}
 function persist(): void {
   vscode.setState({ positions, x, y, zoom });
 }
@@ -68,13 +85,16 @@ function fit(): void {
   transform();
   persist();
 }
-function draw(): void {
+function draw(animate = false): void {
   for (const [id, card] of cards) {
     const point = positions[id];
     card.style.left = `${point.x}px`;
     card.style.top = `${point.y}px`;
   }
   svg.replaceChildren();
+  links = [];
+  svg.classList.toggle('schema-ambient', diagram.relations.length <= 40);
+  const motion = animate && !reducedMotion();
   const byId = new Map(diagram.tables.map((table) => [table.id, table]));
   for (const relation of diagram.relations) {
     const source = byId.get(relation.source)!;
@@ -87,12 +107,24 @@ function draw(): void {
     const sy = a.y + 48 + source.columns.findIndex((c) => c.name === relation.sourceColumn) * 28 + 14;
     const ty = b.y + 48 + target.columns.findIndex((c) => c.name === relation.targetColumn) * 28 + 14;
     const bend = Math.max(50, Math.abs(tx - sx) / 2);
+    const d = `M ${sx} ${sy} C ${sx + (right ? bend : -bend)} ${sy}, ${tx + (right ? -bend : bend)} ${ty}, ${tx} ${ty}`;
+    const group = document.createElementNS(svg.namespaceURI, 'g') as SVGGElement;
+    group.classList.add('schema-link');
     const path = document.createElementNS(svg.namespaceURI, 'path');
-    path.setAttribute('d', `M ${sx} ${sy} C ${sx + (right ? bend : -bend)} ${sy}, ${tx + (right ? -bend : bend)} ${ty}, ${tx} ${ty}`);
+    path.setAttribute('d', d);
+    path.setAttribute('pathLength', '1');
+    const flow = document.createElementNS(svg.namespaceURI, 'path');
+    flow.setAttribute('d', d);
+    flow.classList.add('schema-flow');
     const title = document.createElementNS(svg.namespaceURI, 'title');
     title.textContent = `${relation.name}: ${source.table}.${relation.sourceColumn} → ${target.table}.${relation.targetColumn}`;
-    path.append(title);
-    svg.append(path);
+    group.append(title, path, flow);
+    if (motion) {
+      group.classList.add('schema-link-enter');
+      group.style.setProperty('--delay', `${300 + Math.min(links.length * 60, 900)}ms`);
+    }
+    svg.append(group);
+    links.push({ group, source: source.id, target: target.id });
     for (const [px, py, label] of [
       [sx, sy, 'N'],
       [tx, ty, '1'],
@@ -101,9 +133,10 @@ function draw(): void {
       text.setAttribute('x', String(px + (label === 'N' ? (right ? 10 : -18) : right ? -18 : 10)));
       text.setAttribute('y', String(py - 7));
       text.textContent = label;
-      svg.append(text);
+      group.append(text);
     }
   }
+  highlight();
 }
 function cardFor(table: DiagramTable): HTMLElement {
   const header = h(
@@ -145,7 +178,16 @@ function cardFor(table: DiagramTable): HTMLElement {
   });
   return h(
     'section.schema-card',
-    null,
+    {
+      onPointerenter: () => {
+        activeTable = table.id;
+        highlight();
+      },
+      onPointerleave: () => {
+        activeTable = null;
+        highlight();
+      },
+    },
     header,
     table.columns.map((column) => {
       const fk = diagram.relations.some((r) => r.source === table.id && r.sourceColumn === column.name);
@@ -168,12 +210,19 @@ async function load(): Promise<void> {
     cards.clear();
     const needsLayout = diagram.tables.some((t) => !positions[t.id]);
     if (needsLayout) arrange();
-    diagram.tables.forEach((table) => {
+    const motion = !reducedMotion();
+    diagram.tables.forEach((table, i) => {
       const card = cardFor(table);
+      if (motion) {
+        card.classList.add('schema-enter');
+        card.style.animationDelay = `${Math.min(i * 40, 600)}ms`;
+        card.addEventListener('animationend', () => card.classList.remove('schema-enter'), { once: true });
+      }
       cards.set(table.id, card);
       world.append(card);
     });
-    draw();
+    draw(true);
+    if (motion) setTimeout(() => links.forEach((link) => link.group.classList.remove('schema-link-enter')), 2300);
     if (needsLayout) fit();
     else transform();
     status.textContent = diagram.tables.length

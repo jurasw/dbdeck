@@ -162,7 +162,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   });
   cmd('dbdeck.openTable', async (n: DbNode) => {
     n = (await pickNode(n))!;
-    await DataPanel.show(ctx.extensionUri, manager, n, () => refreshParent(n));
+    await DataPanel.show(ctx.extensionUri, manager, n, () => refreshParent(n), ai, editors);
   });
   cmd('dbdeck.showSchema', async (n?: DbNode) => {
     const node = await pickNode(n);

@@ -7,7 +7,14 @@ import { DbNode } from '../types';
 import { bindRpc, webviewHtml, webviewOptions } from '../webviewHost';
 
 export class AiPanel {
-  static async show(ctx: vscode.ExtensionContext, manager: ConnectionManager, editors: QueryEditors, ai: AiService, node?: DbNode): Promise<void> {
+  static async show(
+    ctx: Pick<vscode.ExtensionContext, 'extensionUri'>,
+    manager: ConnectionManager,
+    editors: QueryEditors,
+    ai: AiService,
+    node?: DbNode,
+    back?: () => void,
+  ): Promise<void> {
     if (!node) {
       const editor = vscode.window.activeTextEditor;
       const binding = editor && editors.binding(editor.document);
@@ -29,13 +36,19 @@ export class AiPanel {
     const database = node.database ?? (await vscode.window.showQuickPick(await driver.databases(), { title: 'AI query · database' }));
     if (!database) return;
     const target: DbNode = { ...node, database };
-    const objects = await driver.objects(database, node.schema, null);
+    const origin = node;
+    const rank = (o: { name: string; schema?: string }) => (o.name === origin.table && o.schema === origin.schema ? 0 : o.schema === origin.schema ? 1 : 2);
+    const objects = (await driver.objects(database, origin.table ? undefined : origin.schema, null)).sort((a, b) => rank(a) - rank(b));
     const panel = vscode.window.createWebviewPanel('dbdeck.ai', 'AI Query · DBDeck', vscode.ViewColumn.Active, webviewOptions(ctx.extensionUri));
     panel.iconPath = new vscode.ThemeIcon('sparkle');
     let request: AbortController | undefined;
     let generated: string | undefined;
     let disposed = false;
     const subscriptions = bindRpc(panel.webview, {
+      back: () => {
+        back?.();
+        panel.dispose();
+      },
       status: () => ai.status(),
       configure: async () => {
         if (request) throw new Error('Cancel generation before changing providers.');
@@ -60,25 +73,23 @@ export class AiPanel {
       usage: () => vscode.env.openExternal(vscode.Uri.parse('https://chatgpt.com/settings/usage')),
       mcp: () => vscode.commands.executeCommand('dbdeck.mcpSetup'),
       cancel: () => request?.abort(),
-      generate: async (params: { prompt: string; tables: number[] }) => {
+      generate: async (params: { prompt: string }) => {
         if (request) throw new Error('A query is already being generated.');
-        if (
-          typeof params.prompt !== 'string' ||
-          !Array.isArray(params.tables) ||
-          !params.tables.length ||
-          params.tables.length > 50 ||
-          params.tables.some((i) => !Number.isInteger(i) || !objects[i])
-        )
-          throw new Error('Choose 1–50 tables for the schema context.');
+        if (typeof params.prompt !== 'string' || !objects.length) throw new Error('The current database context has no available tables.');
         request = new AbortController();
         generated = undefined;
         try {
           const tables = [];
-          for (const index of new Set(params.tables)) {
+          let schemaSize = 0;
+          for (const index of objects.keys()) {
             request.signal.throwIfAborted();
             const object = objects[index];
             const columns = await driver.columns({ database, schema: object.schema, table: object.name });
-            tables.push({ schema: object.schema, table: object.name, columns: columns.map((c) => ({ name: c.name, type: c.type, primaryKey: c.pk, nullable: c.nullable })) });
+            const table = { schema: object.schema, table: object.name, columns: columns.map((c) => ({ name: c.name, type: c.type, primaryKey: c.pk, nullable: c.nullable })) };
+            const size = JSON.stringify(table).length + 1;
+            if (schemaSize + size > 99000) continue;
+            schemaSize += size;
+            tables.push(table);
           }
           request.signal.throwIfAborted();
           const query = await ai.generate(params.prompt, JSON.stringify(tables), driver.dialect, request.signal);
@@ -100,6 +111,7 @@ export class AiPanel {
       subscriptions.dispose();
     });
     panel.webview.html = webviewHtml(panel.webview, ctx.extensionUri, 'ai', 'AI Query · DBDeck', {
+      settings: !!back,
       connection: manager.store.get(node.connId)?.name,
       database,
       dialect: driver.dialect,

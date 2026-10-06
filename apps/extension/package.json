@@ -1,6 +1,6 @@
 {
   "name": "dbdeck",
-  "displayName": "DBDeck — Database Client",
+  "displayName": "DBDeck \u2014 Database Client",
   "description": "Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
   "version": "0.2.1",
   "publisher": "dbdeck",
@@ -249,13 +249,13 @@
       },
       {
         "command": "dbdeck.s3.download",
-        "title": "Download…",
+        "title": "Download\u2026",
         "category": "DBDeck",
         "icon": "$(cloud-download)"
       },
       {
         "command": "dbdeck.s3.upload",
-        "title": "Upload Files…",
+        "title": "Upload Files\u2026",
         "category": "DBDeck",
         "icon": "$(cloud-upload)"
       },
@@ -609,19 +609,14 @@
           "group": "9_danger@9"
         },
         {
-          "command": "dbdeck.showSchema",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) sql\\b/",
-          "group": "inline@2"
-        },
-        {
           "command": "dbdeck.aiQuery",
           "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|table|view) sql\\b/",
           "group": "2_query@3"
         },
         {
-          "command": "dbdeck.aiQuery",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema) sql\\b/",
-          "group": "inline@3"
+          "command": "dbdeck.showSchema",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) sql\\b/",
+          "group": "inline@2"
         }
       ],
       "editor/title": [
@@ -808,7 +803,7 @@
         "dbdeck.codeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Show ▶ Run above each statement in bound editors."
+          "description": "Show \u25b6 Run above each statement in bound editors."
         },
         "dbdeck.mcp.enabled": {
           "type": "boolean",

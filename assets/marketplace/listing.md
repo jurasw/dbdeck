@@ -36,6 +36,12 @@ Verified domain (blue check) is optional. Microsoft requires 6 months of publish
 | Long description | `apps/extension/README.md` (packaged into the VSIX) |
 | Changelog | `apps/extension/CHANGELOG.md` (packaged into the VSIX) |
 
+## AI filters
+
+Describe a filter in the SQL table’s WHERE field and click the sparkle button to generate a condition from that table’s schema. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
+
+AI Query builds its context automatically: from a schema it uses that schema, from a table or database it uses the whole database with the current table first. The compact composer includes the Generate query action inside the input area; expand Database context to inspect or search the included tables.
+
 ## Screenshots
 
 Used in the extension README and on dbdeck.dev, in this order:

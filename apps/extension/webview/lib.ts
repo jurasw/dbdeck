@@ -246,6 +246,40 @@ export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number)
   };
 }
 
+export function reducedMotion(): boolean {
+  return matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+export function typeOut(text: string, write: (value: string) => void, ms = 700): Promise<void> {
+  if (reducedMotion() || !text) {
+    write(text);
+    return Promise.resolve();
+  }
+  const step = Math.max(1, Math.ceil(text.length / (ms / 16)));
+  return new Promise((resolve) => {
+    let i = 0;
+    const tick = () => {
+      i = Math.min(text.length, i + step);
+      write(text.slice(0, i));
+      if (i < text.length) requestAnimationFrame(tick);
+      else resolve();
+    };
+    tick();
+  });
+}
+
+export function flash(el: Element, cls: string): void {
+  el.classList.remove(cls);
+  void (el as HTMLElement).offsetWidth;
+  el.classList.add(cls);
+  const done = (e: Event) => {
+    if (e.target !== el) return;
+    el.classList.remove(cls);
+    el.removeEventListener('animationend', done);
+  };
+  el.addEventListener('animationend', done);
+}
+
 export function fmtNum(n: number): string {
   return n.toLocaleString('en-US');
 }

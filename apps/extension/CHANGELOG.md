@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- AI Query opened from a table includes the whole database as context, so questions about other schemas and tables work.
+
+- AI filters type into the WHERE field with a glowing border while generating, then apply the filter to the table right away. AI Query streams the generated SQL into the preview.
+
+- Schema diagrams draw tables and relationship lines in on open, show dots flowing along foreign keys and highlight a table's relations and related tables on hover or search.
+
+- Added a spinner to the WHERE field AI button while a filter is being generated.
+
+- SQL tree actions show New Query and Show Schema Diagram side by side. Generate query with AI is available below SQL in the query editor and in the context menu.
+
+- Refined AI Query with a compact composer, automatic context from the originating table, schema or database, searchable context preview and generation controls inside the input area.
+
+- Generate SQL table WHERE filters with the sparkle button. Missing AI setup opens settings with a Back to table action and preserves the filter text.
+
+- Fixed scrolling in AI Query and grouped provider, model and account controls in a AI settings panel opened with the circular gear beside AI agents.
+
 ## 0.2.1 — 2026-10-06
 
 - Duplicate rows in PostgreSQL and MySQL tables from the right-click menu or the Duplicate button. Primary keys stay empty so the database fills them.

@@ -2,7 +2,7 @@ import { Grid, GridColumn } from './grid';
 import { parseCellValue } from './cell-value';
 import { duplicateRow } from './row-duplicate';
 import { jsonView } from './json';
-import { btn, clear, contextMenu, fmtMs, fmtNum, h, icon, INIT, jsonEditor, loading, MenuItem, modal, raw, rpc, toast, toCsv, toObjects, toTsv } from './lib';
+import { btn, clear, contextMenu, flash, fmtMs, fmtNum, h, icon, INIT, jsonEditor, loading, MenuItem, modal, raw, rpc, toast, toCsv, toObjects, toTsv, typeOut } from './lib';
 
 interface Init {
   mode: 'sql' | 'mongo' | 'es';
@@ -496,7 +496,43 @@ function filterField(tag: string, input: HTMLInputElement, width: string, w = 58
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') void load(true);
   });
-  return h('div.input-wrap', { style: `flex:${width};--tag-w:${w}px` }, h('span.tag', null, tag), input);
+  const ai =
+    tag === 'WHERE'
+      ? btn(null, {
+          icon: 'sparkle',
+          class: 'sm ghost ai-filter-button',
+          title: 'Generate a WHERE filter with AI · describe it in this field',
+          onClick: async () => {
+            ai!.disabled = true;
+            ai!.setAttribute('aria-busy', 'true');
+            ai!.setAttribute('aria-label', 'AI is generating your filter');
+            ai!.title = 'AI is generating your filter…';
+            clear(ai!, h('span.spinner', { 'aria-hidden': true }));
+            wrap.classList.add('ai-busy');
+            const original = input.value;
+            try {
+              const filter = await rpc<string | null>('aiFilter', { prompt: original });
+              if (filter !== null && input.value === original) {
+                wrap.classList.remove('ai-busy');
+                await typeOut(filter, (value) => (input.value = value), 600);
+                flash(wrap, 'ai-done');
+                await load(true);
+              }
+            } catch (e) {
+              toast((e as Error).message, 'error');
+            } finally {
+              wrap.classList.remove('ai-busy');
+              ai!.disabled = false;
+              ai!.removeAttribute('aria-busy');
+              ai!.setAttribute('aria-label', 'Generate a WHERE filter with AI');
+              ai!.title = 'Generate a WHERE filter with AI · describe it in this field';
+              clear(ai!, icon('sparkle'));
+            }
+          },
+        })
+      : null;
+  const wrap = h('div.input-wrap', { class: ai ? 'ai-filter-wrap' : '', style: `flex:${width};--tag-w:${w}px` }, h('span.tag', null, tag), input, ai);
+  return wrap;
 }
 
 async function exportData(kind: 'csv' | 'json'): Promise<void> {
@@ -556,7 +592,7 @@ function render(): void {
       'div.toolbar',
       null,
       filters,
-      btn('Apply', { class: 'sm primary', onClick: () => void load(true) }),
+      btn('Apply', { class: 'sm primary apply-filter', onClick: () => void load(true) }),
       btn(null, {
         icon: 'clear-all',
         class: 'sm ghost',

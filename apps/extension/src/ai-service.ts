@@ -210,11 +210,11 @@ export class AiService {
       if (model?.trim()) await this.ctx.globalState.update(optionsKey, { ...options, model: model.trim() });
     }
   }
-  async generate(prompt: string, schema: string, dialect: string, signal: AbortSignal): Promise<string> {
+  async generate(prompt: string, schema: string, dialect: string, signal: AbortSignal, filter = false): Promise<string> {
     if (!prompt.trim() || prompt.length > 10000) throw new Error('Describe your query using 1–10,000 characters.');
     if (schema.length > 100000) throw new Error('The selected schema is too large. Choose fewer tables.');
     const options = this.options();
     const token = await this.token(options);
-    return generateQuery(options, token, prompt, schema, dialect, signal);
+    return generateQuery(options, token, prompt, schema, dialect, signal, filter);
   }
 }

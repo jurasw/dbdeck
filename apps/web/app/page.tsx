@@ -2,6 +2,9 @@ import { ArrowRight, Download } from "lucide-react";
 import { CopyCommand } from "@/components/site/copy-command";
 import { Faq } from "@/components/site/faq";
 import { HeroGrid } from "@/components/site/hero-grid";
+import { NavLinks } from "@/components/site/nav-links";
+import { Organize } from "@/components/site/organize";
+import { ProductDemo } from "@/components/site/product-demo";
 import {
   Caption,
   Frame,
@@ -49,15 +52,7 @@ function Nav() {
           DBDeck
         </a>
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-          <a href="#features" className="hidden rounded-full px-3 py-1.5 transition-colors hover:text-foreground sm:inline">
-            Features
-          </a>
-          <a href="#install" className="hidden rounded-full px-3 py-1.5 transition-colors hover:text-foreground sm:inline">
-            Install
-          </a>
-          <a href="#faq" className="hidden rounded-full px-3 py-1.5 transition-colors hover:text-foreground sm:inline">
-            FAQ
-          </a>
+          <NavLinks />
           <a
             href={links.github}
             className="ml-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-foreground transition-colors hover:bg-card"
@@ -108,7 +103,7 @@ function Hero() {
           </div>
           <div className="lg:col-span-5">
             <HeroGrid />
-            <Caption>Fig. 01 — the data grid, mid-shift</Caption>
+            <Caption>Fig. 01 — a WHERE filter written in plain words</Caption>
           </div>
         </div>
       </Shell>
@@ -120,12 +115,7 @@ function Overview() {
   return (
     <section className="pt-12">
       <Shell>
-        <Screenshot
-          src="/screenshots/data-grid.png"
-          alt="DBDeck in VS Code: connection tree with PostgreSQL, Redis and MongoDB, and the customers table in the data grid"
-          chrome="vs code · dbdeck"
-          caption="Fig. 02 — connections on the left, a 240-row table on the right"
-        />
+        <ProductDemo />
       </Shell>
     </section>
   );
@@ -203,7 +193,7 @@ function Sql() {
               src="/screenshots/sql-editor.png"
               alt="SQL editor with a join query and the Query Results panel listing revenue per customer"
               chrome="query · shop · postgres"
-              caption="Fig. 04 — 12 rows in 59 ms"
+              caption="Fig. 05 — 12 rows in 59 ms"
             />
           </div>
         </div>
@@ -222,7 +212,7 @@ function Schema() {
               src="/screenshots/schema-diagram.png"
               alt="Schema diagram of seven tables with primary keys, foreign keys and relationship lines"
               chrome="public · diagram"
-              caption="Fig. 05 — 7 tables, 7 foreign key links"
+              caption="Fig. 06 — 7 tables, 7 foreign key links"
             />
           </div>
           <div className="order-1 lg:order-2 lg:col-span-4">
@@ -231,7 +221,7 @@ function Schema() {
               Open any PostgreSQL or MySQL schema as a diagram. Foreign keys link column to column. Drag tables, pan,
               zoom and search; the layout is remembered.
             </Lede>
-            <SmallList items={["Primary and foreign keys marked", "Arrange and Fit in one click", "ClickHouse tables too"]} />
+            <SmallList items={["Primary and foreign keys marked", "Hover a table to light up its relations", "Arrange and Fit in one click", "ClickHouse tables too"]} />
           </div>
         </div>
       </Shell>
@@ -263,7 +253,7 @@ function NoSql() {
               src="/screenshots/redis.png"
               alt="Redis key tree grouped by prefix and the hash editor for user:42"
               chrome="user:42 · cache · redis"
-              caption="Fig. 06 — a hash, four fields, no expiry"
+              caption="Fig. 07 — a hash, four fields, no expiry"
             />
           </div>
         </div>
@@ -286,6 +276,9 @@ function Privacy() {
             <SmallList
               items={[
                 "AI queries share table names, never rows",
+                "Describe a WHERE filter, click AI, review and apply",
+                "Connect AI in settings, then return to your table",
+                "AI uses your current table, schema or database automatically",
                 "Bring ChatGPT, Claude, your own API key or Ollama",
                 "AI agents read through MCP, read-only",
                 "Destructive actions always ask first",
@@ -319,7 +312,7 @@ function Privacy() {
                 No telemetry, analytics or cloud sync. Read the code to check.
               </div>
             </Frame>
-            <Caption>Fig. 07 — the full list</Caption>
+            <Caption>Fig. 08 — the full list</Caption>
           </div>
         </div>
       </Shell>
@@ -456,6 +449,8 @@ export default function Home() {
         <Overview />
         <SoftDivider />
         <Services />
+        <SoftDivider />
+        <Organize />
         <SoftDivider />
         <Sql />
         <SoftDivider />

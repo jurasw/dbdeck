@@ -267,3 +267,21 @@ test('OAuth credential lock serializes editor windows and releases after errors'
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('AI filters request a WHERE expression and return it without executing SQL', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    assert.match(body.messages[0].content, /SQL WHERE expression/);
+    assert.match(body.messages[1].content, /users\(id int\)/);
+    return Response.json({ choices: [{ message: { content: '```sql\nid > 10\n```' } }] });
+  };
+  try {
+    assert.equal(
+      await generateQuery({ provider: 'ollama', baseUrl: 'http://127.0.0.1:11434/v1', model: 'local' }, undefined, 'IDs above ten', 'users(id int)', 'postgres', undefined, true),
+      'id > 10',
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});

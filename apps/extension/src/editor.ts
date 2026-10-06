@@ -12,6 +12,7 @@ interface Binding {
   connId: string;
   database?: string;
   schema?: string;
+  table?: string;
 }
 
 const LANGUAGE = { sql: 'sql', mongo: 'javascript', es: 'dbdeck-es' } as const;
@@ -97,7 +98,7 @@ export class QueryEditors implements vscode.Disposable {
     const database = n.database ?? (await this.defaultDatabase(cfg));
     const text = content ?? template(cfg, database, n);
     const doc = await vscode.workspace.openTextDocument({ language: LANGUAGE[family], content: text });
-    await this.bind(doc, { connId: cfg.id, database, schema: n.schema });
+    await this.bind(doc, { connId: cfg.id, database, schema: n.schema, table: n.table });
     const ed = await vscode.window.showTextDocument(doc, { preview: false });
     const end = doc.positionAt(text.length);
     ed.selection = new vscode.Selection(end, end);
@@ -213,7 +214,7 @@ export class QueryEditors implements vscode.Disposable {
     if (doc.languageId === 'sql') ranges = splitSql(text, cfg?.type === 'mysql' ? 'mysql' : cfg?.type === 'clickhouse' ? 'clickhouse' : 'postgres');
     else if (doc.languageId === 'dbdeck-es') ranges = parseEsRequests(text);
     else return [];
-    return ranges.map((s: { start: number }) => {
+    const lenses = ranges.map((s: { start: number }) => {
       const pos = doc.positionAt(s.start);
       return new vscode.CodeLens(new vscode.Range(pos, pos), {
         title: '$(play) Run',
@@ -221,6 +222,17 @@ export class QueryEditors implements vscode.Disposable {
         arguments: [{ uri: doc.uri.toString(), offset: s.start }],
       });
     });
+    if (doc.languageId === 'sql' && b) {
+      const pos = doc.positionAt(text.length);
+      lenses.push(
+        new vscode.CodeLens(new vscode.Range(pos, pos), {
+          title: '$(sparkle) Generate query with AI',
+          command: 'dbdeck.aiQuery',
+          arguments: [{ ...b, kind: b.table ? 'table' : b.schema ? 'schema' : 'database', label: b.table ?? b.schema ?? b.database ?? 'Database' }],
+        }),
+      );
+    }
+    return lenses;
   }
 
   private async complete(doc: vscode.TextDocument, pos: vscode.Position): Promise<vscode.CompletionItem[]> {

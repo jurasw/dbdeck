@@ -66,7 +66,7 @@ Nothing leaves your machine except the queries you send to your own databases.
       <img src="assets/readme/schema-diagram.gif" alt="A schema diagram of seven tables: zoom in, search for order, drag a table and arrange the layout" width="100%">
       <h3>Schema diagrams</h3>
       <p>Any PostgreSQL or MySQL schema as a diagram, foreign keys linked column to column.
-      Drag, pan, zoom and search; the layout is remembered.</p>
+      Drag, pan, zoom and search; hover a table to light up its relations.</p>
     </td>
   </tr>
 </table>
@@ -94,6 +94,10 @@ Nothing leaves your machine except the queries you send to your own databases.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
 - **S3, MinIO and R2** buckets in the same tree: open, upload, download, copy the `s3://` URI.
 - **Read-only connections** block every write, and destructive actions always ask first.
+
+Describe a filter in the SQL table’s WHERE field and click the sparkle button to generate a condition from that table’s schema. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
+
+AI Query builds its context automatically: from a schema it uses that schema, from a table or database it uses the whole database with the current table first. The compact composer includes the Generate query action inside the input area; expand Database context to inspect or search the included tables.
 
 Full feature list: [apps/extension/README.md](apps/extension/README.md).
 
