@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 — 2026-10-06
 
 - Duplicate rows in PostgreSQL and MySQL tables from the right-click menu or the Duplicate button. Primary keys stay empty so the database fills them.
 - Search Database Objects shows the folder and connection of every result.
