@@ -1,4 +1,4 @@
-import { ColumnMeta, QueryResult, TableRef } from '../types';
+import { ColumnMeta, QueryResult, TableRef, ValueSearchPage } from '../types';
 import { splitSql, stripComments } from '../sqlSplit';
 import { BaseDriver } from './base';
 
@@ -90,6 +90,26 @@ export abstract class SqlDriver extends BaseDriver {
     return this.dialect === 'postgres'
       ? `strpos(lower(${column}::text), lower(${this.literal(text)})) > 0`
       : `LOCATE(LOWER(${this.literal(text)}), LOWER(CAST(${column} AS CHAR))) > 0`;
+  }
+
+  async searchValues(t: TableRef, search: string, cancelled: () => boolean): Promise<ValueSearchPage> {
+    if (!search.trim() || cancelled()) return { matches: [], limited: false };
+    const columns = await this.columns(t);
+    if (cancelled()) return { matches: [], limited: false };
+    const where = this.searchWhere(columns, undefined, search);
+    // Return the database's text representation and match decision, including JSON,
+    // dates and numbers. This keeps previews consistent with the data viewer.
+    const projection = columns.map((c) => {
+      const column = this.quote(c.name);
+      const value = this.dialect === 'postgres' ? `${column}::text` : this.dialect === 'mysql' ? `CAST(${column} AS CHAR)` : `toString(${column})`;
+      return `CASE WHEN ${this.contains(column, search.trim())} THEN ${value} ELSE NULL END AS ${column}`;
+    });
+    const result = await this.readOnly(`SELECT ${projection.join(', ')} FROM ${this.qualified(t)} WHERE ${where} LIMIT 21`, t.database);
+    if (cancelled()) return { matches: [], limited: false };
+    return {
+      matches: result.rows.slice(0, 20).flatMap((row) => row.flatMap((value, i) => (value == null ? [] : [{ column: columns[i].name, value: String(value) }]))),
+      limited: result.rows.length > 20,
+    };
   }
 
   async apply(t: TableRef, ch: RowChanges): Promise<number> {

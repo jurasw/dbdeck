@@ -19,8 +19,9 @@ import {
   Table2,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { between, Caret, typed, useInView, useReducedMotion } from "./motion";
 import { Caption, Frame, FrameChrome } from "./primitives";
 import { SqlCode } from "./sql-code";
 
@@ -89,32 +90,6 @@ export const searchItems = [
   ["order_totals", "view", "Views · shop › public"],
   ["refund_order", "function", "Functions · shop › public"],
 ];
-
-function typed(text: string, t: number, start: number, msPerChar: number) {
-  return text.slice(0, Math.max(0, Math.floor((t - start) / msPerChar)));
-}
-
-function between(t: number, a: number, b: number) {
-  return t >= a && t < b;
-}
-
-function Caret() {
-  return <span aria-hidden className="ml-px inline-block h-[1.1em] w-px translate-y-[2px] animate-pulse bg-foreground" />;
-}
-
-function subscribeMotion(cb: () => void) {
-  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-}
-
-function useReducedMotion() {
-  return useSyncExternalStore(
-    subscribeMotion,
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => false,
-  );
-}
 
 type TreeRow = {
   id: string;
@@ -392,15 +367,17 @@ export function SearchPalette({
   active = 0,
   typing,
   pressed,
+  rows,
   className,
 }: {
   query: string;
   active?: number;
   typing?: boolean;
   pressed?: boolean;
+  rows?: number;
   className?: string;
 }) {
-  const items = searchItems.filter(([name]) => name.includes(query));
+  const items = searchItems.filter(([name]) => name.includes(query)).slice(0, rows);
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border bg-[#1a1f2c] shadow-2xl shadow-black/60", className)}>
       <div className="px-3 pt-2 text-center text-[10px] text-muted-foreground">Search objects · Shop · Postgres</div>
@@ -415,7 +392,7 @@ export function SearchPalette({
           <span className="truncate text-muted-foreground/70">Search tables, schemas, databases, views and functions…</span>
         )}
       </div>
-      <ul className="mt-1.5 pb-1.5 text-[11.5px]">
+      <ul className="mt-1.5 pb-1.5 text-[11.5px]" style={rows ? { minHeight: rows * 25 + 6 } : undefined}>
         {items.map(([name, kind, where], i) => {
           const at = query ? name.indexOf(query) : -1;
           return (
@@ -741,18 +718,9 @@ function DiagramScene({ t, motion }: { t: number; motion: boolean }) {
 
 export function ProductDemo() {
   const reduced = useReducedMotion();
-  const [visible, setVisible] = useState(false);
+  const { ref: root, visible } = useInView<HTMLElement>();
   const [state, setState] = useState({ scene: 0, t: 0 });
-  const root = useRef<HTMLDivElement>(null);
   const playing = visible && !reduced;
-
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.25 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   useEffect(() => {
     if (!playing) return;
@@ -801,7 +769,7 @@ export function ProductDemo() {
           </div>
         </div>
       </Frame>
-      <div className="mt-4 grid grid-cols-5 gap-2">
+      <div className="mt-4 grid grid-cols-5 gap-1.5 sm:gap-2">
         {scenes.map((s, i) => {
           const on = i === state.scene;
           const progress = on ? Math.min(1, t / s.dur) : i < state.scene ? 1 : 0;
@@ -811,7 +779,7 @@ export function ProductDemo() {
               type="button"
               aria-pressed={on}
               onClick={() => setState({ scene: i, t: 0 })}
-              className="group text-left"
+              className="group flex min-w-0 flex-col justify-start text-left"
             >
               <span className="block h-0.5 overflow-hidden rounded-full bg-white/10">
                 <span
@@ -821,7 +789,7 @@ export function ProductDemo() {
               </span>
               <span
                 className={cn(
-                  "mt-2 block font-mono text-[10px] tracking-[0.2em] uppercase transition-colors",
+                  "mt-2 block truncate font-mono text-[9px] tracking-[0.06em] whitespace-nowrap uppercase transition-colors sm:text-[10px] sm:tracking-[0.2em]",
                   on ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/80",
                 )}
               >

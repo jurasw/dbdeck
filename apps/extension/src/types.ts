@@ -146,3 +146,13 @@ export interface TableRef {
   schema?: string;
   table: string;
 }
+
+export interface ValueMatch {
+  column: string;
+  value: string;
+}
+
+export interface ValueSearchPage {
+  matches: ValueMatch[];
+  limited: boolean;
+}

@@ -1,7 +1,7 @@
 import * as vm from 'vm';
 import { Binary, Decimal128, Document, EJSON, Int32, Long, ObjectId, Timestamp, UUID } from 'bson';
 import { MongoClient } from 'mongodb';
-import { DbNode, QueryResult } from '../types';
+import { DbNode, QueryResult, ValueMatch, ValueSearchPage } from '../types';
 import { formatBytes, formatCount } from '../util';
 import { BaseDriver } from './base';
 
@@ -22,6 +22,14 @@ export function matchesValue(value: unknown, search: string): boolean {
   if (Array.isArray(value)) return value.some((v) => matchesValue(v, search));
   if (typeof value === 'object') return Object.values(value).some((v) => matchesValue(v, search));
   return String(value).toLocaleLowerCase().includes(search.toLocaleLowerCase());
+}
+
+export function matchingValues(value: unknown, search: string, path = ''): ValueMatch[] {
+  if (value === null || value === undefined) return [];
+  if (typeof value === 'object') {
+    return Object.entries(value).flatMap(([key, child]) => matchingValues(child, search, path ? `${path}.${key}` : key));
+  }
+  return matchesValue(value, search) ? [{ column: path, value: String(value) }] : [];
 }
 
 export async function scanValues<T>(source: AsyncIterable<T>, search: string, skip: number, limit: number, plain: (doc: T) => unknown): Promise<{ docs: T[]; total: number }> {
@@ -220,6 +228,25 @@ export class MongoDriver extends BaseDriver {
       }
     }
     return Object.keys(f).length ? c.countDocuments(f) : c.estimatedDocumentCount();
+  }
+
+  async searchValues(db: string, coll: string, search: string, cancelled: () => boolean): Promise<ValueSearchPage> {
+    const matches: ValueMatch[] = [];
+    if (!search.trim() || cancelled()) return { matches, limited: false };
+    const cursor = this.db(db).collection(coll).find({}).maxTimeMS(30000);
+    let rows = 0;
+    try {
+      for await (const doc of cursor) {
+        if (cancelled()) return { matches: [], limited: false };
+        const values = matchingValues(toPlain(doc), search.trim());
+        if (!values.length) continue;
+        if (++rows > 20) return { matches, limited: true };
+        matches.push(...values);
+      }
+      return { matches, limited: false };
+    } finally {
+      await cursor.close();
+    }
   }
 
   async replace(db: string, coll: string, id: unknown, text: string): Promise<void> {

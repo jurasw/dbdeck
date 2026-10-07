@@ -1,15 +1,13 @@
-import { ArrowRight, Download, Sparkles } from "lucide-react";
+import { ArrowRight, Download } from "lucide-react";
+import { AiFigure, PrivacyFigure, RedisFigure, SchemaFigure, SqlFigure } from "@/components/site/animated-figures";
 import { CopyCommand } from "@/components/site/copy-command";
 import { Faq } from "@/components/site/faq";
 import { NavLinks } from "@/components/site/nav-links";
 import { SectionLink } from "@/components/site/section-link";
 import { Organize } from "@/components/site/organize";
-import { SqlCode } from "@/components/site/sql-code";
 import { ProductDemo } from "@/components/site/product-demo";
 import {
   Caption,
-  Frame,
-  FrameChrome,
   GhostCta,
   GitHubIcon,
   Heading,
@@ -138,20 +136,11 @@ function Sql() {
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-14">
           <div className="lg:col-span-5">
             <Heading lead="Write SQL" rest="where you write code." />
-            <Lede>Write a query. Press <Kbd>⌘ Enter</Kbd>. See your results.</Lede>
+            <Lede>Write a query. Press <Kbd>⌘ Enter</Kbd>. See your results. Browse wide tables with smooth scrolling.</Lede>
+            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players — Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB.</p>
           </div>
           <div className="min-w-0 lg:col-span-7">
-            <Frame>
-              <div className="flex items-center gap-2 border-b border-border px-6 py-4 text-sm text-muted-foreground">
-                <span aria-hidden className="size-2 rounded-full bg-brand" />
-                orders.sql
-              </div>
-              <pre className="overflow-x-auto px-5 py-8 font-mono text-base leading-loose sm:px-8 sm:text-xl"><code><SqlCode code={"SELECT name, total\nFROM orders\nWHERE status = 'paid';"} /></code></pre>
-              <div className="flex items-center justify-between border-t border-border px-6 py-4 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2"><span aria-hidden className="size-1.5 rounded-full bg-emerald-400" />12 rows returned</span>
-                <Kbd>⌘ Enter</Kbd>
-              </div>
-            </Frame>
+            <SqlFigure code={"SELECT name, total\nFROM orders\nWHERE status = 'paid';"} />
           </div>
         </div>
       </Shell>
@@ -169,19 +158,7 @@ function Schema() {
       <Shell>
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-14">
           <div className="order-2 min-w-0 lg:order-1 lg:col-span-7">
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-card/20 px-5 py-10 sm:flex-row sm:px-8 sm:py-16">
-              {tables.map((table, i) => (
-                <div key={table.name} className="contents">
-                  {i > 0 && <div aria-hidden className="relative h-12 w-px shrink-0 bg-brand/60 sm:h-px sm:w-10"><span className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand" /></div>}
-                  <div className="w-full min-w-0 flex-1 overflow-hidden rounded-xl border border-brand/30 bg-card shadow-xl shadow-black/20">
-                    <div className="border-b border-border px-5 py-4 text-base font-semibold sm:text-lg">{table.name}</div>
-                    <ul className="space-y-3 px-5 py-5 font-mono text-sm sm:text-base">
-                      {table.columns.map(([name, type]) => <li key={name} className="flex items-center justify-between gap-3"><span>{name}</span><span className={type === "PK" || type === "FK" ? "text-brand" : "text-muted-foreground"}>{type}</span></li>)}
-                    </ul>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SchemaFigure tables={tables} link={{ from: "orders.customer_id", to: "customers.id" }} />
           </div>
           <div className="order-1 lg:order-2 lg:col-span-5">
             <Heading lead="The schema," rest="drawn for you." />
@@ -204,27 +181,7 @@ function NoSql() {
             <Lede>Browse and edit Redis, MongoDB and Elasticsearch right in your editor.</Lede>
           </div>
           <div className="min-w-0 lg:col-span-7">
-            <Frame>
-              <div className="flex items-center gap-3 border-b border-border px-5 py-5 sm:px-6">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/types/redis-on.svg" alt="Redis" width={28} height={28} className="size-7" />
-                <span className="font-mono text-base font-medium sm:text-lg">user:42</span>
-                <span className="ml-auto rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">Hash</span>
-              </div>
-              <table className="w-full table-fixed text-left text-sm sm:text-base">
-                <thead className="border-b border-border text-muted-foreground">
-                  <tr><th className="w-1/3 px-5 py-3 font-normal sm:px-6">Field</th><th className="px-5 py-3 font-normal sm:px-6">Value</th></tr>
-                </thead>
-                <tbody>
-                  {fields.map(([field, value]) => (
-                    <tr key={field} className="border-b border-border/60 last:border-0">
-                      <td className="px-5 py-4 font-mono text-muted-foreground sm:px-6">{field}</td>
-                      <td className="break-words px-5 py-4 sm:px-6">{value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Frame>
+            <RedisFigure fields={fields} edit={["plan", "team"]} />
           </div>
         </div>
       </Shell>
@@ -243,14 +200,7 @@ function Ai() {
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">Connect ChatGPT, an OpenAI or Claude API key, or local Ollama.</p>
           </div>
           <div className="min-w-0 lg:col-span-7">
-            <Frame>
-              <div className="flex items-center gap-2 border-b border-border px-5 py-4 text-sm text-brand sm:px-6">
-                <Sparkles className="size-4" /> AI Query
-              </div>
-              <div className="m-5 rounded-xl border border-brand/25 bg-brand/5 px-5 py-4 text-base leading-relaxed sm:m-6 sm:text-lg">Show my five biggest orders</div>
-              <pre className="overflow-x-auto px-5 pb-6 font-mono text-base leading-loose sm:px-6 sm:text-xl"><code><SqlCode code={"SELECT name, total\nFROM orders\nORDER BY total DESC\nLIMIT 5;"} /></code></pre>
-              <div className="border-t border-border px-5 py-4 text-sm text-muted-foreground sm:px-6">Schema shared. Rows and credentials stay private.</div>
-            </Frame>
+            <AiFigure prompt="Show my five biggest orders" sql={"SELECT name, total\nFROM orders\nORDER BY total DESC\nLIMIT 5;"} />
           </div>
         </div>
       </Shell>
@@ -268,32 +218,7 @@ function Privacy() {
             <Lede>Your passwords stay in your OS keychain. No telemetry, analytics or cloud sync.</Lede>
           </div>
           <div className="lg:col-span-7">
-            <Frame>
-              <FrameChrome left="what dbdeck keeps" right={<span className="text-brand">local only</span>} />
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px] table-fixed text-left font-mono text-[12px]">
-                  <thead className="text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
-                    <tr className="border-b border-border">
-                      <th className="px-4 py-2.5 font-medium">data</th>
-                      <th className="px-4 py-2.5 font-medium">lives in</th>
-                      <th className="w-32 px-4 py-2.5 font-medium">note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {storage.map(([data, where, note]) => (
-                      <tr key={data} className="border-b border-border/60 last:border-0">
-                        <td className="px-4 py-3 text-foreground/90">{data}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{where}</td>
-                        <td className="px-4 py-3 text-brand">{note}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-border bg-black/20 px-4 py-2 font-mono text-[11px] text-muted-foreground/80 italic">
-                No telemetry, analytics or cloud sync. Read the code to check.
-              </div>
-            </Frame>
+            <PrivacyFigure rows={storage} note="No telemetry, analytics or cloud sync. Read the code to check." />
             <Caption>Fig. 08 — the full list</Caption>
           </div>
         </div>

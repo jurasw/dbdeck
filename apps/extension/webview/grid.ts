@@ -46,6 +46,7 @@ export class Grid {
   private anchor = -1;
   private editor?: HTMLInputElement;
   private frame = 0;
+  private renderedRange = '';
   private preview?: HTMLDivElement;
   private previewCell?: HTMLElement;
   private previewShowTimer?: ReturnType<typeof setTimeout>;
@@ -158,7 +159,7 @@ export class Grid {
       if (col.type) w = Math.max(w, ctx.measureText(col.type).width + 22);
       ctx.font = `12px ${mono}`;
       const n = Math.min(this.rows.length, 60);
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < n && w < 380; i++) {
         const s = display(this.rows[i][c], 48);
         w = Math.max(w, ctx.measureText(s).width + 24);
       }
@@ -209,16 +210,31 @@ export class Grid {
     if (this.frame) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
-      this.renderBody();
+      this.renderBody(false);
     });
   }
 
-  private renderBody(): void {
-    this.hidePreview();
+  private renderBody(force = true): void {
     const top = Math.max(0, this.el.scrollTop - HH);
     const height = this.el.clientHeight || 600;
     const first = Math.max(0, Math.floor(top / RH) - OVERSCAN);
     const last = Math.min(this.order.length, Math.ceil((top + height) / RH) + OVERSCAN);
+    // Keep a small horizontal buffer, without creating cells for every field in a
+    // wide table/document. Spacers preserve column positions and the scrollbar.
+    const left = this.el.scrollLeft;
+    const right = left + (this.el.clientWidth || 1000) + 200;
+    let firstCol = 0;
+    let skippedWidth = 0;
+    while (firstCol < this.widths.length && RN + skippedWidth + this.widths[firstCol] < left - 200) {
+      skippedWidth += this.widths[firstCol++];
+    }
+    let lastCol = firstCol;
+    let end = RN + skippedWidth;
+    while (lastCol < this.widths.length && end < right) end += this.widths[lastCol++];
+    const range = `${first}:${last}:${firstCol}:${lastCol}`;
+    if (!force && range === this.renderedRange) return;
+    this.renderedRange = range;
+    this.hidePreview();
     const total = this.totalWidth;
     const offset = this.opts.rowOffset?.() ?? 0;
     const term = (this.highlight || this.filterText).toLowerCase();
@@ -228,7 +244,8 @@ export class Grid {
       const row = this.rows[r];
       const cls = `${this.selected.has(r) ? ' selected' : ''} ${this.opts.rowClass?.(r) ?? ''}`;
       html += `<div class="gr${cls}" style="top:${v * RH}px;width:${total}px" data-v="${v}"><div class="gc rownum" style="width:${RN}px">${offset + r + 1}</div>`;
-      for (let c = 0; c < this.columns.length; c++) {
+      if (skippedWidth) html += `<div aria-hidden="true" style="flex:0 0 ${skippedWidth}px"></div>`;
+      for (let c = firstCol; c < lastCol; c++) {
         const val = row[c];
         let content: string;
         let cls = this.numeric[c] || typeof val === 'number' ? 'num' : '';

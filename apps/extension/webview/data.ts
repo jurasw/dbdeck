@@ -12,6 +12,16 @@ interface Init {
   pageSize: number;
   editable: boolean;
   dialect?: 'mysql' | 'postgres' | 'clickhouse';
+  initialSearch?: string;
+  initialData?: PageData;
+}
+
+interface PageData {
+  columns: GridColumn[];
+  rows: unknown[][];
+  docs?: Record<string, unknown>[];
+  durationMs: number;
+  total?: number;
 }
 
 const I = INIT as Init;
@@ -30,6 +40,7 @@ let loadSeq = 0;
 let loaded = false;
 const searchStatus = h('span.data-search-status', { role: 'status' }, icon('search'));
 const searchInput = h('input.input', { placeholder: 'Search all values…', 'aria-label': 'Search all values' }) as HTMLInputElement;
+searchInput.value = I.initialSearch ?? '';
 searchInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -401,7 +412,8 @@ async function load(resetPage = false, initial = false): Promise<void> {
   searchInput.setAttribute('aria-busy', 'true');
   try {
     const p = params();
-    const r = await rpc<{ columns: GridColumn[]; rows: unknown[][]; docs?: Record<string, unknown>[]; durationMs: number; total?: number }>(initial ? 'initialLoad' : 'load', p);
+    const r = initial && I.initialData ? I.initialData : await rpc<PageData>(initial ? 'initialLoad' : 'load', p);
+    I.initialData = undefined;
     if (seq !== loadSeq) return;
     edits.clear();
     originals.clear();
@@ -416,8 +428,8 @@ async function load(resetPage = false, initial = false): Promise<void> {
     errorBox.classList.add('hidden');
     grid.emptyText = inputs.a.value || search ? 'No rows match the filter' : 'Empty';
     grid.highlight = search;
-    grid.setData(columns, rows, true);
     renderBody();
+    grid.setData(columns, rows, true);
     if (isSql || I.mode === 'mongo') {
       if (r.total === undefined && (resetPage || total === undefined)) {
         total = undefined;
@@ -470,8 +482,9 @@ function skeleton(): HTMLElement {
 }
 
 function renderBody(): void {
-  if (!loaded) clear(content, skeleton(), side);
-  else if (view === 'json' && !isSql) clear(content, h('div.scroll', null, jsonView(docs, 1)), side);
+  if (!loaded) {
+    if (!I.initialData) clear(content, skeleton(), side);
+  } else if (view === 'json' && !isSql) clear(content, h('div.scroll', null, jsonView(docs, 1)), side);
   else clear(content, h('div.grid-wrap', null, grid.el), side);
 }
 

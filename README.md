@@ -45,6 +45,7 @@
 DBDeck puts your databases next to your code.
 Add a connection, open a table and you are browsing rows, running SQL and fixing data without switching to another app.
 Every connection lives in one sidebar tree, with SSH tunnels, SSL and read-only mode on each of them.
+Omnisearch finds values across a database or schema, with table, value and column previews.
 Nothing leaves your machine except the queries you send to your own databases.
 
 <p align="center">
@@ -89,6 +90,7 @@ Nothing leaves your machine except the queries you send to your own databases.
 </table>
 
 - **Inline row edits** for PostgreSQL and MySQL tables with a primary key. Changes are staged and saved in one transaction, and the confirmation toast offers **Undo**.
+- **Responsive table browsing**: fast first-page results appear with the panel, and wide tables render only visible rows and columns.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
 - **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
@@ -189,5 +191,9 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for checks and conventions and [assets/m
 [MIT](LICENSE). Free forever, with no paid tier and no feature behind a key.
 
 ### Search all values
+
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+
+Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 
 Use **Search all records** in a data viewer to search beyond the current page in the current table, collection or index. Press Enter or the search arrow to run the search immediately; a spinner in the search field shows while results load. Existing filters still apply. SQL searches every column; MongoDB also searches nested values and arrays, streaming documents to your editor. Elasticsearch searches indexed fields using its query semantics. Results remain paginated.

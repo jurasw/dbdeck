@@ -20,6 +20,7 @@ import { ResultsView } from './panels/resultsView';
 import { openRedisCli } from './redisCli';
 import { ConnectionTree } from './tree';
 import { searchObjects } from './object-search';
+import { showOmnisearch } from './omnisearch';
 import { ConnectionConfig, DbNode } from './types';
 import { errorMessage, formatBytes, uid } from './util';
 
@@ -58,6 +59,46 @@ export function activate(ctx: vscode.ExtensionContext): void {
   const openForm = (existing?: Partial<ConnectionConfig>) => ConnectionPanel.show(ctx.extensionUri, manager, () => tree.refresh(), existing);
 
   cmd('dbdeck.addConnection', () => openForm());
+  cmd('dbdeck.omnisearch', async (node?: DbNode) => {
+    const selected = node?.connId ? node : view.selection[0];
+    const supported = store.list().filter((c) => ['mysql', 'postgres', 'clickhouse', 'mongodb'].includes(c.type));
+    let config = supported.find((c) => c.id === selected?.connId);
+    if (!config) {
+      if (!supported.length) {
+        void vscode.window.showInformationMessage('Add a PostgreSQL, MySQL / MariaDB, ClickHouse or MongoDB connection to use Omnisearch.');
+        return;
+      }
+      config = (
+        await vscode.window.showQuickPick(
+          supported.map((c) => ({ label: c.name, description: c.type, config: c })),
+          { placeHolder: 'Omnisearch: choose a connection' },
+        )
+      )?.config;
+    }
+    if (!config) return;
+    const driver = await manager.get(config.id);
+    if (!(driver instanceof SqlDriver || driver instanceof MongoDriver)) return;
+    let root = selected?.connId === config.id && ['database', 'schema'].includes(selected.kind) ? selected : undefined;
+    if (!root) {
+      const databases = await driver.databases();
+      const database = await vscode.window.showQuickPick(databases, { placeHolder: 'Omnisearch: choose a database' });
+      if (!database) return;
+      root = { connId: config.id, kind: 'database', label: database, database };
+    }
+    const location = [config.name, root.database, root.schema].filter(Boolean).join(' › ');
+    await showOmnisearch(
+      root,
+      location,
+      {
+        children: (n) => driver.children(n),
+        scan: (n, search, cancelled) =>
+          driver instanceof SqlDriver
+            ? driver.searchValues({ database: n.database, schema: n.schema, table: n.table! }, search, cancelled)
+            : driver.searchValues(n.database!, n.table!, search, cancelled),
+      },
+      (n, search) => DataPanel.show(ctx.extensionUri, manager, n, () => refreshParent(n), ai, editors, search),
+    );
+  });
   cmd('dbdeck.searchObjects', async () => {
     const supported = store.list().filter((c) => ['mysql', 'postgres', 'clickhouse', 'mongodb', 'elasticsearch'].includes(c.type));
     let config = supported.find((c) => c.id === view.selection[0]?.connId);

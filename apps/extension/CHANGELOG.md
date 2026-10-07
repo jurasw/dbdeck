@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 — 2026-10-07
+
+- Fixed table startup to include fast first-page results and icons in the panel's first document. Wide grids render only visible columns and avoid redundant repaints while scrolling.
+
+## 0.3.0 — 2026-10-07
+
+- Added Omnisearch beside databases and schemas: search values across PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB, preview table/value/column matches and open filtered data tabs. Includes nested MongoDB fields, progressive results, visible preview limits and skipped objects.
 
 - Fixed initial table loading to fetch rows while the panel starts, reuse the first result without a duplicate query, and clarify that the displayed duration measures the database query.
 

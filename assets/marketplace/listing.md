@@ -25,7 +25,7 @@ Verified domain (blue check) is optional. Microsoft requires 6 months of publish
 | Identifier | `dbdeck.dbdeck` |
 | Short description | Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry. |
 | Categories | Programming Languages, Other |
-| Tags | mysql, postgres, postgresql, mongodb, redis, elasticsearch, clickhouse, s3, minio, docker, database, sql |
+| Tags | mysql, postgres, postgresql, mongodb, redis, elasticsearch, clickhouse, s3, minio, docker, database, sql, omnisearch |
 | Pricing | Free |
 | License | MIT |
 | Homepage | https://dbdeck.dev |
@@ -43,6 +43,8 @@ Describe a filter in the SQL table’s WHERE field and click the sparkle button 
 AI Query builds its context automatically: from a schema it uses that schema, from a table or database it uses the whole database with the current table first. The compact composer includes the Generate query action inside the input area; expand Database context to inspect or search the included tables.
 
 ## Screenshots
+
+Fast first-page results appear with the panel; wide tables render only visible rows and columns to keep scrolling responsive.
 
 Used in the extension README and on dbdeck.dev, in this order:
 
@@ -64,5 +66,7 @@ Used in the extension README and on dbdeck.dev, in this order:
 > DBDeck is a free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker in one sidebar, with a SQL editor, data grid, schema diagrams and SSH tunnels. No account, no paywall, no telemetry. https://dbdeck.dev
 
 ## Search all values
+
+Omnisearch finds values across a database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB. Click the document-with-magnifier icon beside a database or schema and type `JUREK` to see `players — Jurek (name)`. Open a result in a filtered data tab. Previews include up to 20 matching rows per table and 200 distinct table/column/value results overall, with visible limits and skipped objects.
 
 Search beyond the current page in the current table, collection or index, with immediate search and a spinner in the search field while results load. MongoDB includes nested values and arrays; Elasticsearch searches indexed fields.

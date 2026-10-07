@@ -13,8 +13,18 @@ import { nodeId } from '../tree';
 export class DataPanel {
   private static panels = new Map<string, vscode.WebviewPanel>();
 
-  static async show(extUri: vscode.Uri, manager: ConnectionManager, n: DbNode, onChanged: () => void, ai?: AiService, editors?: QueryEditors): Promise<void> {
-    const key = nodeId(n);
+  static async show(
+    extUri: vscode.Uri,
+    manager: ConnectionManager,
+    n: DbNode,
+    onChanged: () => void,
+    ai?: AiService,
+    editors?: QueryEditors,
+    initialSearch?: string,
+  ): Promise<void> {
+    const search = initialSearch?.trim();
+    // Search tabs keep existing filters and unsaved edits in the normal tab intact.
+    const key = search ? JSON.stringify([nodeId(n), search]) : nodeId(n);
     const existing = DataPanel.panels.get(key);
     if (existing) {
       existing.reveal();
@@ -24,7 +34,7 @@ export class DataPanel {
     const family = FAMILY[cfg.type];
     const pageSize = vscode.workspace.getConfiguration('dbdeck').get<number>('pageSize') || 100;
     const title = n.table ?? n.label;
-    const panel = vscode.window.createWebviewPanel('dbdeck.data', title, vscode.ViewColumn.Active, webviewOptions(extUri));
+    const panel = vscode.window.createWebviewPanel('dbdeck.data', search ? `${title} · ${search}` : title, vscode.ViewColumn.Active, webviewOptions(extUri));
     panel.iconPath = new vscode.ThemeIcon(family === 'mongo' ? 'symbol-array' : family === 'es' ? 'symbol-file' : n.kind === 'view' ? 'eye' : 'table');
     DataPanel.panels.set(key, panel);
     const ref: TableRef = { database: n.database, schema: n.schema, table: n.table! };
@@ -32,16 +42,8 @@ export class DataPanel {
     const editable = !cfg.readonly && (family === 'mongo' || family === 'es' || (family === 'sql' && cfg.type !== 'clickhouse' && n.kind === 'table'));
     let disposed = false;
     const initialParams = family === 'sql' ? { limit: pageSize, offset: 0 } : family === 'mongo' ? { limit: pageSize, skip: 0 } : { size: pageSize, from: 0 };
+    if (search) Object.assign(initialParams, { search });
     let initialPage: Promise<unknown> | undefined;
-
-    panel.webview.html = webviewHtml(panel.webview, extUri, 'data', title, {
-      mode: family,
-      title,
-      location,
-      pageSize,
-      editable,
-      dialect: family === 'sql' ? cfg.type : undefined,
-    });
 
     const common = {
       saveFile: async ({ name, content }: { name: string; content: string }) => saveExport(name, content),
@@ -161,12 +163,17 @@ export class DataPanel {
         throw new Error('Unsupported object');
       }
       // Fetch while the editor starts the webview, instead of waiting for its first RPC.
+      const load = handlers.load;
       if (!disposed) {
-        initialPage = Promise.resolve().then(() => handlers.load(initialParams));
+        initialPage = Promise.resolve().then(() => load(initialParams));
         void initialPage.catch(() => undefined);
       }
       return {
         ...handlers,
+        load: (params: unknown) => {
+          initialPage = undefined;
+          return load(params);
+        },
         initialLoad: () => {
           const result = initialPage;
           initialPage = undefined;
@@ -182,6 +189,26 @@ export class DataPanel {
       initialPage = undefined;
       sub.dispose();
       DataPanel.panels.delete(key);
+    });
+
+    // A fast first page can travel with the HTML, avoiding a webview RPC round trip
+    // and a skeleton-to-grid repaint. Cap the wait so slow connections still show UI.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const initialData = await Promise.race([
+      handlersReady.then(() => initialPage).catch(() => undefined),
+      new Promise<undefined>((resolve) => (timer = setTimeout(() => resolve(undefined), 32))),
+    ]);
+    clearTimeout(timer);
+    if (disposed) return;
+    panel.webview.html = webviewHtml(panel.webview, extUri, 'data', title, {
+      mode: family,
+      title,
+      location,
+      pageSize,
+      editable,
+      dialect: family === 'sql' ? cfg.type : undefined,
+      initialSearch: search,
+      initialData,
     });
   }
 }

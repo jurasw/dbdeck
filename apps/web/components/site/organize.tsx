@@ -1,5 +1,5 @@
 import { Heading, Shell } from "./primitives";
-import { SearchPalette } from "./product-demo";
+import { SearchFigure } from "./animated-figures";
 
 export function Organize() {
   return (
@@ -11,7 +11,7 @@ export function Organize() {
           </div>
           <div className="relative lg:col-span-7">
             <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-brand/10 blur-3xl" />
-            <SearchPalette query="ord" className="relative mx-auto max-w-[520px]" />
+            <SearchFigure className="relative mx-auto max-w-[520px]" />
           </div>
         </div>
       </Shell>
