@@ -207,13 +207,29 @@ export function activate(ctx: vscode.ExtensionContext): void {
     const rest = ctx.globalState.get<DbNode[]>(RECENT_TABLES, []).filter((r) => nodeId(r) !== nodeId(node));
     void ctx.globalState.update(RECENT_TABLES, [node, ...rest].slice(0, 8));
   };
+  let homeShown = false;
   const showHome = () => {
-    if (!view.visible || !store.list().length || vscode.window.tabGroups.all.some((g) => g.tabs.length)) return;
+    if (homeShown || !view.visible || !store.list().length) return;
+    homeShown = true;
+    const group = vscode.window.tabGroups.activeTabGroup;
+    const previous = group.activeTab;
     const recent = ctx.globalState.get<DbNode[]>(RECENT_TABLES, []).flatMap((node) => {
       const c = store.get(node.connId);
       return c ? [{ node, location: [c.name, node.database, node.schema].filter(Boolean).join(' › ') }] : [];
     });
-    DataPanel.home(ctx.extensionUri, manager, recent, ai, editors);
+    DataPanel.home(
+      ctx.extensionUri,
+      manager,
+      recent,
+      (panel) => {
+        if (!previous || !panel.visible) return;
+        if (previous.input instanceof vscode.TabInputText)
+          void vscode.window.showTextDocument(previous.input.uri, { viewColumn: group.viewColumn, preserveFocus: true, preview: previous.isPreview });
+        else void vscode.commands.executeCommand('workbench.action.openPreviousRecentlyUsedEditorInGroup');
+      },
+      ai,
+      editors,
+    );
   };
   showHome();
   ctx.subscriptions.push(view.onDidChangeVisibility(showHome));

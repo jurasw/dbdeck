@@ -42,6 +42,7 @@ export class DataPanel {
   private static panels = new Map<string, vscode.WebviewPanel>();
   // Like an editor preview tab: opening another table swaps this panel's content instead of starting a new webview.
   private static preview: Preview | undefined;
+  private static isolate = false;
 
   static async show(
     extUri: vscode.Uri,
@@ -73,11 +74,16 @@ export class DataPanel {
     await open(n, onChanged, true);
   }
 
-  static home(extUri: vscode.Uri, manager: ConnectionManager, recent: RecentTable[], ai?: AiService, editors?: QueryEditors): void {
+  static home(extUri: vscode.Uri, manager: ConnectionManager, recent: RecentTable[], onReady?: (panel: vscode.WebviewPanel) => void, ai?: AiService, editors?: QueryEditors): void {
     if (DataPanel.panels.size) return;
     const title = 'DBDeck';
     const { panel } = DataPanel.create(extUri, manager, 'home', title, true, ai, editors);
     panel.iconPath = new vscode.ThemeIcon('database');
+    const ready = panel.webview.onDidReceiveMessage((m: { type?: string }) => {
+      if (m?.type !== 'ready') return;
+      ready.dispose();
+      onReady?.(panel);
+    });
     panel.webview.html = webviewHtml(panel.webview, extUri, 'data', title, { mode: 'home', recent });
   }
 
@@ -91,7 +97,10 @@ export class DataPanel {
     editors?: QueryEditors,
     search?: string,
   ): { panel: vscode.WebviewPanel; open: (node: DbNode, changed: () => void, first: boolean) => Promise<void> } {
-    const panel = vscode.window.createWebviewPanel('dbdeck.data', title, { viewColumn: vscode.ViewColumn.Active, preserveFocus }, webviewOptions(extUri));
+    const used = new Set([...DataPanel.panels.values()].map((p) => p.viewType));
+    let viewType = 'dbdeck.data';
+    for (let i = 2; DataPanel.isolate && used.has(viewType); i++) viewType = `dbdeck.data-${i}`;
+    const panel = vscode.window.createWebviewPanel(viewType, title, { viewColumn: vscode.ViewColumn.Active, preserveFocus }, webviewOptions(extUri));
     DataPanel.panels.set(key, panel);
     let current: Session | undefined;
     const sub = bindRpc(panel.webview, () => current?.handlers ?? Promise.reject(new Error('Panel is closed')));
@@ -99,6 +108,7 @@ export class DataPanel {
     const messages = panel.webview.onDidReceiveMessage((m: { type?: string; node?: DbNode } & Partial<Timing>) => {
       if (m?.type === 'pin' && DataPanel.preview?.panel === panel) DataPanel.preview = undefined;
       if (m?.type === 'open' && m.node) void vscode.commands.executeCommand('dbdeck.openTable', m.node);
+      if (m?.type === 'worker') DataPanel.isolate = true;
       if (m?.type === 'timing' && opening?.sent && m.shown) {
         const o = opening;
         opening = undefined;

@@ -31,16 +31,18 @@ const vscode = {
   ViewColumn: { Active: 1 },
   workspace: { getConfiguration: () => ({ get: () => 100 }) },
   window: {
-    createWebviewPanel: (_type: string, title: string, show: unknown) => {
+    createWebviewPanel: (viewType: string, title: string, show: unknown) => {
       const panel = {
+        viewType,
         show,
+        visible: true,
         webview: {
           html: '',
           cspSource: 'test:',
           asWebviewUri: (uri: unknown) => uri,
           onDidReceiveMessage: (listener: (message: unknown) => unknown) => {
             panel.listeners.push(listener);
-            return { dispose() {} };
+            return { dispose: () => (panel.listeners = panel.listeners.filter((l) => l !== listener)) };
           },
           postMessage: (message: unknown) => panel.messages.push(message),
         },
@@ -369,8 +371,12 @@ test('the start tab turns into the first table without a new webview', async () 
   driver.page = async (ref: { table: string }) => ({ columns: [{ name: 'table' }], rows: [[ref.table]], durationMs: 1 });
   const manager = { store: { get: () => ({ name: 'Test', type: 'postgres' }) }, get: async () => driver } as unknown as ConnectionManager;
   const users: DbNode = { connId: 'home', kind: 'table', database: 'db', schema: 'public', table: 'users', label: 'users' };
-  DataPanel.home({} as any, manager, [{ node: users, location: 'Test › db › public' }]);
+  const ready: unknown[] = [];
+  DataPanel.home({} as any, manager, [{ node: users, location: 'Test › db › public' }], (panel) => ready.push(panel));
   const home = panels.at(-1);
+  await home.receive({ type: 'ready' });
+  await home.receive({ type: 'ready' });
+  assert.deepEqual(ready, [home]);
   assert.equal(home.title, 'DBDeck');
   assert.equal(home.show.preserveFocus, true);
   assert.deepEqual(initialState(home), { mode: 'home', recent: [{ node: users, location: 'Test › db › public' }] });
@@ -383,4 +389,32 @@ test('the start tab turns into the first table without a new webview', async () 
   DataPanel.home({} as any, manager, []);
   assert.equal(panels.at(-1), home);
   home.dispose();
+});
+
+test('editors with a service worker per webview give each open table its own origin', async () => {
+  const driver = Object.create(SqlDriver.prototype);
+  driver.page = async () => ({ columns: [], rows: [], durationMs: 1 });
+  const manager = { store: { get: () => ({ name: 'Test', type: 'postgres' }) }, get: async () => driver } as unknown as ConnectionManager;
+  const table = (name: string): DbNode => ({ connId: 'origins', kind: 'table', database: 'db', schema: 'public', table: name, label: name });
+  await DataPanel.show({} as any, manager, table('a'), () => {});
+  const first = panels.at(-1);
+  await first.receive({ type: 'pin' });
+  await DataPanel.show({} as any, manager, table('b'), () => {});
+  const shared = panels.at(-1);
+  assert.equal(shared.viewType, first.viewType);
+  await shared.receive({ type: 'pin' });
+  await first.receive({ type: 'worker' });
+  await DataPanel.show({} as any, manager, table('c'), () => {});
+  const isolated = panels.at(-1);
+  assert.equal(isolated.viewType, 'dbdeck.data-2');
+  await isolated.receive({ type: 'pin' });
+  await DataPanel.show({} as any, manager, table('d'), () => {});
+  const third = panels.at(-1);
+  assert.equal(third.viewType, 'dbdeck.data-3');
+  await third.receive({ type: 'pin' });
+  isolated.dispose();
+  await DataPanel.show({} as any, manager, table('e'), () => {});
+  const reused = panels.at(-1);
+  assert.equal(reused.viewType, 'dbdeck.data-2');
+  for (const panel of [first, shared, third, reused]) panel.dispose();
 });

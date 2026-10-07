@@ -54,6 +54,22 @@ interface PageData {
 
 const app = document.getElementById('app')!;
 const scriptStart = Date.now();
+
+function releaseWorker(): void {
+  try {
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => {
+        const perWebview = registrations.filter((r) => r.active && new URL(r.active.scriptURL).searchParams.has('id'));
+        if (!perWebview.length) return;
+        vscode.postMessage({ type: 'worker' });
+        for (const r of perWebview) void r.unregister();
+      })
+      .catch(() => undefined);
+  } catch {
+    return;
+  }
+}
 let documentTiming = true;
 let pinned = false;
 
@@ -828,6 +844,7 @@ function mountHome(I: HomeInit): ReturnType<typeof mount> {
         : null,
     ),
   );
+  requestAnimationFrame(() => setTimeout(() => vscode.postMessage({ type: 'ready' })));
   return { save: async () => undefined, load: async () => undefined, dispose: () => undefined };
 }
 
@@ -844,6 +861,7 @@ document.addEventListener('keydown', (e) => {
 for (const type of ['input', 'change', 'dblclick']) document.addEventListener(type, pin, true);
 
 let current = INIT.mode === 'home' ? mountHome(INIT as HomeInit) : mount(INIT as Init);
+releaseWorker();
 onMessage('mount', (m: { init: Init }) => {
   current.dispose();
   pinned = false;

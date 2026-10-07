@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3 — 2026-10-07
+
+- The start tab with recent tables now also opens when files are open: it loads in the background and the editor returns to the file you had open, so the first table appears at once.
+- Fixed new table tabs in Cursor that took about a second to open: each open table panel now gets its own webview origin and releases its service worker after loading, so new tabs open in 60–300 ms.
+
 ## 0.3.2 — 2026-10-07
 
 - Fixed the Docker icon on the landing page to match the connection icon.
