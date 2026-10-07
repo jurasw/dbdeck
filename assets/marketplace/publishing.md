@@ -1,6 +1,6 @@
 # Publishing
 
-Status: GitHub Release `v0.1.0` is live. Visual Studio Marketplace and Open VSX are not published yet. dbdeck.dev runs on Cloudflare Workers.
+Status: Extension `0.3.1` is live on the Visual Studio Marketplace, Open VSX and GitHub Releases. dbdeck.dev runs on Cloudflare Workers. Check the current version with `npm run release:status` in `apps/extension`.
 
 Listing texts and form fields: [listing.md](listing.md).
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 — 2026-10-07
 
 - Fixed the Docker icon on the landing page to match the connection icon.
 - Added BigQuery and Snowflake connections. BigQuery signs in with gcloud application default credentials or a service account key, lists datasets and tables, previews tables for free through the BigQuery API and shows the bytes each query processes. Snowflake signs in with a programmatic access token or a key pair and lists databases, schemas, tables and views. Both support the SQL editor, data browsing, DDL, Omnisearch, schema diagrams, AI queries and the MCP server; the grid is read-only.
