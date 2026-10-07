@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { width: 1600px; height: 400px; margin: 0; overflow: hidden; }
+      body { position: relative; color: #f5f7fb; background: #06080e; font-family: Arial, Helvetica, sans-serif; }
+      .glow { position: absolute; inset: 0; background: radial-gradient(740px 400px at 77% 12%, rgba(78, 124, 255, .3), transparent 75%); }
+      .grid { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.1) 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(90deg, #000, transparent 85%); }
+      .content { position: absolute; left: 100px; top: 65px; z-index: 2; }
+      .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 700; letter-spacing: -.03em; }
+      .brand img { width: 48px; height: 48px; border-radius: 11px; }
+      h1 { margin: 42px 0 0; font-size: 60px; line-height: 1.04; letter-spacing: -.05em; }
+      h1 span { display: block; color: #97a5c8; }
+      p { margin: 23px 0 0; color: #b5bfd8; font-size: 20px; }
+      .site { position: absolute; left: 101px; bottom: 36px; z-index: 2; color: #91adff; font-size: 18px; font-weight: 700; letter-spacing: .07em; }
+      .shot { position: absolute; left: 870px; top: 40px; width: 830px; transform: perspective(1400px) rotateY(-10deg) rotateZ(-2deg); transform-origin: left center; }
+      .frame { overflow: hidden; border: 1px solid #465373; border-radius: 14px; background: #101521; box-shadow: 0 20px 80px #000, 0 0 80px #456eff33; }
+      .bar { height: 28px; padding: 10px; border-bottom: 1px solid #303849; background: #1a2030; }
+      .bar i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: #53617a; }
+      .frame img { display: block; width: 100%; }
+      .fade { position: absolute; inset: 0; background: linear-gradient(90deg, transparent 67%, #06080e55), linear-gradient(0deg, #06080eee, transparent 26%); }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div><div class="grid"></div>
+    <div class="content">
+      <div class="brand"><img src="../icon-128.png" alt="" />DBDeck</div>
+      <h1>Your databases.<span>Inside your editor.</span></h1>
+      <p>Free, open source database client for VS Code and Cursor.</p>
+    </div>
+    <div class="site">DBDECK.DEV</div>
+    <div class="shot"><div class="frame"><div class="bar"><i></i><i></i><i></i></div><img src="../../screenshots/data-grid.png" alt="" /></div></div>
+    <div class="fade"></div>
+  </body>
+</html>

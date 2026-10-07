@@ -1,8 +1,8 @@
 {
   "name": "dbdeck",
   "displayName": "DBDeck - Database Client",
-  "description": "Free database client for MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
-  "version": "0.3.3",
+  "description": "Free database client for MySQL, PostgreSQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
+  "version": "0.4.0",
   "publisher": "dbdeck",
   "icon": "media/icon.png",
   "license": "MIT",
@@ -18,6 +18,7 @@
     "mysql",
     "postgres",
     "postgresql",
+    "sqlite",
     "mongodb",
     "redis",
     "elasticsearch",
@@ -78,7 +79,7 @@
     "viewsWelcome": [
       {
         "view": "dbdeck.connections",
-        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker.\n[Import Connections](command:dbdeck.importConnections)"
+        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker.\n[Import Connections](command:dbdeck.importConnections)"
       }
     ],
     "languages": [
@@ -131,6 +132,17 @@
       {
         "command": "dbdeck.deleteConnection",
         "title": "Delete Connection",
+        "category": "DBDeck",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbdeck.renameGroup",
+        "title": "Rename Group",
+        "category": "DBDeck"
+      },
+      {
+        "command": "dbdeck.deleteGroup",
+        "title": "Delete Group",
         "category": "DBDeck",
         "icon": "$(trash)"
       },
@@ -264,7 +276,7 @@
       },
       {
         "command": "dbdeck.s3.copyUri",
-        "title": "Copy S3 URI",
+        "title": "Copy URI",
         "category": "DBDeck",
         "icon": "$(copy)"
       },
@@ -350,6 +362,18 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "dbdeck.aiChat",
+        "title": "Chat with Database",
+        "category": "DBDeck",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "dbdeck.openSettings",
+        "title": "Settings",
+        "category": "DBDeck",
+        "icon": "$(settings-gear)"
+      },
+      {
         "command": "dbdeck.aiConfigure",
         "title": "Configure AI Provider",
         "category": "DBDeck"
@@ -384,6 +408,11 @@
           "group": "navigation@2"
         },
         {
+          "command": "dbdeck.openSettings",
+          "when": "view == dbdeck.connections",
+          "group": "more@0"
+        },
+        {
           "command": "dbdeck.exportConnections",
           "when": "view == dbdeck.connections",
           "group": "more@1"
@@ -409,6 +438,11 @@
           "command": "dbdeck.newQuery",
           "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema)\\b.*\\b(sql|mongo|es)\\b/",
           "group": "inline@1"
+        },
+        {
+          "command": "dbdeck.aiChat",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bconn sql\\b/",
+          "group": "inline@2"
         },
         {
           "command": "dbdeck.redis.cli",
@@ -621,9 +655,24 @@
           "group": "9_danger@9"
         },
         {
+          "command": "dbdeck.renameGroup",
+          "when": "view == dbdeck.connections && viewItem == group",
+          "group": "7_conn@1"
+        },
+        {
+          "command": "dbdeck.deleteGroup",
+          "when": "view == dbdeck.connections && viewItem == group",
+          "group": "9_danger@9"
+        },
+        {
           "command": "dbdeck.aiQuery",
           "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|table|view) sql\\b/",
           "group": "2_query@3"
+        },
+        {
+          "command": "dbdeck.aiChat",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema) sql\\b/",
+          "group": "2_query@4"
         },
         {
           "command": "dbdeck.showSchema",
@@ -651,6 +700,11 @@
           "command": "dbdeck.aiQuery",
           "when": "dbdeck.boundEditor && editorLangId == sql",
           "group": "navigation@2"
+        },
+        {
+          "command": "dbdeck.aiChat",
+          "when": "dbdeck.boundEditor && editorLangId == sql",
+          "group": "navigation@3"
         }
       ],
       "editor/context": [
@@ -681,6 +735,14 @@
         },
         {
           "command": "dbdeck.deleteConnection",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.renameGroup",
+          "when": "false"
+        },
+        {
+          "command": "dbdeck.deleteGroup",
           "when": "false"
         },
         {

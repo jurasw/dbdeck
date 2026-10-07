@@ -75,3 +75,11 @@ export function Reserve({ full, children, className }: { full: React.ReactNode; 
     </span>
   );
 }
+
+export function AiSphere({ size = 22, thinking = false, className }: { size?: number; thinking?: boolean; className?: string }) {
+  return (
+    <span aria-hidden className={cn("ai-sphere", thinking && "thinking", className)} style={{ "--orb": `${size}px` } as React.CSSProperties}>
+      <span />
+    </span>
+  );
+}

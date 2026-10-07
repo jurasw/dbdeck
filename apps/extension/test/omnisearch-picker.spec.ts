@@ -71,7 +71,7 @@ test('Omnisearch displays table, value and column, then opens a filtered result'
   picker.change('JUREK');
   await pause();
   assert.equal(picker.busy, false);
-  assert.equal(picker.items[0].label, 'players — Jurek (name)');
+  assert.equal(picker.items[0].label, 'players: Jurek (name)');
   assert.equal(picker.items[0].description, 'game › public');
   assert.equal(picker.items[0].alwaysShow, true);
   picker.accept(picker.items[0]);

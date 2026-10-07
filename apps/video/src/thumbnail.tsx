@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import { AbsoluteFill } from "remotion";
 import { fontVars } from "./lib/fonts";
 import { Logo, TypeIcon } from "./ui/primitives";
@@ -28,25 +27,16 @@ export function Thumbnail() {
           <Workbench scene="filter" t={filterAt.generated + 600} />
         </div>
       </div>
-      <div className="absolute flex items-center gap-2 rounded-full border border-brand/50 bg-[#16203a] px-5 py-2.5 text-[26px] font-semibold text-brand shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8)]" style={{ left: 770, top: 48 }}>
-        <Sparkles className="size-7" />
-        AI → SQL
-      </div>
-      <div className="absolute flex flex-col" style={{ left: 56, top: 52, width: 620 }}>
+      <div className="absolute flex flex-col" style={{ left: 56, top: 140, width: 640 }}>
         <div className="flex items-center gap-4">
           <Logo className="size-[68px]" />
           <span className="font-heading text-[54px] leading-none font-semibold tracking-tight">DBDeck</span>
         </div>
-        <div className="mt-9 font-heading text-[94px] leading-[0.94] font-extrabold tracking-tight uppercase">
-          <div>All your</div>
-          <div>databases</div>
-          <div className="text-brand">in VS Code</div>
+        <div className="mt-16 font-heading text-[100px] leading-[0.95] font-extrabold tracking-tight whitespace-nowrap uppercase">
+          <div>DB client</div>
+          <div className="text-brand">in your IDE</div>
         </div>
-        <div className="mt-8 flex items-center gap-3">
-          <span className="rounded-xl bg-emerald-400 px-5 py-2 text-[38px] font-extrabold tracking-tight text-black uppercase">Free</span>
-          <span className="rounded-xl border-2 border-white/80 px-4 py-1.5 text-[30px] font-bold tracking-tight uppercase">Open source</span>
-        </div>
-        <div className="mt-9 flex items-center gap-[10px]">
+        <div className="mt-16 flex items-center gap-[10px]">
           {icons.map((name) => (
             <span key={name} className="grid size-[46px] place-items-center rounded-xl border border-white/10 bg-white/[0.06]">
               <TypeIcon name={name} className="size-[26px]" />

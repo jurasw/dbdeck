@@ -2,12 +2,12 @@
 
 ## Title
 
-DBDeck — Free Database Client for VS Code & Cursor (PostgreSQL, MySQL, MongoDB, Redis + AI)
+DBDeck: Free Database Client for VS Code & Cursor (PostgreSQL, MySQL, MongoDB, Redis + AI)
 
 Alternatives:
 
 - Your Databases. Inside Your Editor. | DBDeck for VS Code & Cursor
-- Stop Switching Database Apps — DBDeck, the Free DB Client for VS Code
+- Stop Switching Database Apps: DBDeck, the Free DB Client for VS Code
 - DBDeck in 60 Seconds: SQL, NoSQL and AI Queries Inside VS Code
 
 ## Description

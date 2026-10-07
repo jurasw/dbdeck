@@ -21,32 +21,35 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 | Service                     | Tools                                                         |
 | --------------------------- | ------------------------------------------------------------- |
 | PostgreSQL, MySQL / MariaDB | SQL editor, data grid, primary-key row editing, DDL           |
+| SQLite                      | Local database files, SQL editor, row editing, DDL            |
 | ClickHouse                  | SQL editor, data browsing, DDL                                |
 | BigQuery                    | SQL editor, datasets, free table preview, DDL                 |
 | Snowflake                   | SQL editor, data browsing, DDL                                |
 | MongoDB                     | Document editor, filters, aggregation and shell-style scripts |
 | Redis                       | Key browser, value editors, TTL, CLI                          |
 | Elasticsearch / OpenSearch  | Index browser, documents and request console                  |
-| S3 / MinIO / R2             | Buckets, folders, uploads and downloads                       |
+| S3 / MinIO / R2 / GCS       | Buckets, folders, uploads and downloads                       |
 | Docker                      | Containers, logs, shell and database connection discovery     |
 
 ## Features
 
-- Connection tree with groups, per-type icons and connection status
+- Paste a connection URL (`postgresql://`, `mysql://`, `clickhouse://`, `redis://`, `sqlite:`) to fill the connection form, for example from Neon, Supabase, PlanetScale or Heroku. The URL itself is not stored
+- Connection tree with groups (rename or delete from the context menu), per-type icons and connection status
 - Omnisearch: find values across a database or schema, with table, value and column previews
 - SSH tunnels (password or private key), SSL/TLS, read-only mode
 - Data viewer with a virtualized grid: server-side paging, sorting, `WHERE` / `ORDER BY` filters, column resize, keyboard navigation, copy as TSV / JSON / `INSERT`
 - Fast first-page results appear with the panel; wide tables render only visible rows and columns to keep scrolling responsive. Tables open in a reusable preview tab, and a start tab with recent tables loads in the background so the first table appears at once
-- Inline editing for PostgreSQL and MySQL tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction, with **Undo** in the confirmation toast
+- Inline editing for PostgreSQL, MySQL and SQLite tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction, with **Undo** in the confirmation toast
 - SQL editor: run the statement under the cursor (`⌘/Ctrl+Enter`), run all (`⌘/Ctrl+Shift+Enter`), `▶ Run` CodeLens, table and column completion with alias resolution
 - Results panel: one tab per statement, row filter, JSON view, export to CSV / JSON
 - DDL for tables, views, functions and procedures; truncate and drop
 - MongoDB: document grid and JSON view, filter / sort / projection, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
 - Redis: key tree grouped by separator, SCAN filter, editors for string (text / JSON), hash, list, set, sorted set, stream and RedisJSON, TTL and rename, built-in CLI terminal
-- Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files)
-- S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers
+- Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files). Sign in to Kibana under Options to connect with company SSO or Elastic Cloud through an API key
+- S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers, and with Google Cloud Storage through Sign in with Google under Options
 - Docker: containers grouped by Compose project, start / stop / restart / remove, logs, shell, inspect, images, volumes, networks, and **Add as Database Connection** that reads credentials from container env
-- BigQuery: datasets and tables in the tree, free table preview through the BigQuery API, row counts from table metadata and the bytes each query processes. Signs in with `gcloud auth application-default login` or a service account key file
+- SQLite: open a `.db`, `.sqlite` or `.sqlite3` file. Tables, views and columns in the tree, row editing with foreign keys enforced, indexes and triggers in DDL. Read-only mode opens the file read-only. Needs a current VS Code or Cursor (Node 22.16 or later in the extension host)
+- BigQuery: datasets and tables in the tree, free table preview through the BigQuery API, row counts from table metadata and the bytes each query processes. Signs in with Sign in with Google under Options (`gcloud auth application-default login`) or a service account key file
 - Snowflake: databases, schemas, tables and views in the tree, SQL with your warehouse and role. Signs in with a programmatic access token or a key pair
 - Panels follow your editor color theme: buttons, inputs, menus, selection and value colors come from the active VS Code or Cursor theme
 
@@ -80,7 +83,7 @@ DBDeck makes network connections only to the databases you configure. Nothing is
 
 ## Schema diagram
 
-Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL and MySQL/MariaDB. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse, BigQuery and Snowflake display tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
+Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL, MySQL/MariaDB and SQLite. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse, BigQuery and Snowflake display tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
 
 ## AI queries
 
@@ -100,6 +103,18 @@ DBDeck has no AI backend, credential service or prompt analytics. Requests go fr
 
 AI Query builds its context automatically: from a schema it uses that schema, from a table or database it uses the whole database with the current table first. The compact composer includes the Generate query action inside the input area; expand Database context to inspect or search the included tables.
 
+## Chat with Database
+
+Click the sparkle button in a SQL table's header to open the assistant beside the table with that table as context. Hover a SQL connection in Connections and click its chat icon, click the chat icon in a bound SQL editor, choose **Chat with database** in AI Query, run **DBDeck: Chat with Database**, or right-click a SQL connection, database or schema in Connections. Ask questions in any language. The assistant calls `list_tables` and `describe_table` to read the schema and answers with SQL in code blocks. Each code block has **Copy**, **Open in editor** and **Run**; **Run** executes the statement read-only and shows the rows in the chat without sending them to the AI.
+
+Turn on **Let AI run read-only queries** to let the assistant run SELECT, WITH, SHOW, DESCRIBE and EXPLAIN statements itself and answer from the results. DBDeck asks once per connection. Queries run through the same read-only path as MCP; the assistant gets at most 100 rows per query and the chat shows up to 200. Query results go to your AI provider; without this option only table and column names do. Inserts, updates and schema changes never run from the chat.
+
+The chat uses the provider and model from **AI settings**: ChatGPT, an OpenAI or Claude API key, an OpenAI-compatible API or Ollama. Local models must support tool calling. **New chat** clears the conversation; nothing is saved.
+
+## Settings
+
+Choose **Settings** in the `…` menu of the Connections view, or run **DBDeck: Settings**. One page holds the AI provider, model and ChatGPT account, the connections where the chat may run queries, the MCP server and its allowed connections, rows per page and per result, CodeLens, Redis key options, and connection import and export. **Open in editor settings** shows the same options in the VS Code settings editor.
+
 ## AI agents (MCP)
 
 Run **DBDeck: Connect AI Agents (MCP)** to start a local MCP server. Agents can then list your SQL connections, inspect tables and columns, run read-only queries and open SQL in a query editor for you to review. Agents work with your own AI subscription, for example Claude Code with a Claude Pro or Max plan.
@@ -107,7 +122,7 @@ Run **DBDeck: Connect AI Agents (MCP)** to start a local MCP server. Agents can 
 - VS Code and Cursor see DBDeck automatically while the server runs.
 - For Claude Code, choose **Copy Claude Code command** and run it in a terminal. **Copy MCP JSON config** works for Claude Desktop, Windsurf and other clients.
 - Before an agent reads a connection for the first time, DBDeck asks you. **Forget allowed connections** resets these answers.
-- `run_query` runs one SELECT, WITH, SHOW, DESCRIBE or EXPLAIN statement in a read-only transaction (ClickHouse: `readonly=1`; BigQuery: at most 10 GB billed per query) with a 30-second limit. Up to `dbdeck.mcp.maxRows` rows (default 200) go back to the agent.
+- `run_query` runs one SELECT, WITH, SHOW, DESCRIBE or EXPLAIN statement in a read-only transaction (ClickHouse: `readonly=1`; BigQuery: at most 10 GB billed per query; SQLite: a read-only connection to the file) with a 30-second limit. Up to `dbdeck.mcp.maxRows` rows (default 200) go back to the agent.
 - `open_query` never runs SQL. Inserts, updates and schema changes open in a query editor so you run them yourself.
 - The server listens on `127.0.0.1` only and needs an access token kept in SecretStorage. **Regenerate access token** replaces it. Turn the server off from the same command or with `dbdeck.mcp.enabled`.
 
@@ -119,7 +134,7 @@ Query results that an agent reads are sent to that agent's AI provider. For full
 
 ### Search all values
 
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
 
 Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 

@@ -56,7 +56,7 @@ export function openRedisCli(driver: RedisDriver, name: string, startDb: number)
     onDidWrite: write.event,
     onDidClose: close.event,
     open: () => {
-      write.fire(`${C.magenta}DBDeck Redis CLI${C.reset} ${C.dim}— type commands, ↑/↓ history, "clear", "exit"${C.reset}\r\n`);
+      write.fire(`${C.magenta}DBDeck Redis CLI${C.reset}${C.dim}: type commands, ↑/↓ history, "clear", "exit"${C.reset}\r\n`);
       redraw();
     },
     close: () => undefined,

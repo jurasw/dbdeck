@@ -44,6 +44,13 @@ export function formatCount(n: number): string {
   return String(n);
 }
 
+export function formatDate(d: Date | string): string {
+  const t = new Date(d);
+  if (isNaN(t.getTime())) return String(d);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}`;
+}
+
 export function formatBytes(n: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;

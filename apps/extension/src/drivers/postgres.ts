@@ -136,7 +136,7 @@ export class PostgresDriver extends SqlDriver {
     }
     const db = n.database!;
     if (n.kind === 'database') {
-      const sys = this.config.showSystem ? '' : "WHERE nspname NOT LIKE 'pg\\_%' AND nspname <> 'information_schema'";
+      const sys = this.config.showSystem ? '' : "WHERE nspname NOT LIKE 'pg\\_%' AND nspname NOT IN ('information_schema', 'crdb_internal')";
       const rows = await this.q<{ nspname: string }>(`SELECT nspname FROM pg_namespace ${sys} ORDER BY nspname = 'public' DESC, 1`, [], db);
       return rows.map((r) => this.node('schema', r.nspname, { database: db, schema: r.nspname, icon: 'symbol-namespace', tags: 'schema sql', expanded: r.nspname === 'public' }));
     }
@@ -226,7 +226,7 @@ export class PostgresDriver extends SqlDriver {
   async objects(database?: string, schema?: string, limit: number | null = 5000): Promise<{ name: string; schema?: string }[]> {
     const rows = await this.q<{ name: string; schema: string }>(
       `SELECT c.relname AS name, ns.nspname AS schema FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
-       WHERE c.relkind IN ('r','p','v','m','f') AND ns.nspname NOT LIKE 'pg\\_%' AND ns.nspname <> 'information_schema'
+       WHERE c.relkind IN ('r','p','v','m','f') AND ns.nspname NOT LIKE 'pg\\_%' AND ns.nspname NOT IN ('information_schema', 'crdb_internal')
        ${schema ? 'AND ns.nspname = $1' : ''} ORDER BY 1 ${limit === null ? '' : `LIMIT ${limit}`}`,
       schema ? [schema] : [],
       database,

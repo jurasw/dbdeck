@@ -13,8 +13,8 @@ const mono = Geist_Mono({
 });
 
 const description =
-  "Free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No account, no paywall, no telemetry.";
-const title = "DBDeck — Free database client for VS Code and Cursor";
+  "Free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No account, no paywall, no telemetry.";
+const title = "DBDeck: Free database client for VS Code and Cursor";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     description,
     url: "https://dbdeck.dev",
     siteName: "DBDeck",
-    images: [{ url: "/og.png", width: 2400, height: 1260, alt: "DBDeck — your databases, inside your editor" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "DBDeck: your databases inside your editor" }],
     type: "website",
   },
   twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },

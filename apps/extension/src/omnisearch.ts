@@ -49,7 +49,7 @@ export async function showOmnisearch(root: DbNode, location: string, source: Dat
             } else if (event.kind === 'match') {
               matches++;
               items.push({
-                label: `${preview(event.node.label)} — ${preview(event.match.value)} (${preview(event.match.column)})`,
+                label: `${preview(event.node.label)}: ${preview(event.match.value)} (${preview(event.match.column)})`,
                 description: [event.node.database, event.node.schema]
                   .filter((part): part is string => !!part)
                   .map(preview)

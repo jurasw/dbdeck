@@ -34,7 +34,7 @@ interface Init {
   location: string;
   pageSize: number;
   editable: boolean;
-  dialect?: 'mysql' | 'postgres' | 'clickhouse' | 'bigquery' | 'snowflake';
+  dialect?: 'mysql' | 'postgres' | 'sqlite' | 'clickhouse' | 'bigquery' | 'snowflake';
   initialSearch?: string;
   initialData?: PageData;
 }
@@ -112,6 +112,21 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   const searchStatus = h('span.data-search-status', { role: 'status' }, icon('search'));
   const searchInput = h('input.input', { placeholder: 'Search all values…', 'aria-label': 'Search all values' }) as HTMLInputElement;
   searchInput.value = I.initialSearch ?? '';
+  const searchButton = h('button.btn.sm.ghost.icon', { title: 'Search all records', onClick: () => void load(true) }, searchStatus);
+  const searchClear = btn(null, {
+    icon: 'close',
+    class: 'sm ghost',
+    title: 'Clear search',
+    onClick: () => {
+      searchInput.value = '';
+      syncSearchClear();
+      searchInput.focus();
+      void load(true);
+    },
+  });
+  const syncSearchClear = () => searchClear.classList.toggle('hidden', !searchInput.value);
+  syncSearchClear();
+  searchInput.addEventListener('input', syncSearchClear);
   searchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -131,7 +146,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   const dirty = () => edits.size > 0 || added.size > 0 || deleted.size > 0;
 
   const quote = (n: string) =>
-    I.dialect === 'postgres' || I.dialect === 'snowflake'
+    I.dialect === 'postgres' || I.dialect === 'sqlite' || I.dialect === 'snowflake'
       ? `"${n.replace(/"/g, '""')}"`
       : I.dialect === 'bigquery'
         ? `\`${n.replace(/[\\`]/g, '\\$&')}\``
@@ -630,22 +645,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     }
     clear(
       actions,
-      h(
-        'div.data-search',
-        null,
-        searchStatus,
-        searchInput,
-        btn(null, { icon: 'arrow-right', class: 'sm ghost', title: 'Search all records', onClick: () => void load(true) }),
-        btn(null, {
-          icon: 'close',
-          class: 'sm ghost',
-          title: 'Clear search',
-          onClick: () => {
-            searchInput.value = '';
-            void load(true);
-          },
-        }),
-      ),
+      h('div.data-search', null, searchInput, searchClear, searchButton),
       left,
       h('div.grow'),
       h(
@@ -778,6 +778,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
           : null,
         btn('CSV', { icon: 'export', class: 'sm ghost', title: 'Export current page as CSV', onClick: () => void exportData('csv') }),
         btn('JSON', { icon: 'export', class: 'sm ghost', title: 'Export current page as JSON', onClick: () => void exportData('json') }),
+        isSql ? btn(null, { icon: 'sparkle', class: 'sm outline ai-chat-open', title: 'Ask AI about this table', onClick: () => void rpc('chat') }) : null,
         btn(null, { icon: 'refresh', class: 'sm outline', title: 'Refresh (F5)', onClick: () => void load() }),
       ),
       h(

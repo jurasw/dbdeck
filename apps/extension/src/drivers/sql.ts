@@ -65,7 +65,7 @@ export abstract class SqlDriver extends BaseDriver {
   async page(t: TableRef, o: PageOptions): Promise<QueryResult> {
     const cols = await this.columns(t).catch(() => [] as ColumnMeta[]);
     const pk = cols.filter((c) => c.pk).map((c) => this.quote(c.name));
-    const orderBy = o.orderBy?.trim() || ((this.dialect === 'postgres' || this.dialect === 'mysql') && pk.length ? pk.join(', ') : undefined);
+    const orderBy = o.orderBy?.trim() || ((this.dialect === 'postgres' || this.dialect === 'mysql' || this.dialect === 'sqlite') && pk.length ? pk.join(', ') : undefined);
     const res = await this.run(this.selectSql(t, { ...o, where: this.searchWhere(cols, o.where, o.search), orderBy }), t.database);
     const byName = new Map(cols.map((c) => [c.name, c]));
     res.columns = res.columns.map((c) => ({ ...c, ...byName.get(c.name), name: c.name }));
@@ -101,6 +101,7 @@ export abstract class SqlDriver extends BaseDriver {
     if (this.dialect === 'clickhouse') return `positionCaseInsensitiveUTF8(toString(${column}), ${this.literal(text)}) > 0`;
     if (this.dialect === 'bigquery') return `CONTAINS_SUBSTR(${column}, ${this.literal(text)})`;
     if (this.dialect === 'snowflake') return `CONTAINS(LOWER(TO_VARCHAR(${column})), LOWER(${this.literal(text)}))`;
+    if (this.dialect === 'sqlite') return `instr(lower(CAST(${column} AS TEXT)), lower(${this.literal(text)})) > 0`;
     return this.dialect === 'postgres'
       ? `strpos(lower(${column}::text), lower(${this.literal(text)})) > 0`
       : `LOCATE(LOWER(${this.literal(text)}), LOWER(CAST(${column} AS CHAR))) > 0`;
@@ -112,6 +113,8 @@ export abstract class SqlDriver extends BaseDriver {
         return `${column}::text`;
       case 'mysql':
         return `CAST(${column} AS CHAR)`;
+      case 'sqlite':
+        return `CAST(${column} AS TEXT)`;
       case 'bigquery':
         return `FORMAT('%t', ${column})`;
       case 'snowflake':
@@ -181,6 +184,6 @@ export abstract class SqlDriver extends BaseDriver {
     if (typeof v === 'object') v = JSON.stringify(v);
     if (this.dialect === 'bigquery') return `'${String(v).replace(/[\\'\n\r]/g, (c) => ({ '\\': '\\\\', "'": "\\'", '\n': '\\n', '\r': '\\r' })[c]!)}'`;
     const s = String(v).replace(/'/g, "''");
-    return this.dialect === 'postgres' ? `'${s}'` : `'${s.replace(/\\/g, '\\\\')}'`;
+    return this.dialect === 'postgres' || this.dialect === 'sqlite' ? `'${s}'` : `'${s.replace(/\\/g, '\\\\')}'`;
   }
 }

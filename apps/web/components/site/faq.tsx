@@ -21,7 +21,7 @@ const questions = [
   },
   {
     q: "What does the AI query feature send?",
-    a: "Only your written request and the table and column names, types and keys you select. Rows, passwords and connection strings are never sent. You choose the provider: ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model.",
+    a: "Only your written request and the table and column names, types and keys you select. Rows, passwords and connection strings are never sent. You choose the provider: ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. In Chat with Database, query results go to your provider only after you turn on read-only queries for that connection.",
   },
   {
     q: "Can AI agents like Claude Code use my databases?",

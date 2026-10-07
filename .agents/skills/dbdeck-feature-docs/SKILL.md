@@ -7,6 +7,8 @@ description: Sync README files, the dbdeck.dev landing page, CHANGELOG, version,
 
 Apply after a change that a user can see: a new feature, service, command, setting, visible fix or changed behavior. Skip for refactors, tests and tooling. Read `git diff main...HEAD` and the touched commands in `apps/extension/package.json` to list what changed, then update every surface that describes it. Keep one wording per feature across surfaces and match the tone and length of nearby entries.
 
+Never use the em dash character (U+2014) or double hyphens as punctuation in DBDeck copy. Rewrite the sentence or use a comma, colon or parentheses. Preserve hyphens required by commands, SQL and other syntax.
+
 ## Surfaces
 
 | File | Update when |
@@ -34,7 +36,7 @@ cd apps/extension
 npm version <minor|patch> --no-git-tag-version
 ```
 
-Then rename `## Unreleased` to `## <version> — <YYYY-MM-DD>`. `extension-publish.yml` takes the release notes from the CHANGELOG heading that contains the version. `apps/web` has no product version; any change under `apps/web` merged to `main` deploys dbdeck.dev.
+Then rename `## Unreleased` to `## <version> (<YYYY-MM-DD>)`. `extension-publish.yml` takes the release notes from the CHANGELOG heading that contains the version. `apps/web` has no product version; any change under `apps/web` merged to `main` deploys dbdeck.dev.
 
 ## Checks
 

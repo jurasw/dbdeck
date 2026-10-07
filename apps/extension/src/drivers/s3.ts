@@ -14,7 +14,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { DbNode } from '../types';
-import { formatBytes, formatCount } from '../util';
+import { formatBytes, formatCount, formatDate } from '../util';
 import { BaseDriver } from './base';
 
 const LIST_LIMIT = 2000;
@@ -72,7 +72,7 @@ export class S3Driver extends BaseDriver {
             leaf: true,
             icon: 'file',
             description: formatBytes(o.Size ?? 0),
-            tooltip: `s3://${bucket}/${o.Key}\n${formatBytes(o.Size ?? 0)}${o.LastModified ? `\n${o.LastModified.toISOString()}` : ''}`,
+            tooltip: `s3://${bucket}/${o.Key}\n${formatBytes(o.Size ?? 0)}${o.LastModified ? `\nmodified ${formatDate(o.LastModified)}` : ''}`,
             tags: 's3Object s3',
             extra: { size: o.Size ?? 0 },
           }),

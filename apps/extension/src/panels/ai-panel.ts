@@ -6,6 +6,35 @@ import { QueryEditors } from '../editor';
 import { DbNode, FAMILY } from '../types';
 import { bindRpc, webviewHtml, webviewOptions } from '../webviewHost';
 
+export async function sqlContext(
+  manager: ConnectionManager,
+  editors: QueryEditors,
+  node: DbNode | undefined,
+  title: string,
+): Promise<{ node: DbNode; driver: SqlDriver; database: string } | undefined> {
+  if (!node) {
+    const editor = vscode.window.activeTextEditor;
+    const binding = editor && editors.binding(editor.document);
+    if (binding) node = { ...binding, kind: 'database', label: binding.database ?? 'Database' };
+  }
+  if (!node) {
+    const selected = await vscode.window.showQuickPick(
+      manager.store
+        .list()
+        .filter((c) => FAMILY[c.type] === 'sql')
+        .map((config) => ({ label: config.name, description: config.type, config })),
+      { title: `${title} · SQL connection` },
+    );
+    if (!selected) return undefined;
+    node = { connId: selected.config.id, kind: 'connection', label: selected.config.name, database: selected.config.database };
+  }
+  const driver = await manager.get(node.connId);
+  if (!(driver instanceof SqlDriver)) throw new Error(`${title} supports SQL connections.`);
+  const database = node.database ?? (await vscode.window.showQuickPick(await driver.databases(), { title: `${title} · database` }));
+  if (!database) return undefined;
+  return { node, driver, database };
+}
+
 export class AiPanel {
   static async show(
     ctx: Pick<vscode.ExtensionContext, 'extensionUri'>,
@@ -15,26 +44,10 @@ export class AiPanel {
     node?: DbNode,
     back?: () => void,
   ): Promise<void> {
-    if (!node) {
-      const editor = vscode.window.activeTextEditor;
-      const binding = editor && editors.binding(editor.document);
-      if (binding) node = { ...binding, kind: 'database', label: binding.database ?? 'Database' };
-    }
-    if (!node) {
-      const selected = await vscode.window.showQuickPick(
-        manager.store
-          .list()
-          .filter((c) => FAMILY[c.type] === 'sql')
-          .map((config) => ({ label: config.name, description: config.type, config })),
-        { title: 'AI query · SQL connection' },
-      );
-      if (!selected) return;
-      node = { connId: selected.config.id, kind: 'connection', label: selected.config.name, database: selected.config.database };
-    }
-    const driver = await manager.get(node.connId);
-    if (!(driver instanceof SqlDriver)) throw new Error('AI query generation supports SQL connections.');
-    const database = node.database ?? (await vscode.window.showQuickPick(await driver.databases(), { title: 'AI query · database' }));
-    if (!database) return;
+    const context = await sqlContext(manager, editors, node, 'AI query');
+    if (!context) return;
+    const { driver, database } = context;
+    node = context.node;
     const target: DbNode = { ...node, database };
     const origin = node;
     const rank = (o: { name: string; schema?: string }) => (o.name === origin.table && o.schema === origin.schema ? 0 : o.schema === origin.schema ? 1 : 2);
@@ -72,6 +85,7 @@ export class AiPanel {
       },
       usage: () => vscode.env.openExternal(vscode.Uri.parse('https://chatgpt.com/settings/usage')),
       mcp: () => vscode.commands.executeCommand('dbdeck.mcpSetup'),
+      chat: () => vscode.commands.executeCommand('dbdeck.aiChat', target),
       cancel: () => request?.abort(),
       generate: async (params: { prompt: string }) => {
         if (request) throw new Error('A query is already being generated.');

@@ -4,7 +4,7 @@ export interface Statement {
   end: number;
 }
 
-export type SqlDialect = 'mysql' | 'postgres' | 'clickhouse' | 'bigquery' | 'snowflake';
+export type SqlDialect = 'mysql' | 'postgres' | 'sqlite' | 'clickhouse' | 'bigquery' | 'snowflake';
 
 export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Statement[] {
   const out: Statement[] = [];
@@ -28,14 +28,14 @@ export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Stateme
       const e = src.indexOf('*/', i + 2);
       i = e === -1 ? n : e + 2;
     } else if (c === "'" || c === '"' || c === '`') {
-      i = quoteEnd(src, i, c, dialect !== 'postgres');
+      i = quoteEnd(src, i, c, dialect !== 'postgres' && dialect !== 'sqlite');
     } else if (c === '$' && (dialect === 'postgres' || dialect === 'snowflake')) {
       const m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(src.slice(i, i + 64));
       if (m) {
         const e = src.indexOf(m[0], i + m[0].length);
         i = e === -1 ? n : e + m[0].length;
       } else i++;
-    } else if (c === ';') {
+    } else if (c === ';' && !(dialect === 'sqlite' && insideTrigger(src.slice(start, i)))) {
       push(i);
       start = i + 1;
       i++;
@@ -43,6 +43,11 @@ export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Stateme
   }
   push(n);
   return out;
+}
+
+function insideTrigger(text: string): boolean {
+  const t = stripComments(text).trim();
+  return /^create\s+(?:temp\s+|temporary\s+)?trigger\b/i.test(t) && /\bbegin\b/i.test(t) && !/\bend$/i.test(t);
 }
 
 function lineEnd(src: string, i: number): number {

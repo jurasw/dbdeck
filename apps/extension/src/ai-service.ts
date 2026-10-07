@@ -2,7 +2,8 @@ import { join } from 'node:path';
 import { withLocalLock } from './local-lock';
 import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
-import { AiOptions, generateQuery, validateEndpoint } from './ai-client';
+import type { ChatMessage, ChatReply, ChatTool } from './ai-chat';
+import { AiOptions, chatReply, generateQuery, validateEndpoint } from './ai-client';
 import { listClaudeModels } from './claude-client';
 import { ChatGptAccount, refreshChatGpt, revokeChatGpt, signInChatGpt } from './openai-auth';
 
@@ -209,6 +210,11 @@ export class AiService {
       });
       if (model?.trim()) await this.ctx.globalState.update(optionsKey, { ...options, model: model.trim() });
     }
+  }
+  async chat(system: string, history: ChatMessage[], tools: ChatTool[], signal: AbortSignal): Promise<ChatReply> {
+    const options = this.options();
+    if (!options.model.trim()) throw new Error('Choose an AI model first.');
+    return chatReply(options, await this.token(options), system, history, tools, signal);
   }
   async generate(prompt: string, schema: string, dialect: string, signal: AbortSignal, filter = false): Promise<string> {
     if (!prompt.trim() || prompt.length > 10000) throw new Error('Describe your query using 1–10,000 characters.');

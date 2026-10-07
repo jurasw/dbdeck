@@ -1,4 +1,5 @@
 import { SqlDriver } from './drivers/sql';
+import { SqliteDriver } from './drivers/sqlite';
 import { ColumnMeta, TableRef } from './types';
 
 export interface DiagramTable extends TableRef {
@@ -33,6 +34,19 @@ export async function loadSchemaDiagram(driver: SqlDriver, database: string, sch
         }),
       )),
     );
+  }
+  if (driver instanceof SqliteDriver) {
+    const byId = new Map(tables.map((t) => [t.id, t]));
+    const relations = (await driver.foreignKeys(database))
+      .map((fk) => ({
+        name: fk.name,
+        source: tableId(undefined, fk.table),
+        sourceColumn: fk.column,
+        target: tableId(undefined, fk.target),
+        targetColumn: fk.targetColumn ?? byId.get(tableId(undefined, fk.target))?.columns.find((c) => c.pk)?.name ?? '',
+      }))
+      .filter((r) => byId.has(r.source) && byId.has(r.target) && r.targetColumn);
+    return { tables, relations };
   }
   if (driver.dialect !== 'postgres' && driver.dialect !== 'mysql') return { tables, relations: [] };
   const sql =

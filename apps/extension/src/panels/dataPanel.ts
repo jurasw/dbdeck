@@ -166,7 +166,9 @@ function session(
   const title = n.table ?? n.label;
   const ref: TableRef = { database: n.database, schema: n.schema, table: n.table! };
   const location = [cfg.name, n.database, n.schema].filter(Boolean).join(' › ');
-  const editable = !cfg.readonly && (family === 'mongo' || family === 'es' || (family === 'sql' && (cfg.type === 'postgres' || cfg.type === 'mysql') && n.kind === 'table'));
+  const editable =
+    !cfg.readonly &&
+    (family === 'mongo' || family === 'es' || (family === 'sql' && (cfg.type === 'postgres' || cfg.type === 'mysql' || cfg.type === 'sqlite') && n.kind === 'table'));
   let disposed = false;
   const initialParams = family === 'sql' ? { limit: pageSize, offset: 0 } : family === 'mongo' ? { limit: pageSize, skip: 0 } : { size: pageSize, from: 0 };
   if (search) Object.assign(initialParams, { search });
@@ -209,6 +211,7 @@ function session(
           return n;
         },
         ddl: () => driver.ddl(ref, n.kind),
+        chat: () => vscode.commands.executeCommand('dbdeck.aiChat', n, { beside: true }),
         sql: (o: PageOptions) => driver.selectSql(ref, o),
         insertSql: ({ rows, columns }: { rows: unknown[][]; columns: string[] }) =>
           rows

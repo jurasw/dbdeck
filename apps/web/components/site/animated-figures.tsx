@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, List, Loader2, Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { between, Caret, cycle, Reserve, typed, useClock } from "./motion";
+import { AiSphere, between, Caret, cycle, Reserve, typed, useClock } from "./motion";
 import { Frame, FrameChrome, Kbd } from "./primitives";
 import { SearchPalette, searchItems } from "./product-demo";
 import { SqlCode } from "./sql-code";
@@ -298,6 +298,92 @@ export function AiFigure({ prompt, sql }: { prompt: string; sql: string }) {
         <div className="flex items-center gap-2 border-t border-border px-5 py-4 text-sm text-muted-foreground sm:px-6">
           <Check className={cn("size-3.5 text-emerald-300 transition-opacity duration-300", done ? "opacity-100" : "opacity-0")} />
           Schema shared. Rows and credentials stay private.
+        </div>
+      </Frame>
+    </div>
+  );
+}
+
+export function ChatFigure({
+  question,
+  steps,
+  rows,
+  answer,
+}: {
+  question: string;
+  steps: { label: string; query?: boolean }[];
+  rows: string[][];
+  answer: string;
+}) {
+  const { ref, t } = useClock<HTMLDivElement>();
+  const typeEnd = 300 + question.length * 45;
+  const stepStart = typeEnd + 600;
+  const rowsStart = stepStart + steps.length * 700;
+  const answerStart = rowsStart + rows.length * 150 + 500;
+  const answerEnd = answerStart + answer.length * 18;
+  const thinking = between(t, typeEnd + 200, answerStart);
+  return (
+    <div ref={ref}>
+      <Frame>
+        <div className="flex items-center gap-2 border-b border-border px-5 py-4 text-sm text-brand sm:px-6">
+          <AiSphere size={20} thinking={thinking} />
+          <span className="text-foreground">Assistant</span>
+          <span
+            className={cn(
+              "ml-auto text-xs text-muted-foreground transition-opacity duration-300",
+              thinking ? "opacity-100" : "opacity-0",
+            )}
+          >
+            Thinking…
+          </span>
+        </div>
+        <div className="flex flex-col gap-3 p-5 sm:p-6">
+          <div className="ml-auto max-w-[85%] rounded-xl bg-brand/10 px-4 py-2.5 text-base leading-relaxed">
+            <Reserve full={question}>
+              <span>
+                {typed(question, t, 300, 45)}
+                {t < typeEnd && <Caret />}
+              </span>
+            </Reserve>
+          </div>
+          {steps.map((step, i) => (
+            <div
+              key={step.label}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 font-mono text-[12px] text-muted-foreground transition-all duration-500",
+                t >= stepStart + i * 700 ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
+              )}
+            >
+              {step.query ? <Play className="size-3.5 text-brand" /> : <List className="size-3.5 text-brand" />}
+              {step.label}
+            </div>
+          ))}
+          <div className="overflow-hidden rounded-lg border border-border font-mono text-[12px] sm:text-[13px]">
+            {rows.map(([name, total], i) => (
+              <div
+                key={name}
+                className={cn(
+                  "flex items-center justify-between border-b border-border/50 px-4 py-1.5 transition-all duration-500 last:border-b-0",
+                  t >= rowsStart + i * 150 ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
+                )}
+              >
+                <span className="text-foreground/90">{name}</span>
+                <span className="text-emerald-300 tabular-nums">{total}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-base leading-relaxed text-foreground/90">
+            <Reserve full={answer}>
+              <span>
+                {typed(answer, t, answerStart, 18)}
+                {between(t, answerStart, answerEnd) && <Caret />}
+              </span>
+            </Reserve>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 border-t border-border px-5 py-4 text-sm text-muted-foreground sm:px-6">
+          <Check className={cn("size-3.5 text-emerald-300 transition-opacity duration-300", t >= answerEnd ? "opacity-100" : "opacity-0")} />
+          Read-only queries, only when you allow them.
         </div>
       </Frame>
     </div>

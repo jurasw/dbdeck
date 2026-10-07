@@ -6,7 +6,10 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  ArrowUp,
   CornerDownLeft,
+  List,
+  Play,
   Database,
   Folder,
   Loader2,
@@ -18,10 +21,11 @@ import {
   Sparkles,
   Table2,
   Trash2,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { between, Caret, typed, useInView, useReducedMotion } from "./motion";
+import { AiSphere, between, Caret, typed, useInView, useReducedMotion } from "./motion";
 import { Caption, Frame, FrameChrome } from "./primitives";
 import { SqlCode } from "./sql-code";
 
@@ -30,6 +34,7 @@ const scenes = [
   { id: "search", label: "Search", hint: "find any object", dur: 4600 },
   { id: "filter", label: "AI filter", hint: "plain words to WHERE", dur: 7600 },
   { id: "query", label: "AI query", hint: "describe, get SQL", dur: 9200 },
+  { id: "chat", label: "Chat", hint: "ask, get answers", dur: 10400 },
   { id: "diagram", label: "Diagram", hint: "tables and relations", dur: 8400 },
 ] as const;
 
@@ -78,6 +83,111 @@ const revenue = [
   ["Jan Nowak", "986.50"],
   ["Ava Jensen", "911.90"],
 ];
+
+const chatQuestion = "Who spent the most this month?";
+const chatAnswer = "Anna Kowalska leads with 1,842.40 across 4 paid orders, ahead of Oliver Berg and Mia Novak.";
+
+function ChatScene({ t }: { t: number }) {
+  const question = typed(chatQuestion, t, 700, 50);
+  const typing = between(t, 700, 700 + chatQuestion.length * 50);
+  const sent = t >= 2500;
+  const thinking = between(t, 2600, 6300);
+  const answer = typed(chatAnswer, t, 6300, 22);
+  return (
+    <div className="flex h-full">
+      <div className="min-w-0 flex-1 opacity-60 transition-opacity duration-500">
+        <OrdersGrid t={Infinity} scene="chat" />
+      </div>
+      <aside className="flex w-[56%] shrink-0 flex-col border-l border-border bg-[#0f1320]/95 motion-safe:animate-in motion-safe:slide-in-from-right-8 motion-safe:fade-in motion-safe:duration-500 sm:w-[46%]">
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+          <AiSphere size={18} thinking={thinking} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[11.5px] font-medium">Assistant</div>
+            <div className="truncate text-[9.5px] text-muted-foreground">Shop · Postgres › shop › orders</div>
+          </div>
+          <Btn>
+            <X className="size-3" />
+            Close
+          </Btn>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-3 py-3 text-[11px] leading-relaxed">
+          <p className="text-foreground/75">Hi, ask me anything about shop and the orders table you have open.</p>
+          {sent && (
+            <div className="ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-white/[0.07] px-2.5 py-1.5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
+              {chatQuestion}
+            </div>
+          )}
+          {t >= 3300 && (
+            <div className="flex items-center gap-1.5 rounded-md border border-border bg-white/[0.02] px-2 py-1 font-mono text-[9.5px] text-muted-foreground motion-safe:animate-in motion-safe:fade-in">
+              <List className="size-3 text-brand" />
+              Read the columns of orders, customers
+            </div>
+          )}
+          {t >= 4200 && (
+            <div className="rounded-md border border-border bg-white/[0.02] font-mono text-[9.5px] motion-safe:animate-in motion-safe:fade-in">
+              <div className="flex items-center gap-1.5 px-2 py-1 text-muted-foreground">
+                <Play className="size-3 text-brand" />
+                Ran a read-only query
+              </div>
+              {revenue.slice(0, 3).map(([name, total], i) => (
+                <div
+                  key={name}
+                  className="flex items-center justify-between border-t border-border/50 px-2 py-0.5 motion-safe:animate-in motion-safe:fade-in"
+                  style={{ animationDelay: `${i * 90}ms`, animationFillMode: "backwards" }}
+                >
+                  <span className="text-foreground/85">{name}</span>
+                  <span className="text-emerald-300 tabular-nums">{total}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {thinking && (
+            <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+              <AiSphere size={12} thinking />
+              Thinking
+            </div>
+          )}
+          {answer && (
+            <p className="text-foreground/90">
+              {answer}
+              {between(t, 6300, 6300 + chatAnswer.length * 22) && <Caret />}
+            </p>
+          )}
+        </div>
+        <div className="border-t border-border p-2.5">
+          <div className={cn("relative rounded-lg border bg-black/30 px-2.5 py-2 pr-9 text-[11px] transition-colors duration-300", typing ? "border-brand/70" : "border-border")}>
+            {!sent && question ? (
+              <span>
+                {question}
+                {typing && <Caret />}
+              </span>
+            ) : (
+              <span className="text-muted-foreground/60">Ask a question about your data</span>
+            )}
+            <span
+              className={cn(
+                "absolute right-1.5 bottom-1.5 grid size-5 place-items-center rounded-full bg-white text-black transition-transform duration-200",
+                between(t, 2300, 2550) && "scale-90 ring-2 ring-brand",
+              )}
+            >
+              <ArrowUp className="size-3" />
+            </span>
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[9.5px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Check className="size-3 text-brand" />
+              Run read-only queries
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="size-1.5 rounded-full bg-emerald-400" />
+              your model
+            </span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
 
 export const searchItems = [
   ["categories", "table", "Tables · shop › public"],
@@ -265,6 +375,14 @@ function OrdersGrid({ t, scene }: { t: number; scene: SceneId }) {
           <span>DDL</span>
           <span>CSV</span>
           <span>JSON</span>
+          <span
+            className={cn(
+              "grid size-5 place-items-center rounded border border-border transition-all duration-200",
+              scene === "chat" && "border-brand/60 bg-brand/15",
+            )}
+          >
+            <Sparkles className="size-3 text-brand" />
+          </span>
         </span>
       </div>
       <div className="flex items-center gap-2 px-4 pb-2.5">
@@ -763,13 +881,14 @@ export function ProductDemo() {
                 {(scene.id === "browse" || scene.id === "filter") && <OrdersGrid t={t} scene={scene.id} />}
                 {scene.id === "search" && <SearchScene t={t} />}
                 {scene.id === "query" && <QueryScene t={t} />}
+                {scene.id === "chat" && <ChatScene t={t} />}
                 {scene.id === "diagram" && <DiagramScene t={t} motion={!reduced} />}
               </div>
             </div>
           </div>
         </div>
       </Frame>
-      <div className="mt-4 grid grid-cols-5 gap-1.5 sm:gap-2">
+      <div className="mt-4 grid grid-cols-6 gap-1.5 sm:gap-2">
         {scenes.map((s, i) => {
           const on = i === state.scene;
           const progress = on ? Math.min(1, t / s.dur) : i < state.scene ? 1 : 0;
@@ -801,7 +920,7 @@ export function ProductDemo() {
         })}
       </div>
       <figcaption>
-        <Caption>Fig. 02 — browse, search, ask AI, see the relations</Caption>
+        <Caption>Fig. 02: browse, search, ask AI, chat, see the relations</Caption>
       </figcaption>
     </figure>
   );

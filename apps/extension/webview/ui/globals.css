@@ -30,6 +30,27 @@
   --ring: var(--vscode-focusBorder, color-mix(in srgb, var(--foreground) 45%, var(--background)));
 }
 
+body:not([class*='vscode-high-contrast']) {
+  --brand: #6b97ff;
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --ring: oklch(0.62 0.16 262);
+}
+
+body.vscode-light {
+  --brand: #3461e0;
+  --ring: #3461e0;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+a:focus {
+  outline-color: var(--ring);
+}
+
 @theme inline {
   --font-sans: var(--vscode-font-family);
   --font-mono: var(--vscode-editor-font-family, ui-monospace, Menlo, monospace);

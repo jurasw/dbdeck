@@ -107,6 +107,7 @@ export class QueryEditors implements vscode.Disposable {
   private async defaultDatabase(cfg: ConnectionConfig): Promise<string | undefined> {
     if (cfg.database) return cfg.database;
     if (cfg.type === 'postgres') return 'postgres';
+    if (cfg.type === 'sqlite') return 'main';
     return undefined;
   }
 

@@ -8,6 +8,7 @@ export const links = {
   changelog: "https://github.com/jurasw/dbdeck/blob/main/apps/extension/CHANGELOG.md",
   marketplace: "https://marketplace.visualstudio.com/items?itemName=dbdeck.dbdeck",
   openVsx: "https://open-vsx.org/extension/dbdeck/dbdeck",
+  support: "https://buymeacoffee.com/dbdeck",
 };
 
 export function Shell({ children, className }: { children: React.ReactNode; className?: string }) {

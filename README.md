@@ -29,7 +29,8 @@
   <a href="https://open-vsx.org/extension/dbdeck/dbdeck">Open VSX</a> ·
   <a href="https://github.com/jurasw/dbdeck/releases/latest">Download VSIX</a> ·
   <a href="apps/extension/CHANGELOG.md">Changelog</a> ·
-  <a href="https://github.com/jurasw/dbdeck/issues/new/choose">Report a bug</a>
+  <a href="https://github.com/jurasw/dbdeck/issues/new/choose">Report a bug</a> ·
+  <a href="https://buymeacoffee.com/dbdeck">Support DBDeck</a>
 </p>
 
 <p align="center">
@@ -51,7 +52,7 @@ Nothing leaves your machine except the queries you send to your own databases.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/readme/services-dark.svg">
-    <img alt="Ten connection types: PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 / MinIO / R2 and Docker" src="assets/readme/services-light.svg" width="100%">
+    <img alt="Eleven connection types: PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 / MinIO / R2 and Docker" src="assets/readme/services-light.svg" width="100%">
   </picture>
 </p>
 
@@ -66,7 +67,7 @@ Nothing leaves your machine except the queries you send to your own databases.
     <td valign="top" width="50%">
       <img src="assets/readme/schema-diagram.gif" alt="A schema diagram of seven tables: zoom in, search for order, drag a table and arrange the layout" width="100%">
       <h3>Schema diagrams</h3>
-      <p>Any PostgreSQL or MySQL schema as a diagram, foreign keys linked column to column.
+      <p>Any PostgreSQL, MySQL or SQLite schema as a diagram, foreign keys linked column to column.
       Drag, pan, zoom and search; hover a table to light up its relations.</p>
     </td>
   </tr>
@@ -89,13 +90,17 @@ Nothing leaves your machine except the queries you send to your own databases.
   </tr>
 </table>
 
-- **Inline row edits** for PostgreSQL and MySQL tables with a primary key. Changes are staged and saved in one transaction, and the confirmation toast offers **Undo**.
+- **SQLite files** as connections: pick a `.db`, `.sqlite` or `.sqlite3` file to browse, query and edit it. Nothing to install.
+- **Paste a connection URL** from Neon, Supabase, PlanetScale or Heroku and DBDeck fills the form. The URL itself is not stored.
+- **Inline row edits** for PostgreSQL, MySQL and SQLite tables with a primary key. Changes are staged and saved in one transaction, and the confirmation toast offers **Undo**.
 - **Responsive table browsing**: fast first-page results appear with the panel, wide tables render only visible rows and columns, and tables open in a reusable preview tab. A start tab with recent tables loads in the background so the first table appears at once.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
 - **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
+- **Chat with Database**: ask questions about a SQL connection in a chat panel. The assistant reads the schema itself; turn on read-only queries to let it answer from your data. SQL in answers opens in an editor or runs read-only in the chat.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
-- **BigQuery and Snowflake** in the same tree. BigQuery signs in with your gcloud credentials or a service account key and previews tables for free. Snowflake signs in with a programmatic access token or a key pair. Both are read-only in the grid; run DML from the SQL editor.
-- **S3, MinIO and R2** buckets in the same tree: open, upload, download, copy the `s3://` URI.
+- **BigQuery and Snowflake** in the same tree. BigQuery signs in with Google under Options or with a service account key and previews tables for free. Snowflake signs in with a programmatic access token or a key pair. Both are read-only in the grid; run DML from the SQL editor.
+- **Elasticsearch behind Kibana SSO**: sign in to Kibana under Options, create an API key and DBDeck connects through Kibana or directly on Elastic Cloud.
+- **S3, MinIO, R2 and Google Cloud Storage** buckets in the same tree: open, upload, download, copy the `s3://` or `gs://` URI. Google Cloud Storage signs in with your Google account under Options.
 - **Read-only connections** block every write, and destructive actions always ask first.
 
 Describe a filter in the SQL table’s WHERE field and click the sparkle button to generate a condition from that table’s schema. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
@@ -187,13 +192,17 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for checks and conventions and [assets/m
   <img src="https://contrib.rocks/image?repo=jurasw/dbdeck" alt="The people who have contributed to DBDeck">
 </a>
 
+## Support DBDeck
+
+DBDeck is free and open source. If it helps you, you can [buy us a coffee](https://buymeacoffee.com/dbdeck) to support its development. Support is optional and does not unlock any features.
+
 ## License
 
 [MIT](LICENSE). Free forever, with no paid tier and no feature behind a key.
 
 ### Search all values
 
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
 
 Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 

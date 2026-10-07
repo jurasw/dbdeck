@@ -4,13 +4,16 @@ import { BIGQUERY_SCOPE, BigQueryDriver } from './drivers/bigquery';
 import { ClickHouseDriver } from './drivers/clickhouse';
 import { DockerDriver } from './drivers/docker';
 import { ElasticDriver } from './drivers/elastic';
+import { GcsDriver } from './drivers/gcs';
 import { MongoDriver } from './drivers/mongo';
 import { MysqlDriver } from './drivers/mysql';
 import { PostgresDriver } from './drivers/postgres';
 import { RedisDriver } from './drivers/redis';
 import { S3Driver } from './drivers/s3';
 import { SnowflakeDriver } from './drivers/snowflake';
+import { SqliteDriver } from './drivers/sqlite';
 import { GoogleCredentials } from './google-credentials';
+import { STORAGE_SCOPE } from './google-storage';
 import { ConnectionConfig } from './types';
 
 const LIST_KEY = 'dbdeck.connections';
@@ -29,6 +32,8 @@ export function createDriver(c: ConnectionConfig): BaseDriver {
       return new MysqlDriver(c);
     case 'postgres':
       return new PostgresDriver(c);
+    case 'sqlite':
+      return new SqliteDriver(c);
     case 'clickhouse':
       return new ClickHouseDriver(c);
     case 'bigquery':
@@ -44,6 +49,10 @@ export function createDriver(c: ConnectionConfig): BaseDriver {
     case 'docker':
       return new DockerDriver(c);
     case 's3':
+      if (c.googleAuth) {
+        const credentials = new GoogleCredentials(undefined, STORAGE_SCOPE);
+        return new GcsDriver(c, () => credentials.token());
+      }
       return new S3Driver(c);
   }
 }
@@ -99,11 +108,23 @@ export class ConnectionStore {
     this.session.delete(id);
   }
 
+  async renameGroup(from: string, to: string): Promise<void> {
+    await this.ctx.globalState.update(
+      LIST_KEY,
+      this.list().map((c) => (c.group === from ? { ...c, group: to } : c)),
+    );
+  }
+
   async askSecrets(c: ConnectionConfig): Promise<ConnectionConfig | undefined> {
     if (c.savePassword !== false) return c;
     const s = this.session.get(c.id) ?? {};
     const needsPassword =
-      c.type !== 'docker' && !(c.type === 'mongodb' && c.useUri) && !(c.type === 'snowflake' && c.authMethod === 'keyPair') && !!c.user && s.password === undefined;
+      c.type !== 'docker' &&
+      !c.googleAuth &&
+      !(c.type === 'mongodb' && c.useUri) &&
+      !(c.type === 'snowflake' && c.authMethod === 'keyPair') &&
+      !!c.user &&
+      s.password === undefined;
     const needsUri = c.type === 'mongodb' && c.useUri && !s.uri;
     const needsSsh = !!c.ssh?.enabled && c.ssh.authType === 'password' && s.sshPassword === undefined;
     if (needsUri) {

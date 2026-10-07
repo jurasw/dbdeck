@@ -1,5 +1,5 @@
 import { ArrowRight, Download } from "lucide-react";
-import { AiFigure, PrivacyFigure, RedisFigure, SchemaFigure, SqlFigure } from "@/components/site/animated-figures";
+import { AiFigure, ChatFigure, PrivacyFigure, RedisFigure, SchemaFigure, SqlFigure } from "@/components/site/animated-figures";
 import { CopyCommand } from "@/components/site/copy-command";
 import { Faq } from "@/components/site/faq";
 import { NavLinks } from "@/components/site/nav-links";
@@ -23,6 +23,7 @@ import {
 const services = [
   { icon: "postgres", name: "PostgreSQL" },
   { icon: "mysql", name: "MySQL / MariaDB" },
+  { icon: "sqlite", name: "SQLite" },
   { icon: "clickhouse", name: "ClickHouse" },
   { icon: "bigquery", name: "BigQuery" },
   { icon: "snowflake", name: "Snowflake" },
@@ -37,8 +38,8 @@ const storage = [
   ["Connection settings", "Editor global state", "this machine"],
   ["Passwords and keys", "OS keychain (SecretStorage)", "encrypted"],
   ["Remember password off", "Session memory", "gone on reload"],
-  ["Query results", "Not stored", "—"],
-  ["Telemetry", "None", "—"],
+  ["Query results", "Not stored", "Not applicable"],
+  ["Telemetry", "None", "Not applicable"],
 ];
 
 function Nav() {
@@ -114,7 +115,7 @@ function Services() {
     <section id="features" aria-label="Supported services" className="scroll-mt-24 pb-6">
       <Shell className="text-center">
         <h2 className="text-sm text-muted-foreground">All your connections. One place.</h2>
-        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-5 lg:grid-cols-10">
+        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-6 lg:grid-cols-11">
           {services.map((s, i) => (
             <li key={s.name} className="service-mark group flex flex-col items-center gap-3" style={{ animationDelay: `${i * -0.7}s` }}>
               <span className="relative grid size-16 place-items-center sm:size-20">
@@ -139,7 +140,7 @@ function Sql() {
           <div className="lg:col-span-5">
             <Heading lead="Write SQL" rest="where you write code." />
             <Lede>Write a query. Press <Kbd>⌘ Enter</Kbd>. See your results. Browse wide tables with smooth scrolling.</Lede>
-            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players — Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB.</p>
+            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players: Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB.</p>
           </div>
           <div className="min-w-0 lg:col-span-7">
             <SqlFigure code={"SELECT name, total\nFROM orders\nWHERE status = 'paid';"} />
@@ -210,6 +211,34 @@ function Ai() {
   );
 }
 
+function Chat() {
+  return (
+    <section aria-label="Chat with your database">
+      <Shell>
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-14">
+          <div className="order-2 min-w-0 lg:order-1 lg:col-span-7">
+            <ChatFigure
+              question="Who were our best customers last month?"
+              steps={[{ label: "Read the columns of orders and customers" }, { label: "Ran a read-only query", query: true }]}
+              rows={[
+                ["Anna Kowalska", "412.00"],
+                ["Piotr Zieliński", "248.40"],
+                ["Jan Nowak", "186.50"],
+              ]}
+              answer="Anna Kowalska leads with 412.00 across 3 orders, ahead of Piotr Zieliński and Jan Nowak."
+            />
+          </div>
+          <div className="order-1 lg:order-2 lg:col-span-5">
+            <Heading lead="Ask your database." rest="Get answers, not just SQL." />
+            <Lede>Chat with any SQL connection. The assistant reads the schema, runs read-only queries when you allow it and answers from the results.</Lede>
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">Every query it suggests opens in your editor or runs read-only in the chat. Writes never run on their own.</p>
+          </div>
+        </div>
+      </Shell>
+    </section>
+  );
+}
+
 function Privacy() {
   return (
     <section>
@@ -221,7 +250,7 @@ function Privacy() {
           </div>
           <div className="lg:col-span-7">
             <PrivacyFigure rows={storage} note="No telemetry, analytics or cloud sync. Read the code to check." />
-            <Caption>Fig. 08 — the full list</Caption>
+            <Caption>Fig. 08: the full list</Caption>
           </div>
         </div>
       </Shell>
@@ -335,6 +364,9 @@ function Footer() {
           <a href={links.issues} className="transition-colors hover:text-foreground">
             Report a bug
           </a>
+          <a href={links.support} className="transition-colors hover:text-foreground">
+            Support DBDeck
+          </a>
         </nav>
       </Shell>
     </footer>
@@ -368,6 +400,8 @@ export default function Home() {
         <NoSql />
         <SoftDivider />
         <Ai />
+        <SoftDivider />
+        <Chat />
         <SoftDivider />
         <Privacy />
         <SoftDivider />

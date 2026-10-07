@@ -3,10 +3,13 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { AiService } from './ai-service';
 import { AiPanel } from './panels/ai-panel';
+import { ChatPanel } from './panels/chat-panel';
+import { SettingsPanel } from './panels/settings-panel';
 import { McpService } from './mcp';
 import { ConnectionManager, ConnectionStore } from './connections';
 import { DockerDriver } from './drivers/docker';
 import { ElasticDriver } from './drivers/elastic';
+import { GcsDriver } from './drivers/gcs';
 import { MongoDriver } from './drivers/mongo';
 import { RedisDriver } from './drivers/redis';
 import { S3Driver } from './drivers/s3';
@@ -179,6 +182,27 @@ export function activate(ctx: vscode.ExtensionContext): void {
     await store.remove(n.connId);
     tree.refresh();
   });
+  cmd('dbdeck.renameGroup', async (n: DbNode) => {
+    const name = (
+      await vscode.window.showInputBox({
+        title: 'Rename Group',
+        value: n.label,
+        validateInput: (v) => (v.trim() ? undefined : 'Name is required'),
+      })
+    )?.trim();
+    if (!name || name === n.label) return;
+    await store.renameGroup(n.label, name);
+    tree.refresh();
+  });
+  cmd('dbdeck.deleteGroup', async (n: DbNode) => {
+    const conns = store.list().filter((c) => c.group === n.label);
+    if (!(await confirm(`Delete group "${n.label}" and its ${conns.length} connection${conns.length === 1 ? '' : 's'}?`, 'Delete'))) return;
+    for (const c of conns) {
+      await manager.disconnect(c.id);
+      await store.remove(c.id);
+    }
+    tree.refresh();
+  });
   cmd('dbdeck.disconnect', async (n: DbNode) => {
     await manager.disconnect(n.connId);
     tree.refresh();
@@ -189,6 +213,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
   });
 
   cmd('dbdeck.aiQuery', (node?: DbNode) => AiPanel.show(ctx, manager, editors, ai, node && typeof node.connId === 'string' ? node : undefined));
+  cmd('dbdeck.aiChat', (node?: DbNode, options?: { beside?: boolean }) =>
+    ChatPanel.show(ctx, manager, editors, ai, node && typeof node.connId === 'string' ? node : undefined, options?.beside === true),
+  );
+  cmd('dbdeck.openSettings', () => SettingsPanel.show(ctx, store, ai));
   cmd('dbdeck.aiConfigure', () => ai.configure());
   cmd('dbdeck.aiSignIn', () => ai.signIn());
   cmd('dbdeck.aiDisconnect', () => ai.disconnect());
@@ -267,13 +295,14 @@ export function activate(ctx: vscode.ExtensionContext): void {
     const d = await manager.get<SqlDriver>(n.connId);
     if (d.config.readonly) throw new Error('This connection is read-only');
     if (!(await confirm(`Truncate table ${n.table}? All rows will be deleted.`, 'Truncate'))) return;
-    await d.run(`TRUNCATE TABLE ${d.qualified({ database: n.database, schema: n.schema, table: n.table! })}`, n.database);
+    await d.run(`${d.dialect === 'sqlite' ? 'DELETE FROM' : 'TRUNCATE TABLE'} ${d.qualified({ database: n.database, schema: n.schema, table: n.table! })}`, n.database);
     refreshParent(n);
     vscode.window.setStatusBarMessage(`Truncated ${n.table}`, 3000);
   });
   cmd('dbdeck.dropObject', async (n: DbNode) => {
     const d = await manager.get(n.connId);
     if (d.config.readonly) throw new Error('This connection is read-only');
+    if (d instanceof SqlDriver && d.dialect === 'sqlite' && n.kind === 'database') throw new Error('A SQLite database is a file. Delete the connection or the file instead.');
     const what = n.kind === 'database' ? `database ${n.database}` : `${n.kind} ${n.table}`;
     if (!(await confirm(`Drop ${what}? This cannot be undone.`, 'Drop'))) return;
     if (d instanceof SqlDriver) {
@@ -388,10 +417,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
     refreshParent(n);
   });
 
-  const s3Uri = (n: DbNode) => `s3://${n.database}/${n.key ?? n.prefix ?? ''}`;
+  const s3Uri = (n: DbNode) => `${store.get(n.connId)?.googleAuth ? 'gs' : 's3'}://${n.database}/${n.key ?? n.prefix ?? ''}`;
   const s3Progress = <T>(title: string, task: () => Promise<T>) => vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title }, task);
   cmd('dbdeck.s3.open', async (n: DbNode) => {
-    const d = await manager.get<S3Driver>(n.connId);
+    const d = await manager.get<S3Driver | GcsDriver>(n.connId);
     const size = Number(n.extra?.size ?? 0);
     if (size > 50 * 1024 * 1024 && !(await confirm(`${n.label} is ${formatBytes(size)}. Download and open it?`, 'Open'))) return;
     const safeKey = n
@@ -403,7 +432,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
   });
   cmd('dbdeck.s3.download', async (n: DbNode) => {
-    const d = await manager.get<S3Driver>(n.connId);
+    const d = await manager.get<S3Driver | GcsDriver>(n.connId);
     const dir = vscode.workspace.workspaceFolders?.[0]?.uri ?? vscode.Uri.file(os.homedir());
     const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.joinPath(dir, path.posix.basename(n.key!)), saveLabel: 'Download' });
     if (!uri) return;
@@ -411,7 +440,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.window.setStatusBarMessage(`Downloaded ${s3Uri(n)}`, 3000);
   });
   cmd('dbdeck.s3.upload', async (n: DbNode) => {
-    const d = await manager.get<S3Driver>(n.connId);
+    const d = await manager.get<S3Driver | GcsDriver>(n.connId);
     if (d.config.readonly) throw new Error('This connection is read-only');
     const files = await vscode.window.showOpenDialog({ canSelectMany: true, openLabel: 'Upload' });
     if (!files?.length) return;
@@ -428,7 +457,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.window.setStatusBarMessage(`Copied ${s3Uri(n)}`, 2000);
   });
   cmd('dbdeck.s3.delete', async (n: DbNode) => {
-    const d = await manager.get<S3Driver>(n.connId);
+    const d = await manager.get<S3Driver | GcsDriver>(n.connId);
     if (d.config.readonly) throw new Error('This connection is read-only');
     if (n.kind === 's3Prefix') {
       if (!(await confirm(`Delete every object under ${s3Uri(n)}?`, 'Delete'))) return;

@@ -206,9 +206,12 @@ export class DockerDriver extends BaseDriver {
     const env = Object.fromEntries((info.Config.Env ?? []).map((e) => [e.slice(0, e.indexOf('=')), e.slice(e.indexOf('=') + 1)]));
     const image = info.Config.Image.toLowerCase();
     const detect: [RegExp, DbType, number][] = [
+      [/cockroach/, 'postgres', 26257],
+      [/yugabyte/, 'postgres', 5433],
       [/postgres|postgis|timescale/, 'postgres', 5432],
-      [/mysql|mariadb|percona/, 'mysql', 3306],
-      [/mongo/, 'mongodb', 27017],
+      [/tidb/, 'mysql', 4000],
+      [/mysql|mariadb|percona|singlestore|memsql/, 'mysql', 3306],
+      [/mongo|ferretdb/, 'mongodb', 27017],
       [/redis|valkey|keydb|dragonfly/, 'redis', 6379],
       [/elasticsearch|opensearch/, 'elasticsearch', 9200],
       [/clickhouse/, 'clickhouse', 8123],
@@ -220,6 +223,13 @@ export class DockerDriver extends BaseDriver {
     const binding = info.NetworkSettings.Ports?.[`${inner}/tcp`]?.[0];
     const host = !binding?.HostIp || binding.HostIp === '0.0.0.0' || binding.HostIp === '::' ? '127.0.0.1' : binding.HostIp;
     const base: Partial<ConnectionConfig> = { type, name: info.Name.replace(/^\//, ''), host, port: binding ? Number(binding.HostPort) : inner };
+    if (/cockroach/.test(image)) return { ...base, user: env.COCKROACH_USER || 'root', password: env.COCKROACH_PASSWORD, database: env.COCKROACH_DATABASE || 'defaultdb' };
+    if (/yugabyte/.test(image)) return { ...base, user: env.YSQL_USER || 'yugabyte', password: env.YSQL_PASSWORD, database: env.YSQL_DB || 'yugabyte' };
+    if (/tidb/.test(image)) return { ...base, user: 'root' };
+    if (/singlestore|memsql/.test(image)) return { ...base, user: 'root', password: env.ROOT_PASSWORD };
+    if (/ferretdb/.test(image)) return { ...base, user: env.FERRETDB_USERNAME || env.POSTGRES_USER, password: env.FERRETDB_PASSWORD || env.POSTGRES_PASSWORD };
+    if (/opensearch/.test(image))
+      return env.DISABLE_SECURITY_PLUGIN === 'true' ? base : { ...base, user: 'admin', password: env.OPENSEARCH_INITIAL_ADMIN_PASSWORD, ssl: true, rejectUnauthorized: false };
     switch (type) {
       case 'postgres':
         return { ...base, user: env.POSTGRES_USER || 'postgres', password: env.POSTGRES_PASSWORD, database: env.POSTGRES_DB };

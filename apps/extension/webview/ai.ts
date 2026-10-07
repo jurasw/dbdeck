@@ -83,6 +83,13 @@ const agents = btn('AI agents (MCP)', {
     void rpc('mcp');
   },
 });
+const chat = btn('Chat with database', {
+  icon: 'comment-discussion',
+  title: 'Ask questions about this database in a chat',
+  onClick: () => {
+    void rpc('chat');
+  },
+});
 const controls = [configure, signIn, model, disconnect];
 const insert = btn('Open in query editor', {
   icon: 'go-to-file',
@@ -197,6 +204,7 @@ clear(
       h(
         'div.ai-actions',
         null,
+        chat,
         agents,
         btn(null, {
           icon: 'settings-gear',

@@ -42,7 +42,16 @@ const extension = await esbuild.context({
 
 const webview = await esbuild.context({
   ...common,
-  entryPoints: ['webview/connection.tsx', 'webview/data.ts', 'webview/schema.ts', 'webview/ai.ts', 'webview/results.ts', 'webview/redis.ts'],
+  entryPoints: [
+    'webview/connection.tsx',
+    'webview/data.ts',
+    'webview/schema.ts',
+    'webview/ai.ts',
+    'webview/chat.ts',
+    'webview/settings.ts',
+    'webview/results.ts',
+    'webview/redis.ts',
+  ],
   outdir: 'dist/webview',
   platform: 'browser',
   format: 'iife',

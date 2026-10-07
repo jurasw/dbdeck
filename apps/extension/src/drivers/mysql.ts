@@ -5,11 +5,12 @@ import { formatCount, toCell } from '../util';
 import { Exec, SqlDriver } from './sql';
 
 const TYPE_NAMES = new Map<number, string>(Object.entries(Types as unknown as Record<string, number>).map(([k, v]) => [v, k.toLowerCase()]));
-const SYSTEM_DBS = new Set(['information_schema', 'mysql', 'performance_schema', 'sys']);
+const SYSTEM_DBS = new Set(['information_schema', 'mysql', 'performance_schema', 'sys', 'metrics_schema']);
 
 export class MysqlDriver extends SqlDriver {
   readonly dialect = 'mysql' as const;
   private pool?: mysql.Pool;
+  private tidb = false;
 
   async connect(): Promise<void> {
     const { host, port } = await this.endpoint(3306);
@@ -29,7 +30,12 @@ export class MysqlDriver extends SqlDriver {
       multipleStatements: false,
     });
     const c = await this.pool.getConnection();
-    c.release();
+    try {
+      const [rows] = await c.query('SELECT VERSION() AS v');
+      this.tidb = /tidb/i.test(String((rows as { v?: string }[])[0]?.v));
+    } finally {
+      c.release();
+    }
   }
 
   protected async disconnect(): Promise<void> {
@@ -64,7 +70,7 @@ export class MysqlDriver extends SqlDriver {
     const c = await this.pool!.getConnection();
     try {
       if (database) await c.query(`USE ${this.quote(database)}`);
-      await c.query('START TRANSACTION READ ONLY');
+      await c.query(this.tidb ? 'START TRANSACTION' : 'START TRANSACTION READ ONLY');
       return await this.exec(c, { sql, rowsAsArray: true, timeout: 30000 });
     } finally {
       await c.query('ROLLBACK').then(

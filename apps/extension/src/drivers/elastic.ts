@@ -25,13 +25,23 @@ export function searchQuery(text: string): Record<string, unknown> {
   return { query_string: { query: terms.join(' '), default_field: '*', default_operator: 'AND', lenient: true, analyze_wildcard: true } };
 }
 
+export function kibanaEndpoints(url: string): { kibana: string; direct?: string } {
+  const u = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+  const cut = u.pathname.search(/\/(s\/[^/]+\/)?(app|login|api)(\/|$)/);
+  const kibana = `${u.origin}${(cut >= 0 ? u.pathname.slice(0, cut) : u.pathname).replace(/\/+$/, '')}`;
+  const cloud = u.hostname.match(/^([^.]+)\.kb\.(.+\.(?:cloud\.es\.io|elastic-cloud\.com))$/);
+  return { kibana, direct: cloud ? `${u.protocol}//${cloud[1]}.es.${cloud[2]}${u.port ? `:${u.port}` : ''}` : undefined };
+}
+
 const HEALTH_COLOR: Record<string, string> = { green: 'charts.green', yellow: 'charts.yellow', red: 'charts.red' };
 
 export class ElasticDriver extends BaseDriver {
   private base = '';
+  private kibana = '';
   version = '';
 
   async connect(): Promise<void> {
+    if (this.config.kibanaUrl) return this.connectKibana(this.config.kibanaUrl);
     const { host, port } = await this.endpoint(9200);
     const proto = this.config.ssl ? 'https' : 'http';
     this.base = `${proto}://${host.includes(':') ? `[${host}]` : host}:${port}`;
@@ -40,8 +50,32 @@ export class ElasticDriver extends BaseDriver {
     this.version = (r.body as { version?: { number?: string } })?.version?.number ?? '';
   }
 
+  private async connectKibana(url: string): Promise<void> {
+    if (!this.config.apiKey) throw new Error('Sign in to Kibana in Options to create an API key.');
+    const { kibana, direct } = kibanaEndpoints(url);
+    if (direct) {
+      this.base = direct;
+      const r = await this.request('GET', '/').catch(() => undefined);
+      if (r && r.status < 400) {
+        this.version = (r.body as { version?: { number?: string } })?.version?.number ?? '';
+        return;
+      }
+      this.base = '';
+    }
+    this.kibana = kibana;
+    const r = await this.request('GET', '/');
+    if (r.status === 401) throw new Error('Kibana rejected the API key. Create a new one with Sign in to Kibana.');
+    if (r.status === 403 || r.status === 404)
+      throw new Error(
+        `Kibana does not forward requests to Elasticsearch for this user (HTTP ${r.status}). Ask your admin for the Dev Tools privilege, or enter the Elasticsearch URL as host.`,
+      );
+    if (r.status >= 400) throw new Error(errorText(r.body) || `HTTP ${r.status}`);
+    this.version = (r.body as { version?: { number?: string } })?.version?.number ?? '';
+  }
+
   protected async disconnect(): Promise<void> {
     this.base = '';
+    this.kibana = '';
   }
 
   async request(method: string, path: string, body?: unknown): Promise<EsResponse> {
@@ -58,12 +92,17 @@ export class ElasticDriver extends BaseDriver {
       throw new Error('This connection is read-only');
     }
     const t = Date.now();
+    const target = path.startsWith('/') ? path : `/${path}`;
+    if (this.kibana) {
+      headers['kbn-xsrf'] = 'true';
+      headers['content-type'] ??= 'application/json';
+    }
     const r = await httpRequest({
-      method: method.toUpperCase(),
-      url: this.base + (path.startsWith('/') ? path : `/${path}`),
+      method: this.kibana ? 'POST' : method.toUpperCase(),
+      url: this.kibana ? `${this.kibana}/api/console/proxy?${new URLSearchParams({ path: target, method: method.toUpperCase() })}` : this.base + target,
       headers,
-      body: payload,
-      rejectUnauthorized: this.config.rejectUnauthorized ?? false,
+      body: payload ?? (this.kibana ? '' : undefined),
+      rejectUnauthorized: this.config.rejectUnauthorized ?? !!this.config.kibanaUrl,
     });
     const durationMs = Date.now() - t;
     let parsed: unknown = r.body;

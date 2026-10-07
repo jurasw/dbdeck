@@ -23,9 +23,9 @@ Verified domain (blue check) is optional. Microsoft requires 6 months of publish
 | --- | --- |
 | Display name | DBDeck - Database Client |
 | Identifier | `dbdeck.dbdeck` |
-| Short description | Free database client for MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry. |
+| Short description | Free database client for MySQL, PostgreSQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry. |
 | Categories | Programming Languages, Other |
-| Tags | mysql, postgres, postgresql, mongodb, redis, elasticsearch, clickhouse, bigquery, snowflake, s3, minio, docker, database, sql, omnisearch |
+| Tags | mysql, postgres, postgresql, sqlite, mongodb, redis, elasticsearch, clickhouse, bigquery, snowflake, s3, minio, docker, database, sql, omnisearch |
 | Pricing | Free |
 | License | MIT |
 | Homepage | https://dbdeck.dev |
@@ -48,10 +48,10 @@ Fast first-page results appear with the panel; wide tables render only visible r
 
 Used in the extension README and on dbdeck.dev, in this order:
 
-1. `screenshots/data-grid.png` — connection tree and the customers table in the data grid
-2. `screenshots/sql-editor.png` — SQL editor with a join and the Query Results panel
-3. `screenshots/schema-diagram.png` — schema diagram with foreign key links
-4. `screenshots/redis.png` — Redis key tree and hash editor
+1. `screenshots/data-grid.png`: connection tree and the customers table in the data grid
+2. `screenshots/sql-editor.png`: SQL editor with a join and the Query Results panel
+3. `screenshots/schema-diagram.png`: schema diagram with foreign key links
+4. `screenshots/redis.png`: Redis key tree and hash editor
 
 ## Open VSX (open-vsx.org)
 
@@ -67,6 +67,6 @@ Used in the extension README and on dbdeck.dev, in this order:
 
 ## Search all values
 
-Omnisearch finds values across a database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon beside a database or schema and type `JUREK` to see `players — Jurek (name)`. Open a result in a filtered data tab. Previews include up to 20 matching rows per table and 200 distinct table/column/value results overall, with visible limits and skipped objects.
+Omnisearch finds values across a database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon beside a database or schema and type `JUREK` to see `players: Jurek (name)`. Open a result in a filtered data tab. Previews include up to 20 matching rows per table and 200 distinct table/column/value results overall, with visible limits and skipped objects.
 
 Search beyond the current page in the current table, collection or index, with immediate search and a spinner in the search field while results load. MongoDB includes nested values and arrays; Elasticsearch searches indexed fields.

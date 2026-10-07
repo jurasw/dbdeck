@@ -1,3 +1,4 @@
+import * as os from 'os';
 import * as vscode from 'vscode';
 import { ConnectionManager } from './connections';
 import { ConnectionConfig, DbNode, FAMILY, TYPE_LABEL } from './types';
@@ -100,8 +101,11 @@ export class ConnectionTree implements vscode.TreeDataProvider<DbNode> {
 function describe(c: ConnectionConfig): string {
   if (c.type === 'docker') return c.useSocket !== false ? c.socketPath || 'local socket' : `${c.host}:${c.port ?? 2375}`;
   if (c.type === 'mongodb' && c.useUri) return '';
+  if (c.type === 'elasticsearch' && c.kibanaUrl) return `via Kibana · ${c.kibanaUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}`;
+  if (c.type === 'sqlite') return c.database?.replace(os.homedir(), '~') ?? '';
   if (c.type === 'bigquery') return [c.project || 'default project', c.region].filter(Boolean).join(' · ');
   if (c.type === 'snowflake') return [`${c.user ?? ''}@${c.host ?? ''}`, c.warehouse].filter(Boolean).join(' · ');
+  if (c.type === 's3' && c.googleAuth) return ['Google Cloud', c.database || c.project, c.googleEmail].filter(Boolean).join(' · ');
   if (c.type === 's3') return [c.endpoint ? c.endpoint.replace(/^https?:\/\//, '') : `AWS ${c.region || 'us-east-1'}`, c.database].filter(Boolean).join(' · ');
   const user = c.user ? `${c.user}@` : '';
   return `${user}${c.host || '127.0.0.1'}${c.port ? `:${c.port}` : ''}`;

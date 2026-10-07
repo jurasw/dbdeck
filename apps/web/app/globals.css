@@ -145,6 +145,83 @@
   .service-mark { animation: service-float 6s ease-in-out infinite; }
 }
 
+@keyframes sphere-swirl { to { transform: rotate(360deg); } }
+@keyframes sphere-morph {
+  0%, 100% { border-radius: 42% 58% 55% 45%; }
+  50% { border-radius: 58% 42% 45% 55%; }
+}
+@keyframes sphere-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(12%, -14%) scale(1.1); }
+  66% { transform: translate(-10%, 8%) scale(0.9); }
+}
+@keyframes sphere-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+@keyframes sphere-think {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  45% { transform: scale(1.1, 0.95); }
+  55% { transform: scale(0.97, 1.06); filter: brightness(1.25); }
+}
+
+.ai-sphere {
+  --orb: 22px;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--orb);
+  height: var(--orb);
+  border-radius: 50%;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(circle at 50% 118%, #3461e0 0%, #12205a 38%, #05070f 74%);
+  box-shadow:
+    inset 0 calc(var(--orb) * -0.06) calc(var(--orb) * 0.18) rgb(107 151 255 / 0.7),
+    0 0 0 1px rgb(107 151 255 / 0.3),
+    0 0 calc(var(--orb) * 0.4) rgb(52 97 224 / 0.4);
+}
+.ai-sphere::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  border-radius: 42% 58% 55% 45%;
+  background: conic-gradient(from 0deg, transparent 0 8%, #6b97ff 16%, transparent 28%, #a78bfa 42%, transparent 54%, #22d3ee 68%, transparent 80%, #3461e0 92%, transparent);
+  filter: blur(calc(var(--orb) * 0.1));
+  opacity: 0.6;
+  mix-blend-mode: screen;
+}
+.ai-sphere > span {
+  position: absolute;
+  left: 18%;
+  top: 34%;
+  width: 70%;
+  height: 58%;
+  border-radius: 60% 40% 50% 50%;
+  background: radial-gradient(circle at 40% 40%, #a5f3fc, transparent 70%);
+  filter: blur(calc(var(--orb) * 0.12));
+  opacity: 0.35;
+  mix-blend-mode: screen;
+}
+.ai-sphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 31% 24%, rgb(255 255 255 / 0.8) 0, rgb(255 255 255 / 0.18) 9%, transparent 22%),
+    radial-gradient(circle at 50% 50%, transparent 52%, rgb(0 0 0 / 0.45) 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ai-sphere { animation: sphere-breathe 4.5s ease-in-out infinite; }
+  .ai-sphere::before { animation: sphere-swirl 9s linear infinite; }
+  .ai-sphere > span { animation: sphere-drift 6s ease-in-out infinite; }
+  .ai-sphere.thinking { animation: sphere-think 1.5s ease-in-out infinite; }
+  .ai-sphere.thinking::before { animation: sphere-swirl 1.8s linear infinite, sphere-morph 1.5s ease-in-out infinite; opacity: 0.85; }
+  .ai-sphere.thinking > span { animation: sphere-drift 1.5s ease-in-out infinite; opacity: 0.8; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
