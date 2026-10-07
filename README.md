@@ -133,6 +133,8 @@ There is no backend to sign in to, so there is no backend to leak.
 ```bash
 code --install-extension dbdeck.dbdeck
 cursor --install-extension dbdeck.dbdeck
+codium --install-extension dbdeck.dbdeck
+windsurf --install-extension dbdeck.dbdeck
 ```
 
 Open **DBDeck** in the activity bar, choose **Add Connection** and pick a database type.

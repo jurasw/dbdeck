@@ -3,7 +3,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
-export function CopyCommand({ command }: { command: string }) {
+export function CopyCommand({ editor, icon, command }: { editor: string; icon: string; command: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -15,16 +15,21 @@ export function CopyCommand({ command }: { command: string }) {
     }
   };
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-black/30 py-1.5 pr-1.5 pl-3 font-mono text-[12px] text-foreground/90">
-      <span aria-hidden className="text-brand">
-        $
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-black/30 p-3 transition-colors hover:border-border/80 hover:bg-card/70">
+      <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={icon} alt="" width={24} height={24} className="size-6 object-contain" />
       </span>
-      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">{command}</code>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-medium text-foreground">{editor}</span>
+        <code className="mt-0.5 block overflow-x-auto font-mono text-[11px] whitespace-nowrap text-muted-foreground sm:text-xs">{command}</code>
+      </span>
       <button
         type="button"
         onClick={copy}
-        aria-label={copied ? "Copied" : "Copy command"}
-        className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+        aria-label={copied ? `${editor} command copied` : `Copy ${editor} install command`}
+        title={copied ? "Copied" : `Copy ${editor} install command`}
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
       >
         {copied ? <Check className="size-3.5 text-brand" /> : <Copy className="size-3.5" />}
       </button>

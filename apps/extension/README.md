@@ -12,7 +12,11 @@
   <a href="https://github.com/jurasw/dbdeck/issues/new/choose">Report a bug</a>
 </p>
 
-![Data grid with the connection tree](https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/data-grid.png)
+<p align="center">
+  <a href="https://dbdeck.dev">
+    <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/readme/hero.gif" alt="The orders table in the DBDeck data grid: a WHERE filter narrows it to pending and paid orders, two cells are edited inline, and Save writes both changes in one transaction" width="100%">
+  </a>
+</p>
 
 ## What it does
 
@@ -66,11 +70,36 @@ Open **DBDeck** in the activity bar, choose **Add Connection**, then select a da
 
 ## Screenshots
 
-![SQL editor with query results](https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/sql-editor.png)
-
-![Schema diagram with foreign key links](https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/schema-diagram.png)
-
-![Redis key browser and hash editor](https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/redis.png)
+<table>
+  <tr>
+    <td valign="top" width="50%">
+      <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/sql-editor.png" alt="SQL editor with a join query and the Query Results panel listing revenue per customer" width="100%">
+      <h3>SQL editor</h3>
+      <p>Put the cursor in a statement and press <kbd>⌘</kbd> <kbd>Enter</kbd>.
+      Each statement gets its own result tab, with table and column completion that understands aliases.</p>
+    </td>
+    <td valign="top" width="50%">
+      <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/readme/schema-diagram.gif" alt="A schema diagram of seven tables: zoom in, search for order, drag a table and arrange the layout" width="100%">
+      <h3>Schema diagrams</h3>
+      <p>Any PostgreSQL, MySQL or SQLite schema as a diagram, foreign keys linked column to column.
+      Drag, pan, zoom and search; hover a table to light up its relations.</p>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="50%">
+      <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/readme/mongo-inline-edit.gif" alt="A MongoDB users collection in the grid: two fields are edited inline and saved, then the JSON view opens" width="100%">
+      <h3>Documents, edited in place</h3>
+      <p>MongoDB and Elasticsearch documents in a grid or a JSON tree.
+      Double-click a field to change it, or write shell-style queries like <code>db.users.find({...}).sort(...)</code>.</p>
+    </td>
+    <td valign="top" width="50%">
+      <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/redis.png" alt="Redis key tree grouped by prefix and the hash editor for user:42" width="100%">
+      <h3>Redis keys</h3>
+      <p>Keys grouped by separator, with editors for strings, hashes, lists, sets, sorted sets, streams and RedisJSON.
+      TTL, rename and a built-in CLI.</p>
+    </td>
+  </tr>
+</table>
 
 ## Privacy
 
@@ -84,6 +113,14 @@ DBDeck makes network connections only to the databases you configure. Nothing is
 ## Schema diagram
 
 Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL, MySQL/MariaDB and SQLite. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse, BigQuery and Snowflake display tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
+
+## Search all values
+
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+
+Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
+
+Use **Search all records** in a data viewer to search beyond the current page in the current table, collection or index. Press Enter or the search arrow to run the search immediately; a spinner in the search field shows while results load. Existing filters still apply. SQL searches every column; MongoDB also searches nested values and arrays, streaming documents to your editor. Elasticsearch searches indexed fields using its query semantics. Results remain paginated.
 
 ## AI queries
 
@@ -131,11 +168,3 @@ Query results that an agent reads are sent to that agent's AI provider. For full
 ## License
 
 [MIT](https://github.com/jurasw/dbdeck/blob/main/LICENSE).
-
-### Search all values
-
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
-
-Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
-
-Use **Search all records** in a data viewer to search beyond the current page in the current table, collection or index. Press Enter or the search arrow to run the search immediately; a spinner in the search field shows while results load. Existing filters still apply. SQL searches every column; MongoDB also searches nested values and arrays, streaming documents to your editor. Elasticsearch searches indexed fields using its query semantics. Results remain paginated.

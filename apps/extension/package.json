@@ -2,7 +2,7 @@
   "name": "dbdeck",
   "displayName": "DBDeck - Database Client",
   "description": "Free database client for MySQL, PostgreSQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "dbdeck",
   "icon": "media/icon.png",
   "license": "MIT",

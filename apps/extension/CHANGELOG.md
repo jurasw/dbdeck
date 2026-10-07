@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The landing page shows copyable install commands and editor icons for VS Code, Cursor, VSCodium and Windsurf.
+
+## 0.4.1 (2026-10-08)
+
+- The Marketplace and Open VSX page shows animated demos of the data grid, schema diagram and MongoDB editing, and the Omnisearch section sits with the other feature sections.
+
 ## 0.4.0 (2026-10-08)
 
 - **Add as Database Connection** on a Docker container recognizes CockroachDB, YugabyteDB, TiDB, SingleStore and FerretDB images and fills their port and default user. OpenSearch containers connect as `admin` over TLS unless the security plugin is off.

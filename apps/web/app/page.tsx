@@ -301,8 +301,10 @@ function Install() {
           ))}
         </div>
         <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <CopyCommand command="code --install-extension dbdeck.dbdeck" />
-          <CopyCommand command="cursor --install-extension dbdeck.dbdeck" />
+          <CopyCommand editor="VS Code" icon="/editors/vscode.svg" command="code --install-extension dbdeck.dbdeck" />
+          <CopyCommand editor="Cursor" icon="/editors/cursor.svg" command="cursor --install-extension dbdeck.dbdeck" />
+          <CopyCommand editor="VSCodium" icon="/editors/vscodium.svg" command="codium --install-extension dbdeck.dbdeck" />
+          <CopyCommand editor="Windsurf" icon="/editors/windsurf.svg" command="windsurf --install-extension dbdeck.dbdeck" />
         </div>
       </Shell>
     </section>
