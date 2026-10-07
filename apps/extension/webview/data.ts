@@ -39,6 +39,11 @@ interface Init {
   initialData?: PageData;
 }
 
+interface HomeInit {
+  mode: 'home';
+  recent: { node: { label: string; table?: string }; location: string }[];
+}
+
 interface PageData {
   columns: GridColumn[];
   rows: unknown[][];
@@ -795,6 +800,37 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   };
 }
 
+function mountHome(I: HomeInit): ReturnType<typeof mount> {
+  pinned = true;
+  documentTiming = false;
+  clear(
+    app,
+    h(
+      'div.empty',
+      null,
+      icon('database'),
+      h('div.big', null, 'Pick a table'),
+      h('div', null, 'Select a table in Connections to open it here.'),
+      I.recent.length
+        ? h(
+            'div.home-recent',
+            null,
+            I.recent.map((r) =>
+              h(
+                'button.btn.ghost.home-item',
+                { onClick: () => vscode.postMessage({ type: 'open', node: r.node }) },
+                icon('table'),
+                h('span.home-name', null, r.node.table ?? r.node.label),
+                h('span.home-location', null, r.location),
+              ),
+            ),
+          )
+        : null,
+    ),
+  );
+  return { save: async () => undefined, load: async () => undefined, dispose: () => undefined };
+}
+
 document.addEventListener('keydown', (e) => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 's') {
@@ -807,7 +843,7 @@ document.addEventListener('keydown', (e) => {
 });
 for (const type of ['input', 'change', 'dblclick']) document.addEventListener(type, pin, true);
 
-let current = mount(INIT as Init);
+let current = INIT.mode === 'home' ? mountHome(INIT as HomeInit) : mount(INIT as Init);
 onMessage('mount', (m: { init: Init }) => {
   current.dispose();
   pinned = false;

@@ -721,6 +721,37 @@ textarea {
   font-size: 15px;
   color: var(--fg);
 }
+.home-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(420px, 100%);
+  margin-top: 12px;
+}
+.home-recent .home-item {
+  justify-content: flex-start;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  color: var(--fg);
+}
+.empty .home-item .codicon {
+  font-size: 14px;
+  opacity: 0.7;
+}
+.home-item .home-name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.home-item .home-location {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .overlay {
   position: absolute;

@@ -1,6 +1,6 @@
 {
   "name": "dbdeck",
-  "displayName": "DBDeck — Database Client",
+  "displayName": "DBDeck - Database Client",
   "description": "Free database client for MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
   "version": "0.3.1",
   "publisher": "dbdeck",

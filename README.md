@@ -90,7 +90,7 @@ Nothing leaves your machine except the queries you send to your own databases.
 </table>
 
 - **Inline row edits** for PostgreSQL and MySQL tables with a primary key. Changes are staged and saved in one transaction, and the confirmation toast offers **Undo**.
-- **Responsive table browsing**: fast first-page results appear with the panel, and wide tables render only visible rows and columns.
+- **Responsive table browsing**: fast first-page results appear with the panel, wide tables render only visible rows and columns, and tables open in a reusable preview tab. A start tab with recent tables makes the first table appear at once.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
 - **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.

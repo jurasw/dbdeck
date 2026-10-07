@@ -36,7 +36,7 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 - Omnisearch: find values across a database or schema, with table, value and column previews
 - SSH tunnels (password or private key), SSL/TLS, read-only mode
 - Data viewer with a virtualized grid: server-side paging, sorting, `WHERE` / `ORDER BY` filters, column resize, keyboard navigation, copy as TSV / JSON / `INSERT`
-- Fast first-page results appear with the panel; wide tables render only visible rows and columns to keep scrolling responsive
+- Fast first-page results appear with the panel; wide tables render only visible rows and columns to keep scrolling responsive. Tables open in a reusable preview tab, and a start tab with recent tables makes the first table appear at once
 - Inline editing for PostgreSQL and MySQL tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction, with **Undo** in the confirmation toast
 - SQL editor: run the statement under the cursor (`⌘/Ctrl+Enter`), run all (`⌘/Ctrl+Shift+Enter`), `▶ Run` CodeLens, table and column completion with alias resolution
 - Results panel: one tab per statement, row filter, JSON view, export to CSV / JSON

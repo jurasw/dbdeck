@@ -1,9 +1,10 @@
 # Agent rules
 
-DBDeck is a monorepo with two independent npm packages, each with its own lockfile:
+DBDeck is a monorepo with independent npm packages, each with its own lockfile:
 
 - `apps/extension/` — the VS Code / Cursor extension. Read `.agents/extension.md` for `src/` changes and `.agents/webview.md` for `webview/` changes.
 - `apps/web/` — the dbdeck.dev landing page (Next.js static export, shadcn/ui, Cloudflare). Read `.agents/web.md`.
+- `apps/video/` — the YouTube promo video (Remotion). `npm run render` writes `out/dbdeck-promo.mp4`; `youtube.md` holds the title and description.
 - `assets/` — brand, screenshots and store listing materials. Not shipped by either app; copy what an app needs into it.
 
 Task recipes live in `.agents/skills/`. Run npm commands inside the package you change. `mprocs.yaml` starts the dev processes with `phrocs` (or `mprocs`).

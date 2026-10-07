@@ -21,7 +21,7 @@ Verified domain (blue check) is optional. Microsoft requires 6 months of publish
 
 | Field | Value |
 | --- | --- |
-| Display name | DBDeck — Database Client |
+| Display name | DBDeck - Database Client |
 | Identifier | `dbdeck.dbdeck` |
 | Short description | Free database client for MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry. |
 | Categories | Programming Languages, Other |

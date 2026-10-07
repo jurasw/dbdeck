@@ -23,14 +23,17 @@ mkdirSync(join(root, 'dist', 'webview'), { recursive: true });
 for (const [file, text] of Object.entries(ASSETS)) writeFileSync(join(root, 'dist', 'webview', file), text);
 
 const panels: any[] = [];
+const commands: unknown[][] = [];
 const vscode = {
+  commands: { executeCommand: (...args: unknown[]) => commands.push(args) },
   Uri: { joinPath: (...parts: unknown[]) => ({ fsPath: join(root, ...(parts.slice(1) as string[])), toString: () => parts.join('/') }) },
   ThemeIcon: class {},
   ViewColumn: { Active: 1 },
   workspace: { getConfiguration: () => ({ get: () => 100 }) },
   window: {
-    createWebviewPanel: () => {
+    createWebviewPanel: (_type: string, title: string, show: unknown) => {
       const panel = {
+        show,
         webview: {
           html: '',
           cspSource: 'test:',
@@ -44,7 +47,7 @@ const vscode = {
         messages: [] as any[],
         listeners: [] as ((message: unknown) => unknown)[],
         receive: (message: unknown) => Promise.all(panel.listeners.map((listener) => listener(message))),
-        title: '',
+        title,
         dispose: undefined as any,
         reveals: 0,
         reveal: () => panel.reveals++,
@@ -359,4 +362,25 @@ test('opening another table swaps the preview panel content without a new webvie
   panels.at(-1).dispose();
   pinnedByReopen.dispose();
   panel.dispose();
+});
+
+test('the start tab turns into the first table without a new webview', async () => {
+  const driver = Object.create(SqlDriver.prototype);
+  driver.page = async (ref: { table: string }) => ({ columns: [{ name: 'table' }], rows: [[ref.table]], durationMs: 1 });
+  const manager = { store: { get: () => ({ name: 'Test', type: 'postgres' }) }, get: async () => driver } as unknown as ConnectionManager;
+  const users: DbNode = { connId: 'home', kind: 'table', database: 'db', schema: 'public', table: 'users', label: 'users' };
+  DataPanel.home({} as any, manager, [{ node: users, location: 'Test › db › public' }]);
+  const home = panels.at(-1);
+  assert.equal(home.title, 'DBDeck');
+  assert.equal(home.show.preserveFocus, true);
+  assert.deepEqual(initialState(home), { mode: 'home', recent: [{ node: users, location: 'Test › db › public' }] });
+  await home.receive({ type: 'open', node: users });
+  assert.deepEqual(commands.at(-1), ['dbdeck.openTable', users]);
+  await DataPanel.show({} as any, manager, users, () => {});
+  assert.equal(panels.at(-1), home);
+  assert.equal(home.title, 'users');
+  assert.deepEqual(home.messages.find((m: any) => m.type === 'mount').init.initialData.rows, [['users']]);
+  DataPanel.home({} as any, manager, []);
+  assert.equal(panels.at(-1), home);
+  home.dispose();
 });

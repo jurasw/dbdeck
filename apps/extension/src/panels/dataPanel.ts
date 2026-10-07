@@ -27,6 +27,11 @@ interface Timing {
 
 let log: vscode.LogOutputChannel | undefined;
 
+export interface RecentTable {
+  node: DbNode;
+  location: string;
+}
+
 interface Preview {
   panel: vscode.WebviewPanel;
   key: string;
@@ -64,13 +69,36 @@ export class DataPanel {
       await preview.open(n, onChanged);
       return;
     }
-    const panel = vscode.window.createWebviewPanel('dbdeck.data', n.table ?? n.label, vscode.ViewColumn.Active, webviewOptions(extUri));
+    const { open } = DataPanel.create(extUri, manager, key, n.table ?? n.label, false, ai, editors, search);
+    await open(n, onChanged, true);
+  }
+
+  static home(extUri: vscode.Uri, manager: ConnectionManager, recent: RecentTable[], ai?: AiService, editors?: QueryEditors): void {
+    if (DataPanel.panels.size) return;
+    const title = 'DBDeck';
+    const { panel } = DataPanel.create(extUri, manager, 'home', title, true, ai, editors);
+    panel.iconPath = new vscode.ThemeIcon('database');
+    panel.webview.html = webviewHtml(panel.webview, extUri, 'data', title, { mode: 'home', recent });
+  }
+
+  private static create(
+    extUri: vscode.Uri,
+    manager: ConnectionManager,
+    key: string,
+    title: string,
+    preserveFocus: boolean,
+    ai?: AiService,
+    editors?: QueryEditors,
+    search?: string,
+  ): { panel: vscode.WebviewPanel; open: (node: DbNode, changed: () => void, first: boolean) => Promise<void> } {
+    const panel = vscode.window.createWebviewPanel('dbdeck.data', title, { viewColumn: vscode.ViewColumn.Active, preserveFocus }, webviewOptions(extUri));
     DataPanel.panels.set(key, panel);
     let current: Session | undefined;
     const sub = bindRpc(panel.webview, () => current?.handlers ?? Promise.reject(new Error('Panel is closed')));
     let opening: { title: string; first: boolean; start: number; sent?: number } | undefined;
-    const messages = panel.webview.onDidReceiveMessage((m: { type?: string } & Partial<Timing>) => {
+    const messages = panel.webview.onDidReceiveMessage((m: { type?: string; node?: DbNode } & Partial<Timing>) => {
       if (m?.type === 'pin' && DataPanel.preview?.panel === panel) DataPanel.preview = undefined;
+      if (m?.type === 'open' && m.node) void vscode.commands.executeCommand('dbdeck.openTable', m.node);
       if (m?.type === 'timing' && opening?.sent && m.shown) {
         const o = opening;
         opening = undefined;
@@ -108,7 +136,7 @@ export class DataPanel {
       for (const [k, p] of DataPanel.panels) if (p === panel) DataPanel.panels.delete(k);
       if (DataPanel.preview?.panel === panel) DataPanel.preview = undefined;
     });
-    await open(n, onChanged, true);
+    return { panel, open };
   }
 }
 

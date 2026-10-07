@@ -2,10 +2,12 @@
 
 ## Unreleased
 
+- Fixed the Docker icon on the landing page to match the connection icon.
 - Added BigQuery and Snowflake connections. BigQuery signs in with gcloud application default credentials or a service account key, lists datasets and tables, previews tables for free through the BigQuery API and shows the bytes each query processes. Snowflake signs in with a programmatic access token or a key pair and lists databases, schemas, tables and views. Both support the SQL editor, data browsing, DDL, Omnisearch, schema diagrams, AI queries and the MCP server; the grid is read-only.
 - DBDeck panels follow the editor color theme: buttons, focus rings, inputs, menus, dialogs, row hover and selection, status colors and value colors use the active VS Code or Cursor theme.
 - Fixed tables that opened slowly while row counts of other large tables were still running. Counts no longer block page loads, and PostgreSQL connections stay open longer, so remote databases such as Supabase reconnect less often.
 - Tables open in a preview tab, like files in the explorer. Opening another table reuses the running panel instead of starting a new one, so switching tables no longer waits about a second for the editor to start a panel. The tab stays open once you filter, sort, search, page, edit or open the same table again.
+- Opening DBDeck with no open editors shows a start tab with your recent tables. The first table you open replaces it, so it appears at once instead of waiting about a second for the editor to start its first panel.
 
 ## 0.3.1 — 2026-10-07
 

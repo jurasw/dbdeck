@@ -1,0 +1,27 @@
+{
+  "name": "dbdeck-video",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts promo out/dbdeck-promo.mp4",
+    "still": "remotion still src/index.ts promo out/still.png",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@remotion/google-fonts": "4.0.534",
+    "@remotion/paths": "4.0.534",
+    "@remotion/tailwind-v4": "4.0.534",
+    "lucide-react": "^1.52.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.534",
+    "tailwindcss": "^4"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5"
+  }
+}

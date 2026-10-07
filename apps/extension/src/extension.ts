@@ -18,7 +18,7 @@ import { DataPanel } from './panels/dataPanel';
 import { RedisPanel } from './panels/redisPanel';
 import { ResultsView } from './panels/resultsView';
 import { openRedisCli } from './redisCli';
-import { ConnectionTree } from './tree';
+import { ConnectionTree, nodeId } from './tree';
 import { searchObjects } from './object-search';
 import { showOmnisearch } from './omnisearch';
 import { ConnectionConfig, DbNode, FAMILY } from './types';
@@ -201,8 +201,26 @@ export function activate(ctx: vscode.ExtensionContext): void {
     await vscode.window.showTextDocument(doc);
     await editors.selectConnection(doc);
   });
+  const RECENT_TABLES = 'dbdeck.recentTables';
+  const rememberTable = (n: DbNode) => {
+    const node: DbNode = { connId: n.connId, kind: n.kind, label: n.label, database: n.database, schema: n.schema, table: n.table };
+    const rest = ctx.globalState.get<DbNode[]>(RECENT_TABLES, []).filter((r) => nodeId(r) !== nodeId(node));
+    void ctx.globalState.update(RECENT_TABLES, [node, ...rest].slice(0, 8));
+  };
+  const showHome = () => {
+    if (!view.visible || !store.list().length || vscode.window.tabGroups.all.some((g) => g.tabs.length)) return;
+    const recent = ctx.globalState.get<DbNode[]>(RECENT_TABLES, []).flatMap((node) => {
+      const c = store.get(node.connId);
+      return c ? [{ node, location: [c.name, node.database, node.schema].filter(Boolean).join(' › ') }] : [];
+    });
+    DataPanel.home(ctx.extensionUri, manager, recent, ai, editors);
+  };
+  showHome();
+  ctx.subscriptions.push(view.onDidChangeVisibility(showHome));
+
   cmd('dbdeck.openTable', async (n: DbNode) => {
     n = (await pickNode(n))!;
+    rememberTable(n);
     await DataPanel.show(ctx.extensionUri, manager, n, () => refreshParent(n), ai, editors);
   });
   cmd('dbdeck.showSchema', async (n?: DbNode) => {
