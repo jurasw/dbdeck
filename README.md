@@ -51,7 +51,7 @@ Nothing leaves your machine except the queries you send to your own databases.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/readme/services-dark.svg">
-    <img alt="Eight connection types: PostgreSQL, MySQL / MariaDB, ClickHouse, MongoDB, Redis, Elasticsearch, S3 / MinIO / R2 and Docker" src="assets/readme/services-light.svg" width="100%">
+    <img alt="Ten connection types: PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 / MinIO / R2 and Docker" src="assets/readme/services-light.svg" width="100%">
   </picture>
 </p>
 
@@ -94,6 +94,7 @@ Nothing leaves your machine except the queries you send to your own databases.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
 - **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
+- **BigQuery and Snowflake** in the same tree. BigQuery signs in with your gcloud credentials or a service account key and previews tables for free. Snowflake signs in with a programmatic access token or a key pair. Both are read-only in the grid; run DML from the SQL editor.
 - **S3, MinIO and R2** buckets in the same tree: open, upload, download, copy the `s3://` URI.
 - **Read-only connections** block every write, and destructive actions always ask first.
 
@@ -192,7 +193,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for checks and conventions and [assets/m
 
 ### Search all values
 
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
 
 Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 

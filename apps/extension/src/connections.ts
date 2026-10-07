@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BaseDriver } from './drivers/base';
+import { BIGQUERY_SCOPE, BigQueryDriver } from './drivers/bigquery';
 import { ClickHouseDriver } from './drivers/clickhouse';
 import { DockerDriver } from './drivers/docker';
 import { ElasticDriver } from './drivers/elastic';
@@ -8,6 +9,8 @@ import { MysqlDriver } from './drivers/mysql';
 import { PostgresDriver } from './drivers/postgres';
 import { RedisDriver } from './drivers/redis';
 import { S3Driver } from './drivers/s3';
+import { SnowflakeDriver } from './drivers/snowflake';
+import { GoogleCredentials } from './google-credentials';
 import { ConnectionConfig } from './types';
 
 const LIST_KEY = 'dbdeck.connections';
@@ -28,6 +31,10 @@ export function createDriver(c: ConnectionConfig): BaseDriver {
       return new PostgresDriver(c);
     case 'clickhouse':
       return new ClickHouseDriver(c);
+    case 'bigquery':
+      return new BigQueryDriver(c, new GoogleCredentials(c.keyFile, BIGQUERY_SCOPE));
+    case 'snowflake':
+      return new SnowflakeDriver(c);
     case 'mongodb':
       return new MongoDriver(c);
     case 'redis':
@@ -95,7 +102,8 @@ export class ConnectionStore {
   async askSecrets(c: ConnectionConfig): Promise<ConnectionConfig | undefined> {
     if (c.savePassword !== false) return c;
     const s = this.session.get(c.id) ?? {};
-    const needsPassword = c.type !== 'docker' && !(c.type === 'mongodb' && c.useUri) && !!c.user && s.password === undefined;
+    const needsPassword =
+      c.type !== 'docker' && !(c.type === 'mongodb' && c.useUri) && !(c.type === 'snowflake' && c.authMethod === 'keyPair') && !!c.user && s.password === undefined;
     const needsUri = c.type === 'mongodb' && c.useUri && !s.uri;
     const needsSsh = !!c.ssh?.enabled && c.ssh.authType === 'password' && s.sshPassword === undefined;
     if (needsUri) {
@@ -106,7 +114,7 @@ export class ConnectionStore {
     if (needsPassword) {
       const v = await vscode.window.showInputBox({
         title: c.name,
-        prompt: `${c.type === 's3' ? 'Secret access key' : 'Password'} for ${c.user} (kept in memory for this session only)`,
+        prompt: `${c.type === 's3' ? 'Secret access key' : c.type === 'snowflake' ? 'Programmatic access token' : 'Password'} for ${c.user} (kept in memory for this session only)`,
         password: true,
         ignoreFocusOut: true,
       });

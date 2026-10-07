@@ -34,7 +34,7 @@ export async function loadSchemaDiagram(driver: SqlDriver, database: string, sch
       )),
     );
   }
-  if (driver.dialect === 'clickhouse') return { tables, relations: [] };
+  if (driver.dialect !== 'postgres' && driver.dialect !== 'mysql') return { tables, relations: [] };
   const sql =
     driver.dialect === 'postgres'
       ? `SELECT con.conname, ns.nspname, src.relname, a.attname, nt.nspname, dst.relname, b.attname

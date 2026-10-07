@@ -21,7 +21,7 @@ import { openRedisCli } from './redisCli';
 import { ConnectionTree } from './tree';
 import { searchObjects } from './object-search';
 import { showOmnisearch } from './omnisearch';
-import { ConnectionConfig, DbNode } from './types';
+import { ConnectionConfig, DbNode, FAMILY } from './types';
 import { errorMessage, formatBytes, uid } from './util';
 
 export function activate(ctx: vscode.ExtensionContext): void {
@@ -61,11 +61,11 @@ export function activate(ctx: vscode.ExtensionContext): void {
   cmd('dbdeck.addConnection', () => openForm());
   cmd('dbdeck.omnisearch', async (node?: DbNode) => {
     const selected = node?.connId ? node : view.selection[0];
-    const supported = store.list().filter((c) => ['mysql', 'postgres', 'clickhouse', 'mongodb'].includes(c.type));
+    const supported = store.list().filter((c) => FAMILY[c.type] === 'sql' || c.type === 'mongodb');
     let config = supported.find((c) => c.id === selected?.connId);
     if (!config) {
       if (!supported.length) {
-        void vscode.window.showInformationMessage('Add a PostgreSQL, MySQL / MariaDB, ClickHouse or MongoDB connection to use Omnisearch.');
+        void vscode.window.showInformationMessage('Add a SQL or MongoDB connection to use Omnisearch.');
         return;
       }
       config = (
@@ -100,7 +100,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     );
   });
   cmd('dbdeck.searchObjects', async () => {
-    const supported = store.list().filter((c) => ['mysql', 'postgres', 'clickhouse', 'mongodb', 'elasticsearch'].includes(c.type));
+    const supported = store.list().filter((c) => FAMILY[c.type] === 'sql' || c.type === 'mongodb' || c.type === 'elasticsearch');
     let config = supported.find((c) => c.id === view.selection[0]?.connId);
     if (!config) {
       const choice = await vscode.window.showQuickPick(
@@ -245,7 +245,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     if (d instanceof SqlDriver) {
       const sql =
         n.kind === 'database'
-          ? `DROP DATABASE ${d.quote(n.database!)}`
+          ? `DROP ${d.dialect === 'bigquery' ? 'SCHEMA' : 'DATABASE'} ${d.quote(n.database!)}`
           : `DROP ${n.kind === 'view' ? 'VIEW' : 'TABLE'} ${d.qualified({ database: n.database, schema: n.schema, table: n.table! })}`;
       await d.run(sql, n.kind === 'database' ? undefined : n.database);
     } else if (d instanceof MongoDriver) {

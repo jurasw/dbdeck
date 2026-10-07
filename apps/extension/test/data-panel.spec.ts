@@ -35,14 +35,16 @@ const vscode = {
           html: '',
           cspSource: 'test:',
           asWebviewUri: (uri: unknown) => uri,
-          onDidReceiveMessage: (listener: unknown) => {
-            panel.receive = listener;
+          onDidReceiveMessage: (listener: (message: unknown) => unknown) => {
+            panel.listeners.push(listener);
             return { dispose() {} };
           },
           postMessage: (message: unknown) => panel.messages.push(message),
         },
         messages: [] as any[],
-        receive: undefined as any,
+        listeners: [] as ((message: unknown) => unknown)[],
+        receive: (message: unknown) => Promise.all(panel.listeners.map((listener) => listener(message))),
+        title: '',
         dispose: undefined as any,
         reveals: 0,
         reveal: () => panel.reveals++,
@@ -86,7 +88,7 @@ test('table panel opens and reuses its tab while the connection is pending', asy
   assert.ok(panel.webview.html.includes('.grid {}'));
   assert.ok(panel.webview.html.includes(`url("data:font/ttf;base64,${Buffer.from('test-font').toString('base64')}")`));
   assert.ok(!/<link|<script[^>]* src=/.test(panel.webview.html));
-  assert.ok(panel.receive);
+  assert.ok(panel.listeners.length);
   assert.equal(initialState(panel).initialData, undefined);
   await DataPanel.show({} as any, manager, node, () => {});
   assert.equal(panel.reveals, 1);
@@ -322,4 +324,39 @@ test('AI query opened from a table keeps the whole database as context with that
   assert.equal(query.messages.at(-1).result, 'SELECT count(*) FROM crm.customers');
   query.dispose();
   table.dispose();
+});
+
+test('opening another table swaps the preview panel content without a new webview', async () => {
+  const driver = Object.create(SqlDriver.prototype);
+  const tables: string[] = [];
+  driver.page = async (ref: { table: string }) => {
+    tables.push(ref.table);
+    return { columns: [{ name: 'table' }], rows: [[ref.table]], durationMs: 1 };
+  };
+  const manager = { store: { get: () => ({ name: 'Test', type: 'postgres' }) }, get: async () => driver } as unknown as ConnectionManager;
+  const table = (name: string): DbNode => ({ connId: 'preview', kind: 'table', database: 'db', schema: 'public', table: name, label: name });
+  await DataPanel.show({} as any, manager, table('users'), () => {});
+  const panel = panels.at(-1);
+  const html = panel.webview.html;
+  await DataPanel.show({} as any, manager, table('orders'), () => {});
+  assert.equal(panels.at(-1), panel);
+  assert.equal(panel.webview.html, html);
+  assert.equal(panel.title, 'orders');
+  const mount = panel.messages.find((m: any) => m.type === 'mount');
+  assert.equal(mount.init.title, 'orders');
+  assert.deepEqual(mount.init.initialData.rows, [['orders']]);
+  await panel.receive({ type: 'rpc', id: 1, method: 'load', params: { limit: 100, offset: 0 } });
+  assert.deepEqual(panel.messages.at(-1).result.rows, [['orders']]);
+  assert.deepEqual(tables, ['users', 'orders', 'orders']);
+  await DataPanel.show({} as any, manager, table('orders'), () => {});
+  assert.equal(panels.at(-1), panel);
+  await DataPanel.show({} as any, manager, table('users'), () => {});
+  const pinnedByReopen = panels.at(-1);
+  assert.notEqual(pinnedByReopen, panel);
+  await pinnedByReopen.receive({ type: 'pin' });
+  await DataPanel.show({} as any, manager, table('items'), () => {});
+  assert.notEqual(panels.at(-1), pinnedByReopen);
+  panels.at(-1).dispose();
+  pinnedByReopen.dispose();
+  panel.dispose();
 });

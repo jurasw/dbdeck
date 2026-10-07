@@ -3,31 +3,43 @@
   --fg: var(--vscode-editor-foreground, var(--vscode-foreground));
   --bg-2: color-mix(in srgb, var(--fg) 4%, var(--bg));
   --bg-3: color-mix(in srgb, var(--fg) 9%, var(--bg));
-  --muted: color-mix(in srgb, var(--fg) 60%, var(--bg));
+  --muted: var(--vscode-descriptionForeground, color-mix(in srgb, var(--fg) 60%, var(--bg)));
   --border: color-mix(in srgb, var(--fg) 11%, var(--bg));
   --border-strong: color-mix(in srgb, var(--fg) 17%, var(--bg));
-  --accent: var(--fg);
-  --accent-fg: var(--bg);
+  --accent: var(--vscode-button-background, var(--fg));
+  --accent-fg: var(--vscode-button-foreground, var(--bg));
+  --accent-hover: var(--vscode-button-hoverBackground, color-mix(in srgb, var(--accent) 90%, var(--bg)));
   --accent-soft: var(--bg-3);
-  --focus: color-mix(in srgb, var(--fg) 45%, var(--bg));
-  --ring: color-mix(in srgb, var(--fg) 22%, transparent);
-  --hover: color-mix(in srgb, var(--fg) 5%, var(--bg));
-  --sel: color-mix(in srgb, var(--fg) 10%, var(--bg));
+  --secondary: var(--vscode-button-secondaryBackground, var(--bg-3));
+  --secondary-fg: var(--vscode-button-secondaryForeground, var(--fg));
+  --secondary-hover: var(--vscode-button-secondaryHoverBackground, var(--sel-strong));
+  --focus: var(--vscode-focusBorder, color-mix(in srgb, var(--fg) 45%, var(--bg)));
+  --ring: color-mix(in srgb, var(--focus) 35%, transparent);
+  --hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--fg) 5%, var(--bg)));
+  --sel: var(--vscode-list-inactiveSelectionBackground, color-mix(in srgb, var(--fg) 10%, var(--bg)));
   --sel-strong: color-mix(in srgb, var(--fg) 16%, var(--bg));
-  --danger: #ef4444;
-  --danger-soft: color-mix(in srgb, #ef4444 14%, transparent);
-  --ok: #22c55e;
-  --ok-soft: color-mix(in srgb, #22c55e 14%, transparent);
-  --warn: #f59e0b;
-  --warn-soft: color-mix(in srgb, #f59e0b 16%, transparent);
+  --input-bg: var(--vscode-input-background, transparent);
+  --input-fg: var(--vscode-input-foreground, var(--fg));
+  --input-border: var(--vscode-input-border, var(--border-strong));
+  --overlay-bg: var(--vscode-editorWidget-background, var(--bg));
+  --overlay-fg: var(--vscode-editorWidget-foreground, var(--fg));
+  --overlay-border: var(--vscode-editorWidget-border, var(--border-strong));
+  --shadow-color: var(--vscode-widget-shadow, rgb(0 0 0 / 0.25));
+  --link: var(--vscode-textLink-foreground, var(--vscode-charts-blue, #5d9ee8));
+  --danger: var(--vscode-errorForeground, #ef4444);
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+  --ok: var(--vscode-testing-iconPassed, #22c55e);
+  --ok-soft: color-mix(in srgb, var(--ok) 14%, transparent);
+  --warn: var(--vscode-editorWarning-foreground, #f59e0b);
+  --warn-soft: color-mix(in srgb, var(--warn) 16%, transparent);
   --mono: var(--vscode-editor-font-family, ui-monospace, Menlo, monospace);
   --radius: 6px;
   --row-h: 30px;
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.05);
-  --c-str: var(--fg);
-  --c-num: var(--fg);
-  --c-bool: var(--fg);
-  --c-key: var(--fg);
+  --c-str: var(--vscode-debugTokenExpression-string, var(--fg));
+  --c-num: var(--vscode-debugTokenExpression-number, var(--fg));
+  --c-bool: var(--vscode-debugTokenExpression-boolean, var(--fg));
+  --c-key: var(--vscode-debugTokenExpression-name, var(--fg));
   --c-null: var(--muted);
 }
 
@@ -136,15 +148,16 @@ textarea {
   border-color: transparent;
 }
 .btn.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 90%, var(--bg));
+  background: var(--accent-hover);
 }
 .btn.secondary {
-  background: var(--bg-3);
+  background: var(--secondary);
+  color: var(--secondary-fg);
   border-color: transparent;
   box-shadow: none;
 }
 .btn.secondary:hover:not(:disabled) {
-  background: var(--sel-strong);
+  background: var(--secondary-hover);
 }
 .btn.ghost {
   background: transparent;
@@ -207,9 +220,9 @@ textarea {
   height: 32px;
   padding: 0 12px;
   border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--fg);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-fg);
   box-shadow: var(--shadow-xs);
   outline: none;
   min-width: 0;
@@ -548,11 +561,11 @@ textarea {
 }
 .gr:hover .gc,
 .gr:hover .rownum {
-  background: var(--hover);
+  background: linear-gradient(var(--hover) 0 0) var(--bg);
 }
 .gr.selected .gc,
 .gr.selected .rownum {
-  background: var(--sel);
+  background: linear-gradient(var(--sel) 0 0) var(--bg);
 }
 .gr.deleted .gc {
   text-decoration: line-through;
@@ -628,7 +641,7 @@ textarea {
   color: var(--c-key);
 }
 .gc .link {
-  color: var(--vscode-textLink-foreground);
+  color: var(--link);
 }
 .grid-editor {
   position: absolute;
@@ -862,10 +875,10 @@ textarea {
   max-width: 420px;
   padding: 12px 14px;
   border-radius: 8px;
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+  background: var(--overlay-bg);
+  color: var(--overlay-fg);
+  border: 1px solid var(--overlay-border);
+  box-shadow: 0 10px 30px var(--shadow-color);
   font-size: 13px;
   animation: pop 0.16s ease-out;
 }
@@ -909,9 +922,10 @@ textarea {
   display: flex;
   flex-direction: column;
   border-radius: 10px;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+  background: var(--overlay-bg);
+  color: var(--overlay-fg);
+  border: 1px solid var(--overlay-border);
+  box-shadow: 0 18px 50px var(--shadow-color);
   animation: pop 0.16s ease-out;
 }
 .modal .m-head {
@@ -951,10 +965,10 @@ textarea {
   min-width: 200px;
   padding: 4px;
   border-radius: 8px;
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+  background: var(--overlay-bg);
+  color: var(--overlay-fg);
+  border: 1px solid var(--overlay-border);
+  box-shadow: 0 10px 30px var(--shadow-color);
   font-size: 13px;
 }
 .menu .mi {

@@ -47,11 +47,11 @@ export function webviewHtml(webview: vscode.Webview, extUri: vscode.Uri, script:
 </html>`;
 }
 
-export function bindRpc(webview: vscode.Webview, handlers: Handlers | Promise<Handlers>): vscode.Disposable {
+export function bindRpc(webview: vscode.Webview, handlers: Handlers | Promise<Handlers> | (() => Handlers | Promise<Handlers>)): vscode.Disposable {
   return webview.onDidReceiveMessage(async (msg: { type: string; id?: number; method?: string; params?: unknown }) => {
     if (msg?.type !== 'rpc' || !msg.method) return;
     try {
-      const h = (await handlers)[msg.method];
+      const h = (await (typeof handlers === 'function' ? handlers() : handlers))[msg.method];
       if (!h) throw new Error(`Unknown method ${msg.method}`);
       const result = await h(msg.params ?? {});
       void webview.postMessage({ type: 'rpc:res', id: msg.id, result });

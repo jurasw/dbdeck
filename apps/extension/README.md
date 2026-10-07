@@ -22,6 +22,8 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 | --------------------------- | ------------------------------------------------------------- |
 | PostgreSQL, MySQL / MariaDB | SQL editor, data grid, primary-key row editing, DDL           |
 | ClickHouse                  | SQL editor, data browsing, DDL                                |
+| BigQuery                    | SQL editor, datasets, free table preview, DDL                 |
+| Snowflake                   | SQL editor, data browsing, DDL                                |
 | MongoDB                     | Document editor, filters, aggregation and shell-style scripts |
 | Redis                       | Key browser, value editors, TTL, CLI                          |
 | Elasticsearch / OpenSearch  | Index browser, documents and request console                  |
@@ -44,6 +46,9 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 - Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files)
 - S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers
 - Docker: containers grouped by Compose project, start / stop / restart / remove, logs, shell, inspect, images, volumes, networks, and **Add as Database Connection** that reads credentials from container env
+- BigQuery: datasets and tables in the tree, free table preview through the BigQuery API, row counts from table metadata and the bytes each query processes. Signs in with `gcloud auth application-default login` or a service account key file
+- Snowflake: databases, schemas, tables and views in the tree, SQL with your warehouse and role. Signs in with a programmatic access token or a key pair
+- Panels follow your editor color theme: buttons, inputs, menus, selection and value colors come from the active VS Code or Cursor theme
 
 ## Getting started
 
@@ -75,7 +80,7 @@ DBDeck makes network connections only to the databases you configure. Nothing is
 
 ## Schema diagram
 
-Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL and MySQL/MariaDB. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse displays tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
+Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL and MySQL/MariaDB. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse, BigQuery and Snowflake display tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
 
 ## AI queries
 
@@ -83,7 +88,7 @@ Describe a filter in the SQL table’s WHERE field and click the sparkle button 
 
 AI Query scrolls with the panel height and groups provider, model and account controls under **AI settings**, opened with the circular gear beside **AI agents (MCP)**.
 
-Use **DBDeck: Generate Query with AI**, the **Generate query with AI** action at the bottom of a bound SQL editor, or the SQL connection/table context menu. The schema or database where you open AI supplies the context automatically; from a table, the whole database is included with that table first. Describe your request in any language and review the generated SQL. **Open in query editor** creates a query bound to the selected connection; it does not execute it. PostgreSQL, MySQL and ClickHouse are supported.
+Use **DBDeck: Generate Query with AI**, the **Generate query with AI** action at the bottom of a bound SQL editor, or the SQL connection/table context menu. The schema or database where you open AI supplies the context automatically; from a table, the whole database is included with that table first. Describe your request in any language and review the generated SQL. **Open in query editor** creates a query bound to the selected connection; it does not execute it. PostgreSQL, MySQL, ClickHouse, BigQuery and Snowflake are supported.
 
 Choose **OpenAI · Continue with ChatGPT** to authorize DBDeck directly through OpenAI using your own eligible ChatGPT plan or credits. DBDeck uses OpenAI's public Responses API and your account's model catalog. Manage access and limits in [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage). Availability depends on OpenAI's preview and your account permissions. See [OpenAI's sign-in documentation](https://developers.openai.com/siwc/token-sharing-open-source/sign-in).
 
@@ -102,7 +107,7 @@ Run **DBDeck: Connect AI Agents (MCP)** to start a local MCP server. Agents can 
 - VS Code and Cursor see DBDeck automatically while the server runs.
 - For Claude Code, choose **Copy Claude Code command** and run it in a terminal. **Copy MCP JSON config** works for Claude Desktop, Windsurf and other clients.
 - Before an agent reads a connection for the first time, DBDeck asks you. **Forget allowed connections** resets these answers.
-- `run_query` runs one SELECT, WITH, SHOW, DESCRIBE or EXPLAIN statement in a read-only transaction (ClickHouse: `readonly=1`) with a 30-second limit. Up to `dbdeck.mcp.maxRows` rows (default 200) go back to the agent.
+- `run_query` runs one SELECT, WITH, SHOW, DESCRIBE or EXPLAIN statement in a read-only transaction (ClickHouse: `readonly=1`; BigQuery: at most 10 GB billed per query) with a 30-second limit. Up to `dbdeck.mcp.maxRows` rows (default 200) go back to the agent.
 - `open_query` never runs SQL. Inserts, updates and schema changes open in a query editor so you run them yourself.
 - The server listens on `127.0.0.1` only and needs an access token kept in SecretStorage. **Regenerate access token** replaces it. Turn the server off from the same command or with `dbdeck.mcp.enabled`.
 
@@ -114,7 +119,7 @@ Query results that an agent reads are sent to that agent's AI provider. For full
 
 ### Search all values
 
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players — Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
 
 Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 

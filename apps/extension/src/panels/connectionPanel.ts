@@ -50,6 +50,7 @@ export class ConnectionPanel {
         const r = await vscode.window.showOpenDialog({ canSelectMany: false, defaultUri: vscode.Uri.file(require('os').homedir() + '/.ssh'), openLabel: 'Use key' });
         return r?.[0]?.fsPath;
       },
+      pickFile: async () => (await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Use file' }))?.[0]?.fsPath,
       cancel: () => panel.dispose(),
     });
     panel.onDidDispose(() => {

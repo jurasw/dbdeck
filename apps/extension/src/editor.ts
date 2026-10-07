@@ -4,7 +4,7 @@ import { ElasticDriver, errorText } from './drivers/elastic';
 import { docsToGrid, MongoDriver } from './drivers/mongo';
 import { SqlDriver } from './drivers/sql';
 import { ResultsView } from './panels/resultsView';
-import { splitSql, statementAt, Statement } from './sqlSplit';
+import { splitSql, SqlDialect, statementAt, Statement } from './sqlSplit';
 import { ConnectionConfig, DbNode, FAMILY, QueryResult } from './types';
 import { errorMessage } from './util';
 
@@ -211,7 +211,7 @@ export class QueryEditors implements vscode.Disposable {
     const text = doc.getText();
     if (text.length > 500000) return [];
     let ranges: { start: number }[] = [];
-    if (doc.languageId === 'sql') ranges = splitSql(text, cfg?.type === 'mysql' ? 'mysql' : cfg?.type === 'clickhouse' ? 'clickhouse' : 'postgres');
+    if (doc.languageId === 'sql') ranges = splitSql(text, cfg && FAMILY[cfg.type] === 'sql' ? (cfg.type as SqlDialect) : 'postgres');
     else if (doc.languageId === 'dbdeck-es') ranges = parseEsRequests(text);
     else return [];
     const lenses = ranges.map((s: { start: number }) => {

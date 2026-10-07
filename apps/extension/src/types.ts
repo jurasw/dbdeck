@@ -1,4 +1,4 @@
-export type DbType = 'mysql' | 'postgres' | 'clickhouse' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
+export type DbType = 'mysql' | 'postgres' | 'clickhouse' | 'bigquery' | 'snowflake' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
 
 export type Family = 'sql' | 'mongo' | 'redis' | 'es' | 'docker' | 's3';
 
@@ -6,6 +6,8 @@ export const FAMILY: Record<DbType, Family> = {
   mysql: 'sql',
   postgres: 'sql',
   clickhouse: 'sql',
+  bigquery: 'sql',
+  snowflake: 'sql',
   mongodb: 'mongo',
   redis: 'redis',
   elasticsearch: 'es',
@@ -17,6 +19,8 @@ export const TYPE_LABEL: Record<DbType, string> = {
   mysql: 'MySQL / MariaDB',
   postgres: 'PostgreSQL',
   clickhouse: 'ClickHouse',
+  bigquery: 'BigQuery',
+  snowflake: 'Snowflake',
   mongodb: 'MongoDB',
   redis: 'Redis',
   elasticsearch: 'Elasticsearch',
@@ -28,6 +32,8 @@ export const DEFAULT_PORT: Record<DbType, number> = {
   mysql: 3306,
   postgres: 5432,
   clickhouse: 8123,
+  bigquery: 443,
+  snowflake: 443,
   mongodb: 27017,
   redis: 6379,
   elasticsearch: 9200,
@@ -67,6 +73,11 @@ export interface ConnectionConfig {
   endpoint?: string;
   region?: string;
   forcePathStyle?: boolean;
+  project?: string;
+  keyFile?: string;
+  warehouse?: string;
+  role?: string;
+  authMethod?: 'token' | 'keyPair';
   showSystem?: boolean;
   readonly?: boolean;
   savePassword?: boolean;

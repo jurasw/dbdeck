@@ -23,9 +23,9 @@ Verified domain (blue check) is optional. Microsoft requires 6 months of publish
 | --- | --- |
 | Display name | DBDeck — Database Client |
 | Identifier | `dbdeck.dbdeck` |
-| Short description | Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry. |
+| Short description | Free database client for MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry. |
 | Categories | Programming Languages, Other |
-| Tags | mysql, postgres, postgresql, mongodb, redis, elasticsearch, clickhouse, s3, minio, docker, database, sql, omnisearch |
+| Tags | mysql, postgres, postgresql, mongodb, redis, elasticsearch, clickhouse, bigquery, snowflake, s3, minio, docker, database, sql, omnisearch |
 | Pricing | Free |
 | License | MIT |
 | Homepage | https://dbdeck.dev |
@@ -63,10 +63,10 @@ Used in the extension README and on dbdeck.dev, in this order:
 
 ## Social / announcement text
 
-> DBDeck is a free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker in one sidebar, with a SQL editor, data grid, schema diagrams and SSH tunnels. No account, no paywall, no telemetry. https://dbdeck.dev
+> DBDeck is a free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker in one sidebar, with a SQL editor, data grid, schema diagrams and SSH tunnels. No account, no paywall, no telemetry. https://dbdeck.dev
 
 ## Search all values
 
-Omnisearch finds values across a database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB. Click the document-with-magnifier icon beside a database or schema and type `JUREK` to see `players — Jurek (name)`. Open a result in a filtered data tab. Previews include up to 20 matching rows per table and 200 distinct table/column/value results overall, with visible limits and skipped objects.
+Omnisearch finds values across a database or schema in PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon beside a database or schema and type `JUREK` to see `players — Jurek (name)`. Open a result in a filtered data tab. Previews include up to 20 matching rows per table and 200 distinct table/column/value results overall, with visible limits and skipped objects.
 
 Search beyond the current page in the current table, collection or index, with immediate search and a spinner in the search field while results load. MongoDB includes nested values and arrays; Elasticsearch searches indexed fields.

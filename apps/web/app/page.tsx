@@ -24,6 +24,8 @@ const services = [
   { icon: "postgres", name: "PostgreSQL" },
   { icon: "mysql", name: "MySQL / MariaDB" },
   { icon: "clickhouse", name: "ClickHouse" },
+  { icon: "bigquery", name: "BigQuery" },
+  { icon: "snowflake", name: "Snowflake" },
   { icon: "mongodb", name: "MongoDB" },
   { icon: "redis", name: "Redis" },
   { icon: "elasticsearch", name: "Elasticsearch" },
@@ -112,7 +114,7 @@ function Services() {
     <section id="features" aria-label="Supported services" className="scroll-mt-24 pb-6">
       <Shell className="text-center">
         <h2 className="text-sm text-muted-foreground">All your connections. One place.</h2>
-        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-8">
+        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-5 lg:grid-cols-10">
           {services.map((s, i) => (
             <li key={s.name} className="service-mark group flex flex-col items-center gap-3" style={{ animationDelay: `${i * -0.7}s` }}>
               <span className="relative grid size-16 place-items-center sm:size-20">
@@ -137,7 +139,7 @@ function Sql() {
           <div className="lg:col-span-5">
             <Heading lead="Write SQL" rest="where you write code." />
             <Lede>Write a query. Press <Kbd>⌘ Enter</Kbd>. See your results. Browse wide tables with smooth scrolling.</Lede>
-            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players — Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, ClickHouse and MongoDB.</p>
+            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players — Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, ClickHouse, BigQuery, Snowflake and MongoDB.</p>
           </div>
           <div className="min-w-0 lg:col-span-7">
             <SqlFigure code={"SELECT name, total\nFROM orders\nWHERE status = 'paid';"} />

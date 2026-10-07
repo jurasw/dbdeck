@@ -4,7 +4,9 @@ export interface Statement {
   end: number;
 }
 
-export function splitSql(src: string, dialect: 'mysql' | 'postgres' | 'clickhouse' = 'postgres'): Statement[] {
+export type SqlDialect = 'mysql' | 'postgres' | 'clickhouse' | 'bigquery' | 'snowflake';
+
+export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Statement[] {
   const out: Statement[] = [];
   let start = 0;
   let i = 0;
@@ -20,14 +22,14 @@ export function splitSql(src: string, dialect: 'mysql' | 'postgres' | 'clickhous
     const next = src[i + 1];
     if (c === '-' && next === '-') {
       i = lineEnd(src, i);
-    } else if (c === '#' && dialect === 'mysql') {
+    } else if (c === '#' && (dialect === 'mysql' || dialect === 'bigquery')) {
       i = lineEnd(src, i);
     } else if (c === '/' && next === '*') {
       const e = src.indexOf('*/', i + 2);
       i = e === -1 ? n : e + 2;
     } else if (c === "'" || c === '"' || c === '`') {
       i = quoteEnd(src, i, c, dialect !== 'postgres');
-    } else if (c === '$' && dialect === 'postgres') {
+    } else if (c === '$' && (dialect === 'postgres' || dialect === 'snowflake')) {
       const m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(src.slice(i, i + 64));
       if (m) {
         const e = src.indexOf(m[0], i + m[0].length);

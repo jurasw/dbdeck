@@ -11,23 +11,23 @@
   --foreground: var(--vscode-editor-foreground, var(--vscode-foreground));
   --card: var(--background);
   --card-foreground: var(--foreground);
-  --popover: var(--background);
-  --popover-foreground: var(--foreground);
-  --primary: var(--foreground);
-  --primary-foreground: var(--background);
-  --secondary: color-mix(in srgb, var(--foreground) 9%, var(--background));
-  --secondary-foreground: var(--foreground);
+  --popover: var(--vscode-editorWidget-background, var(--background));
+  --popover-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+  --primary: var(--vscode-button-background, var(--foreground));
+  --primary-foreground: var(--vscode-button-foreground, var(--background));
+  --secondary: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--foreground) 9%, var(--background)));
+  --secondary-foreground: var(--vscode-button-secondaryForeground, var(--foreground));
   --muted: color-mix(in srgb, var(--foreground) 9%, var(--background));
-  --muted-foreground: color-mix(in srgb, var(--foreground) 60%, var(--background));
-  --accent: color-mix(in srgb, var(--foreground) 9%, var(--background));
+  --muted-foreground: var(--vscode-descriptionForeground, color-mix(in srgb, var(--foreground) 60%, var(--background)));
+  --accent: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--foreground) 9%, var(--background)));
   --accent-foreground: var(--foreground);
-  --destructive: #ef4444;
-  --success: #22c55e;
+  --destructive: var(--vscode-errorForeground, #ef4444);
+  --success: var(--vscode-testing-iconPassed, #22c55e);
   --border: color-mix(in srgb, var(--foreground) 11%, var(--background));
   --input: color-mix(in srgb, var(--foreground) 17%, var(--background));
-  --input-background: transparent;
-  --input-foreground: var(--foreground);
-  --ring: color-mix(in srgb, var(--foreground) 45%, var(--background));
+  --input-background: var(--vscode-input-background, transparent);
+  --input-foreground: var(--vscode-input-foreground, var(--foreground));
+  --ring: var(--vscode-focusBorder, color-mix(in srgb, var(--foreground) 45%, var(--background)));
 }
 
 @theme inline {

@@ -1,7 +1,7 @@
 {
   "name": "dbdeck",
   "displayName": "DBDeck — Database Client",
-  "description": "Free database client for MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
+  "description": "Free database client for MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
   "version": "0.3.1",
   "publisher": "dbdeck",
   "icon": "media/icon.png",
@@ -22,6 +22,8 @@
     "redis",
     "elasticsearch",
     "clickhouse",
+    "bigquery",
+    "snowflake",
     "s3",
     "minio",
     "docker",
@@ -76,7 +78,7 @@
     "viewsWelcome": [
       {
         "view": "dbdeck.connections",
-        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, ClickHouse, MongoDB, Redis, Elasticsearch, S3 and Docker.\n[Import Connections](command:dbdeck.importConnections)"
+        "contents": "No connections yet.\n[Add Connection](command:dbdeck.addConnection)\nSupports MySQL, PostgreSQL, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker.\n[Import Connections](command:dbdeck.importConnections)"
       }
     ],
     "languages": [

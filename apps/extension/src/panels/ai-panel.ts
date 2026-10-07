@@ -3,7 +3,7 @@ import { AiService } from '../ai-service';
 import { ConnectionManager } from '../connections';
 import { SqlDriver } from '../drivers/sql';
 import { QueryEditors } from '../editor';
-import { DbNode } from '../types';
+import { DbNode, FAMILY } from '../types';
 import { bindRpc, webviewHtml, webviewOptions } from '../webviewHost';
 
 export class AiPanel {
@@ -24,7 +24,7 @@ export class AiPanel {
       const selected = await vscode.window.showQuickPick(
         manager.store
           .list()
-          .filter((c) => ['postgres', 'mysql', 'clickhouse'].includes(c.type))
+          .filter((c) => FAMILY[c.type] === 'sql')
           .map((config) => ({ label: config.name, description: config.type, config })),
         { title: 'AI query · SQL connection' },
       );
@@ -32,7 +32,7 @@ export class AiPanel {
       node = { connId: selected.config.id, kind: 'connection', label: selected.config.name, database: selected.config.database };
     }
     const driver = await manager.get(node.connId);
-    if (!(driver instanceof SqlDriver)) throw new Error('AI query generation currently supports PostgreSQL, MySQL and ClickHouse.');
+    if (!(driver instanceof SqlDriver)) throw new Error('AI query generation supports SQL connections.');
     const database = node.database ?? (await vscode.window.showQuickPick(await driver.databases(), { title: 'AI query · database' }));
     if (!database) return;
     const target: DbNode = { ...node, database };

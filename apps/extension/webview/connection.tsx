@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { INIT, rpc } from './lib';
 
-type DbType = 'mysql' | 'postgres' | 'clickhouse' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
+type DbType = 'mysql' | 'postgres' | 'clickhouse' | 'bigquery' | 'snowflake' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
 
 interface Ssh {
   enabled: boolean;
@@ -47,6 +47,11 @@ interface Conn {
   endpoint?: string;
   region?: string;
   forcePathStyle?: boolean;
+  project?: string;
+  keyFile?: string;
+  warehouse?: string;
+  role?: string;
+  authMethod?: 'token' | 'keyPair';
   showSystem?: boolean;
   readonly?: boolean;
   savePassword?: boolean;
@@ -61,6 +66,8 @@ const TYPES: { type: DbType; label: string; hint: string }[] = [
   { type: 'postgres', label: 'PostgreSQL', hint: 'Postgres, Timescale, Supabase, Neon' },
   { type: 'mysql', label: 'MySQL', hint: 'MySQL, MariaDB, TiDB, PlanetScale' },
   { type: 'clickhouse', label: 'ClickHouse', hint: 'HTTP interface' },
+  { type: 'bigquery', label: 'BigQuery', hint: 'Google BigQuery · gcloud credentials or a service account key' },
+  { type: 'snowflake', label: 'Snowflake', hint: 'Programmatic access token or key pair' },
   { type: 'mongodb', label: 'MongoDB', hint: 'Host or connection string' },
   { type: 'redis', label: 'Redis', hint: 'Redis, Valkey, KeyDB, Dragonfly' },
   { type: 'elasticsearch', label: 'Elasticsearch', hint: 'Elasticsearch, OpenSearch' },
@@ -233,7 +240,8 @@ function App() {
     setStatus(null);
   };
 
-  const payload = (): Conn => JSON.parse(JSON.stringify({ ...c, name: c.name || `${meta.label} ${c.endpoint || c.host || ''}`.trim() }));
+  const fallbackName = c.type === 'bigquery' ? `${meta.label} ${c.project || c.database || ''}` : `${meta.label} ${c.endpoint || c.host || ''}`;
+  const payload = (): Conn => JSON.parse(JSON.stringify({ ...c, name: c.name || fallbackName.trim() }));
 
   const test = async () => {
     setStatus({ kind: 'busy', text: 'Connecting…' });
@@ -290,10 +298,92 @@ function App() {
         </>
       );
     }
+    const fileInput = (key: 'keyFile', placeholder: string) => (
+      <div className="flex gap-1.5">
+        {text(key, placeholder, 'text', true)}
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          title="Browse"
+          onClick={async () => {
+            const p = await rpc<string | undefined>('pickFile');
+            if (p) set({ [key]: p });
+          }}
+        >
+          <FolderOpen />
+        </Button>
+      </div>
+    );
+    if (t === 'bigquery') {
+      return (
+        <>
+          <Field label="Project ID" span={6} htmlFor="project" hint="Queries run and are billed in this project. Empty: the project of the credentials.">
+            {text('project', 'my-project-123', 'text', true)}
+          </Field>
+          <Field label="Location" span={6} htmlFor="region" hint="Optional. Detected from the tables when empty.">
+            {text('region', 'US, EU, europe-west1…')}
+          </Field>
+          <Field label="Credentials file" span={12} htmlFor="keyFile" hint="Service account key JSON. Empty: the credentials of gcloud auth application-default login.">
+            {fileInput('keyFile', 'application default credentials')}
+          </Field>
+          <Field label="Default dataset" span={6} htmlFor="database" hint="All datasets are listed; this one is opened first.">
+            {text('database', 'optional')}
+          </Field>
+        </>
+      );
+    }
+    if (t === 'snowflake') {
+      const keyPair = c.authMethod === 'keyPair';
+      return (
+        <>
+          <Field label="Account" span={8} htmlFor="host" hint="Account identifier or the full account URL.">
+            {text('host', 'myorg-myaccount', 'text', true)}
+          </Field>
+          <Field label="User" span={4} htmlFor="user">
+            {text('user', 'JANE')}
+          </Field>
+          <Field label="Authentication" span={4}>
+            <Select value={keyPair ? 'keyPair' : 'token'} onValueChange={(v) => set({ authMethod: v as Conn['authMethod'], password: undefined })}>
+              <SelectTrigger size="sm" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="token">Programmatic access token</SelectItem>
+                <SelectItem value="keyPair">Key pair</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          {keyPair ? (
+            <>
+              <Field label="Private key" span={8} htmlFor="keyFile">
+                {fileInput('keyFile', '~/.snowflake/rsa_key.p8')}
+              </Field>
+              <Field label="Passphrase" span={4} htmlFor="password">
+                {password('password', c.password, (v) => set({ password: v }), 'optional')}
+              </Field>
+            </>
+          ) : (
+            <Field label="Token" span={8} htmlFor="password" hint="Create one in Snowsight: your profile › Programmatic access tokens.">
+              {password('password', c.password, (v) => set({ password: v }))}
+            </Field>
+          )}
+          <Field label="Warehouse" span={4} htmlFor="warehouse" hint="Empty: the user's default.">
+            {text('warehouse', 'COMPUTE_WH')}
+          </Field>
+          <Field label="Role" span={4} htmlFor="role" hint="Empty: the user's default.">
+            {text('role', 'ANALYST')}
+          </Field>
+          <Field label="Database" span={4} htmlFor="database">
+            {text('database', 'optional')}
+          </Field>
+        </>
+      );
+    }
     if (t === 's3') {
       return (
         <>
-          <Field label="Endpoint" span={8} htmlFor="endpoint" hint="Empty for AWS. MinIO: http://127.0.0.1:9000 · R2: https://<account>.r2.cloudflarestorage.com">
+          <Field label="Endpoint" span={8} htmlFor="endpoint" hint={`Empty for AWS. MinIO: http://127.0.0.1:9000 · R2: https://<account>.r2.cloudflarestorage.com`}>
             {text('endpoint', 'https://s3.amazonaws.com', 'text', true)}
           </Field>
           <Field label="Region" span={4} htmlFor="region">
@@ -424,7 +514,8 @@ function App() {
 
   const isDocker = c.type === 'docker';
   const isS3 = c.type === 's3';
-  const showSsh = !isS3 && !(isDocker && c.useSocket !== false);
+  const isCloud = c.type === 'bigquery' || c.type === 'snowflake';
+  const showSsh = !isS3 && !isCloud && !(isDocker && c.useSocket !== false);
 
   return (
     <div className="flex h-full flex-col">
@@ -482,10 +573,10 @@ function App() {
 
           <Section icon={<Server />} title={isDocker ? 'Docker engine' : isS3 ? 'Storage' : 'Server'}>
             {serverFields()}
-            {!isDocker && (
+            {!isDocker && c.type !== 'bigquery' && (
               <Toggle
                 id="savePassword"
-                label={isS3 ? 'Remember secret key' : 'Remember password'}
+                label={isS3 ? 'Remember secret key' : c.type === 'snowflake' ? (c.authMethod === 'keyPair' ? 'Remember passphrase' : 'Remember token') : 'Remember password'}
                 hint="On: OS keychain. Off: asked on connect, kept in memory only."
                 checked={c.savePassword !== false}
                 onChange={(v) => set({ savePassword: v })}
@@ -558,7 +649,7 @@ function App() {
           )}
 
           <Section title="Options" open={optionsOpen} onOpenChange={setOptionsOpen}>
-            {!isS3 && (!isDocker || c.useSocket === false) && (
+            {!isS3 && !isCloud && (!isDocker || c.useSocket === false) && (
               <Toggle id="ssl" label="Use SSL / TLS" hint="Encrypt the connection" checked={!!c.ssl} onChange={(v) => set({ ssl: v })} />
             )}
             {(c.ssl || isS3) && (
