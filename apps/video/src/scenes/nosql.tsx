@@ -4,6 +4,7 @@ import { cn } from "../lib/cn";
 import { between, ramp, rise, typed } from "../lib/motion";
 import { Cursor } from "../ui/cursor";
 import { Caret, Frame, TypeIcon } from "../ui/primitives";
+import { Sfx } from "../ui/sfx";
 import { Camera, useShot } from "../ui/stage";
 
 const fields = [
@@ -148,6 +149,8 @@ export function NoSqlShot() {
           />
         </div>
       </Camera>
+      <Sfx name="tick" at={editAt - 40} volume={0.18} />
+      <Sfx name="ding" at={editAt + 1300} volume={0.14} />
     </AbsoluteFill>
   );
 }

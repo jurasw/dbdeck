@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts promo out/dbdeck-promo.mp4",
-    "still": "remotion still src/index.ts promo out/still.png",
+    "dev": "npm run audio && remotion studio src/index.ts",
+    "audio": "node scripts/make-audio.mjs",
+    "render": "npm run audio && remotion render src/index.ts promo out/dbdeck-promo.mp4",
+    "still": "npm run audio && remotion still src/index.ts promo out/still.png",
+    "thumbnail": "remotion still src/index.ts thumbnail out/thumbnail.png",
     "check": "tsc --noEmit"
   },
   "dependencies": {

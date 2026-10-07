@@ -94,6 +94,7 @@ export function StackShot() {
           <span className={small}>No account. No paywall.</span>
         </Kinetic>
       </div>
+
     </AbsoluteFill>
   );
 }

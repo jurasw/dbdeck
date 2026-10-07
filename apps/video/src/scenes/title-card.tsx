@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { AbsoluteFill } from "remotion";
 import { Kinetic } from "../ui/kinetic";
+import { Sfx } from "../ui/sfx";
 import { useShot } from "../ui/stage";
 
 export function TitleCard({ icon: Icon, title, kicker }: { icon: LucideIcon; title: string; kicker?: string }) {
@@ -14,6 +15,7 @@ export function TitleCard({ icon: Icon, title, kicker }: { icon: LucideIcon; tit
         </div>
         {kicker && <span className="mt-6 font-mono text-[26px] tracking-[0.3em] text-muted-foreground uppercase">{kicker}</span>}
       </Kinetic>
+      <Sfx name="swish" at={0} volume={0.22} />
     </AbsoluteFill>
   );
 }

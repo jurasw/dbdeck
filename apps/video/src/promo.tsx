@@ -1,7 +1,6 @@
-import { loadFont as loadDisplay } from "@remotion/google-fonts/FunnelDisplay";
-import { loadFont as loadMono } from "@remotion/google-fonts/GeistMono";
 import { Layers, Lock, Network, Search, Sparkles, Wand2 } from "lucide-react";
-import { AbsoluteFill, Series } from "remotion";
+import { AbsoluteFill, Html5Audio, Series, staticFile } from "remotion";
+import { fontVars } from "./lib/fonts";
 import { frames } from "./lib/motion";
 import { EndCard, PrivacyShot, ServicesShot, StackShot } from "./scenes/closing";
 import { Hook } from "./scenes/hook";
@@ -12,38 +11,36 @@ import { TitleCard } from "./scenes/title-card";
 import { Backdrop, Shot } from "./ui/stage";
 import "./style.css";
 
-const display = loadDisplay("normal", { weights: ["400", "600", "700", "800"], subsets: ["latin", "latin-ext"] });
-const mono = loadMono("normal", { weights: ["400", "500"], subsets: ["latin", "latin-ext"] });
-
 const card = 1000;
 
 const timeline: [number, React.ReactNode][] = [
-  [3800, <Hook />],
-  [3600, <Reveal />],
-  [4200, <Shot><BrowseShot /></Shot>],
+  [4000, <Hook />],
+  [3500, <Reveal />],
+  [4000, <Shot><BrowseShot /></Shot>],
   [card, <TitleCard icon={Search} title="Omnisearch" />],
-  [3600, <Shot><SearchShot /></Shot>],
+  [3500, <Shot><SearchShot /></Shot>],
   [card, <TitleCard icon={Wand2} title="AI filter" />],
-  [6200, <Shot><FilterShot /></Shot>],
+  [6000, <Shot><FilterShot /></Shot>],
   [card, <TitleCard icon={Sparkles} title="AI query" />],
-  [6600, <Shot><QueryShot /></Shot>],
+  [6500, <Shot><QueryShot /></Shot>],
   [card, <TitleCard icon={Network} title="Schema diagram" />],
-  [4600, <Shot><DiagramShot /></Shot>],
+  [4500, <Shot><DiagramShot /></Shot>],
   [card, <TitleCard icon={Layers} title="Beyond SQL" kicker="Redis · MongoDB · Elasticsearch" />],
-  [3800, <Shot><NoSqlShot /></Shot>],
-  [3400, <ServicesShot />],
+  [4000, <Shot><NoSqlShot /></Shot>],
+  [3500, <ServicesShot />],
   [card, <TitleCard icon={Lock} title="Private by design" />],
-  [3200, <PrivacyShot />],
-  [2800, <StackShot />],
-  [4200, <EndCard />],
+  [3000, <PrivacyShot />],
+  [3000, <StackShot />],
+  [4500, <EndCard />],
 ];
 
 export const PROMO_FRAMES = timeline.reduce((sum, [d]) => sum + frames(d), 0);
 
 export function Promo() {
   return (
-    <AbsoluteFill style={{ ["--font-display" as string]: display.fontFamily, ["--font-geist-mono" as string]: mono.fontFamily }} className="font-sans">
+    <AbsoluteFill style={fontVars} className="font-sans">
       <Backdrop />
+      <Html5Audio src={staticFile("audio/music.wav")} volume={0.55} />
       <Series>
         {timeline.map(([d, node], i) => (
           <Series.Sequence key={i} durationInFrames={frames(d)}>

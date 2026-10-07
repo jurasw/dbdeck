@@ -2,6 +2,7 @@ import { AbsoluteFill } from "remotion";
 import { easeIn, easeOut, ramp } from "../lib/motion";
 import { Kinetic } from "../ui/kinetic";
 import { TypeIcon } from "../ui/primitives";
+import { Sfx } from "../ui/sfx";
 import { useShot } from "../ui/stage";
 
 const messages = [
@@ -42,7 +43,7 @@ function Bubble({ who, tone, text }: { who: string; tone: string; text: string }
 
 export function Hook() {
   const { t, dur } = useShot();
-  const textAt = 1900;
+  const textAt = 2000;
   const back = ramp(t, textAt - 200, 600, easeOut);
   const collapse = ramp(t, dur - 520, 520, easeIn);
   return (
@@ -84,6 +85,10 @@ export function Hook() {
           </div>
         );
       })}
+      {messages.map((m, i) => (
+        <Sfx key={m.who} name="blip" at={m.at} volume={0.1 + i * 0.01} />
+      ))}
+      <Sfx name="swish" at={textAt - 150} volume={0.2} />
       <AbsoluteFill className="items-center justify-center">
         <Kinetic t={t} dur={dur} delay={textAt} exit={420}>
           <span className="font-heading text-[150px] leading-none font-extrabold tracking-tight text-foreground uppercase">Tired of this?</span>

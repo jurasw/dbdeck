@@ -1,6 +1,7 @@
 import { AbsoluteFill } from "remotion";
 import { ramp } from "../lib/motion";
 import { Cursor, type CursorKey } from "../ui/cursor";
+import { Sfx } from "../ui/sfx";
 import { Camera, useShot, type CamKey } from "../ui/stage";
 import { filterAt, queryAt, Workbench, WORKBENCH, type SceneId } from "../ui/workbench";
 
@@ -8,14 +9,16 @@ function ProductShot({
   scene,
   camera,
   cursor,
-  clicks,
+  clicks = [],
   caption,
+  chimes = [],
 }: {
   scene: SceneId;
   camera: CamKey[];
   cursor?: CursorKey[];
   clicks?: number[];
   caption: string;
+  chimes?: number[];
 }) {
   const { t, dur } = useShot();
   const cap = ramp(t, 250, 500) * (1 - ramp(t, dur - 400, 300));
@@ -33,6 +36,8 @@ function ProductShot({
           {caption}
         </div>
       </AbsoluteFill>
+      {clicks.map((at) => <Sfx key={`c${at}`} name="tick" at={at} volume={0.18} />)}
+      {chimes.map((at) => <Sfx key={`h${at}`} name="ding" at={at} volume={0.14} />)}
     </AbsoluteFill>
   );
 }
@@ -76,7 +81,7 @@ export function SearchShot() {
         { at: 900, x: 196, y: 56 },
         { at: 1600, x: 420, y: 260 },
       ]}
-      clicks={[420]}
+      clicks={[420, 2500]}
     />
   );
 }
@@ -101,6 +106,7 @@ export function FilterShot() {
         { at: filterAt.filtered + 900, x: 900, y: 330 },
       ]}
       clicks={[filterAt.sparkle, filterAt.apply]}
+      chimes={[filterAt.generated]}
     />
   );
 }
@@ -125,6 +131,7 @@ export function QueryShot() {
         { at: queryAt.results + 900, x: 520, y: 470 },
       ]}
       clicks={[queryAt.generate, queryAt.open]}
+      chimes={[queryAt.results]}
     />
   );
 }
