@@ -62,7 +62,7 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 - SQL editor: run the statement under the cursor (`⌘/Ctrl+Enter`), run all (`⌘/Ctrl+Shift+Enter`), `▶ Run` CodeLens, table and column completion with alias resolution
 - Results panel: one tab per statement, row filter, JSON view, export to CSV / JSON
 - DDL for tables, views, functions and procedures; truncate and drop
-- MongoDB: document grid and JSON view, filter / sort / projection, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
+- MongoDB: document grid and JSON view with in-place value and key editing, filter / sort / projection, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
 - Redis: key tree grouped by separator, SCAN filter, editors for string (text / JSON), hash, list, set, sorted set, stream and RedisJSON, TTL and rename, built-in CLI terminal
 - Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files). Choose **Kibana URL**, enter the address and use **Open Kibana API keys** to sign in with Google or company SSO in your browser. Create a Personal API key, paste its Encoded value and test the connection. Browser sign-in alone does not connect the extension
 - S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers, and with Google Cloud Storage through Sign in with Google under Options
@@ -107,7 +107,7 @@ Open **DBDeck** in the activity bar, choose **Add Connection**, then select a da
       <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/readme/mongo-inline-edit.gif" alt="A MongoDB users collection in the grid: two fields are edited inline and saved, then the JSON view opens" width="100%">
       <h3>Documents, edited in place</h3>
       <p>MongoDB and Elasticsearch documents in a grid or a JSON tree.
-      Double-click a field to change it, or write shell-style queries like <code>db.users.find({...}).sort(...)</code>.</p>
+      Double-click a field to change it, edit nested values and keys in the JSON view, or write shell-style queries like <code>db.users.find({...}).sort(...)</code>.</p>
     </td>
     <td valign="top" width="50%">
       <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/screenshots/redis.png" alt="Redis key tree grouped by prefix and the hash editor for user:42" width="100%">
@@ -141,11 +141,11 @@ Use **Search all records** in a data viewer to search beyond the current page in
 
 ## AI queries
 
-Describe a filter in the SQL table’s WHERE field and click the sparkle button to generate a condition from that table’s schema. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
+Describe a filter in the WHERE field of a SQL table, the FILTER field of a MongoDB collection or the QUERY field of an Elasticsearch index and click the sparkle button to generate a condition from its schema. MongoDB fields come from a local sample of up to 100 documents; only field names and types are sent. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
 
 AI Query scrolls with the panel height and groups provider, model and account controls under **AI settings**, opened with the circular gear beside **AI agents (MCP)**.
 
-Use **DBDeck: Generate Query with AI**, the **Generate query with AI** action at the bottom of a bound SQL editor, or the SQL connection/table context menu. The schema or database where you open AI supplies the context automatically; from a table, the whole database is included with that table first. Describe your request in any language and review the generated SQL. **Open in query editor** creates a query bound to the selected connection; it does not execute it. PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery and Snowflake are supported.
+Use **DBDeck: Generate Query with AI**, the **Generate query with AI** action at the bottom of a bound query editor, or the connection, table, collection or index context menu. The schema or database where you open AI supplies the context automatically; from a table, the whole database is included with that table first. Describe your request in any language and review the generated query: SQL, a mongosh query for MongoDB or a Kibana Dev Tools request for Elasticsearch. **Open in query editor** creates a query bound to the selected connection; it does not execute it. PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery, Snowflake, MongoDB and Elasticsearch are supported.
 
 Choose **OpenAI · Continue with ChatGPT** to authorize DBDeck directly through OpenAI using your own eligible ChatGPT plan or credits. DBDeck uses OpenAI's public Responses API and your account's model catalog. Manage access and limits in [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage). Availability depends on OpenAI's preview and your account permissions. See [OpenAI's sign-in documentation](https://developers.openai.com/siwc/token-sharing-open-source/sign-in).
 
@@ -159,9 +159,9 @@ AI Query builds its context automatically: from a schema it uses that schema, fr
 
 ## Chat with Database
 
-Click the sparkle button in a SQL table's header to open the assistant beside the table with that table as context. Hover a SQL connection in Connections and click its chat icon, click the chat icon in a bound SQL editor, choose **Chat with database** in AI Query, run **DBDeck: Chat with Database**, or right-click a SQL connection, database or schema in Connections. Ask questions in any language. The assistant calls `list_tables` and `describe_table` to read the schema and answers with SQL in code blocks. Each code block has **Copy**, **Open in editor** and **Run**; **Run** executes the statement read-only and shows the rows in the chat without sending them to the AI.
+Click the sparkle button in the header of a table, MongoDB collection or Elasticsearch index to open the assistant beside it with that object as context. Hover a SQL, MongoDB or Elasticsearch connection in Connections and click its chat icon, click the chat icon in a bound query editor, choose **Chat with database** in AI Query, run **DBDeck: Chat with Database**, or right-click a connection, database, schema, collection or index in Connections. Ask questions in any language. The assistant calls `list_tables` and `describe_table` to read the schema and answers with queries in code blocks. Each code block has **Copy**, **Open in editor** and, for SQL and Elasticsearch, **Run**; **Run** executes the statement read-only and shows the rows in the chat without sending them to the AI.
 
-Turn on **Let AI run read-only queries** to let the assistant run SELECT, WITH, SHOW, DESCRIBE and EXPLAIN statements itself and answer from the results. DBDeck asks once per connection. Queries run through the same read-only path as MCP; the assistant gets at most 100 rows per query and the chat shows up to 200. Query results go to your AI provider; without this option only table and column names do. Inserts, updates and schema changes never run from the chat.
+Turn on **Let AI run read-only queries** to let the assistant run SELECT, WITH, SHOW, DESCRIBE and EXPLAIN statements, MongoDB finds and aggregations without `$out` or `$merge`, or Elasticsearch GET requests and POST `_search`, `_count`, `_field_caps`, `_sql` and `_validate/query` itself and answer from the results. DBDeck asks once per connection. Queries run through the same read-only path as MCP; the assistant gets at most 100 rows per query and the chat shows up to 200. Query results go to your AI provider; without this option only table and column names do. Inserts, updates and schema changes never run from the chat.
 
 The chat uses the provider and model from **AI settings**: ChatGPT, an OpenAI or Claude API key, an OpenAI-compatible API or Ollama. Local models must support tool calling. **New chat** clears the conversation; nothing is saved.
 

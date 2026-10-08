@@ -49,6 +49,16 @@ export async function runEs(driver: ElasticDriver, text: string): Promise<QueryR
   return res;
 }
 
+export async function runEsReadOnly(driver: ElasticDriver, text: string): Promise<QueryResult> {
+  const requests = parseEsRequests(text);
+  if (requests.length !== 1) throw new Error('Run exactly one request, like: GET /index/_search');
+  const { method, path } = requests[0];
+  const route = path.split('?')[0];
+  const reads = method === 'GET' || method === 'HEAD' || (method === 'POST' && /\/_(search|count|field_caps|sql|validate\/query)$/.test(route));
+  if (!reads) throw new Error('Only GET requests and POST _search, _count, _field_caps, _sql or _validate/query requests can run here.');
+  return runEs(driver, text);
+}
+
 export async function executeQueries(driver: BaseDriver, pieces: string[], database?: string, maxRows = 5000): Promise<QueryResult[]> {
   const out: QueryResult[] = [];
   for (const sql of pieces) {

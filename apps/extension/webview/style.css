@@ -1112,6 +1112,58 @@ button:disabled,
 .json .oid {
   color: var(--muted);
 }
+.json .jdoc {
+  position: relative;
+}
+.json.editable .jc .jl:hover {
+  background: var(--hover);
+}
+.json.editable .jdoc .k,
+.json.editable .jdoc .v {
+  cursor: text;
+}
+.json .jin {
+  height: 20px;
+  min-width: 8ch;
+  padding: 0 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  vertical-align: middle;
+}
+.json .jadd .jin {
+  width: 18ch;
+}
+.json .jdoc-edit {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  opacity: 0;
+}
+.json .jdoc:hover > .jdoc-edit,
+.json .jdoc-edit:focus-visible {
+  opacity: 1;
+}
+.json .jdoc-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 8px;
+  white-space: normal;
+}
+.json .jdoc-editor .textarea {
+  width: 100%;
+}
+.json .jdoc-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.json .jdoc-foot .m-error {
+  color: var(--danger);
+  margin-right: auto;
+  white-space: pre-wrap;
+}
 
 .split {
   flex: 1;

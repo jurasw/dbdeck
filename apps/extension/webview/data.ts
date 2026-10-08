@@ -1,8 +1,10 @@
 import { Grid, GridColumn } from './grid';
 import { parseCellValue } from './cell-value';
+import { fieldCaret } from './doc-caret';
 import { duplicateRow } from './row-duplicate';
 import { RowChanges, undoChanges } from './row-undo';
-import { jsonView } from './json';
+import { addValue, editText, parseEdit, planWrite, removeValue, renameField, setValue, valueAt } from './doc-edit';
+import { JsonPath, jsonPath, jsonView } from './json';
 import {
   btn,
   clear,
@@ -352,16 +354,252 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
         {
           label: 'Save',
           primary: true,
-          onClick: async () => {
-            JSON.parse(ta.value);
-            await rpc('replace', { id: doc._id, text: ta.value });
-            toast('Document saved', 'success', undefined, { label: 'Undo', run: () => undo(() => rpc('replace', { id: doc._id, text: JSON.stringify(doc) }).then(() => load())) });
-            void load();
-          },
+          onClick: () => replaceDoc(doc, ta.value),
         },
       ],
       { icon: 'edit', wide: true },
     );
+  }
+
+  async function replaceDoc(doc: Record<string, unknown>, text: string): Promise<void> {
+    JSON.parse(text);
+    await rpc('replace', { id: doc._id, text });
+    savedToast(doc);
+    keepJsonScroll = true;
+    void load();
+  }
+
+  function savedToast(before: Record<string, unknown>): void {
+    toast('Document saved', 'success', undefined, { label: 'Undo', run: () => undo(() => rpc('replace', { id: before._id, text: JSON.stringify(before) }).then(() => load())) });
+  }
+
+  async function commitDoc(r: number, after: Record<string, unknown>): Promise<void> {
+    const before = docs[r];
+    const write = planWrite(before, after);
+    keepJsonScroll = true;
+    if (!write) return renderBody();
+    if ('field' in write) await rpc('updateField', { id: before._id, field: write.field, text: JSON.stringify(write.value) });
+    else await rpc('replace', { id: before._id, text: JSON.stringify(write.doc) });
+    savedToast(before);
+    await load();
+  }
+
+  const canEditDoc = (r: number) => I.editable && docs[r]?._id !== undefined;
+  const jsonOpen = new Map<string, boolean>();
+  let keepJsonScroll = false;
+
+  function jsonDocs(): HTMLElement {
+    const root = jsonView(docs, 1, { item: jsonDoc, open: jsonOpen, key: (path) => JSON.stringify([docs[path[0] as number]?._id, ...path.slice(1)]) });
+    root.classList.toggle('editable', I.editable);
+    root.addEventListener('dblclick', onJsonDblClick);
+    root.addEventListener('contextmenu', onJsonContext);
+    return root;
+  }
+
+  function jsonDoc(el: HTMLElement, r: number): void {
+    if (!canEditDoc(r)) return;
+    el.classList.add('jdoc');
+    el.prepend(btn(null, { icon: 'edit', class: 'sm ghost jdoc-edit', title: 'Edit document as JSON', onClick: () => editDocInline(el, r) }));
+  }
+
+  interface JsonTarget {
+    line: HTMLElement;
+    r: number;
+    doc: Record<string, unknown>;
+    path: JsonPath;
+  }
+
+  function jsonTarget(e: MouseEvent): JsonTarget | undefined {
+    const line = (e.target as HTMLElement).closest<HTMLElement>('.jl');
+    const full = line ? jsonPath(line) : undefined;
+    if (!line || !full?.length || !docs[full[0] as number]) return undefined;
+    return { line, r: full[0] as number, doc: docs[full[0] as number], path: full.slice(1) };
+  }
+
+  function onJsonDblClick(e: MouseEvent): void {
+    const t = jsonTarget(e);
+    const target = e.target as HTMLElement;
+    if (!t || !t.path.length || t.path[0] === '_id' || !canEditDoc(t.r) || target.closest('.tog, .p, .jdoc-edit, input, textarea, button')) return;
+    e.preventDefault();
+    window.getSelection()?.removeAllRanges();
+    if (target.classList.contains('k')) renameInline(t);
+    else editValueInline(t);
+  }
+
+  function onJsonContext(e: MouseEvent): void {
+    const t = jsonTarget(e);
+    if (!t || (e.target as HTMLElement).closest('input, textarea')) return;
+    e.preventDefault();
+    const value = t.path.length ? valueAt(t.doc, t.path) : t.doc;
+    const editable = canEditDoc(t.r);
+    const field = t.path.length && t.path[0] !== '_id' && editable;
+    const isItem = typeof t.path[t.path.length - 1] === 'number';
+    const isContainer = value !== null && typeof value === 'object' && !t.line.querySelector(':scope > .oid');
+    const docEl = t.line.closest<HTMLElement>('.jdoc');
+    const items: MenuItem[] = [];
+    if (field) items.push({ label: 'Edit value', icon: 'edit', action: () => editValueInline(t) });
+    if (field && !isItem) items.push({ label: 'Rename field', icon: 'symbol-key', action: () => renameInline(t) });
+    if (editable && isContainer) items.push({ label: Array.isArray(value) ? 'Add item' : 'Add field', icon: 'add', action: () => addInline(t, Array.isArray(value)) });
+    if (field)
+      items.push({
+        label: isItem ? 'Delete item' : 'Delete field',
+        icon: 'trash',
+        danger: true,
+        action: () => void commitDoc(t.r, removeValue(t.doc, t.path)).catch((err) => toast((err as Error).message, 'error')),
+      });
+    if (items.length) items.push('-');
+    items.push({
+      label: 'Copy value',
+      icon: 'copy',
+      action: () => void rpc('copy', { text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }).then(() => toast('Copied')),
+    });
+    if (t.path.length) items.push({ label: 'Copy path', icon: 'symbol-field', action: () => void rpc('copy', { text: t.path.join('.') }).then(() => toast('Copied')) });
+    if (editable && docEl) items.push('-', { label: 'Edit document as JSON', icon: 'json', action: () => editDocInline(docEl, t.r, t.path[0] as string | undefined) });
+    contextMenu(e.clientX, e.clientY, items);
+  }
+
+  function editValueInline(t: JsonTarget): void {
+    const original = valueAt(t.doc, t.path);
+    const text = editText(original);
+    const save = (v: string) => commitDoc(t.r, setValue(t.doc, t.path, parseEdit(v, original)));
+    const scalar = t.line.querySelector<HTMLElement>(':scope > .v');
+    if (scalar && !text.includes('\n')) return inlineInput(scalar, text, save, typeof original === 'string' ? 'text' : 'JSON value');
+    inlineEditor(scalar ? t.line : (t.line.parentElement as HTMLElement), text, 0, save);
+  }
+
+  function renameInline(t: JsonTarget): void {
+    const key = t.line.querySelector<HTMLElement>(':scope > .k');
+    if (key) inlineInput(key, String(t.path[t.path.length - 1]), (v) => commitDoc(t.r, renameField(t.doc, t.path, v)), 'field name');
+  }
+
+  function addInline(t: JsonTarget, isArray: boolean): void {
+    const wrap = t.line.parentElement as HTMLElement;
+    const kids = wrap.querySelector<HTMLElement>(':scope > .jc');
+    if (kids?.classList.contains('hidden')) t.line.querySelector<HTMLElement>(':scope > .tog')?.click();
+    const keyInput = isArray ? null : (h('input.input.jin', { placeholder: 'field', spellcheck: 'false' }) as HTMLInputElement);
+    const valueInput = h('input.input.jin', { placeholder: 'value', spellcheck: 'false' }) as HTMLInputElement;
+    const row = h('div.jl.jadd', null, h('span.tog'), keyInput, keyInput ? ': ' : null, valueInput);
+    let busy = false;
+    const submit = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        await commitDoc(t.r, addValue(t.doc, t.path, keyInput?.value.trim(), parseEdit(valueInput.value, undefined)));
+      } catch (err) {
+        busy = false;
+        toast((err as Error).message, 'error');
+      }
+    };
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        row.remove();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.target === keyInput) valueInput.focus();
+        else void submit();
+      }
+    });
+    row.addEventListener('focusout', (e) => {
+      if (row.contains(e.relatedTarget as Node)) return;
+      if (!busy && !keyInput?.value.trim() && !valueInput.value) row.remove();
+    });
+    if (kids && t.line.querySelector(':scope > .tog')?.textContent) kids.appendChild(row);
+    else {
+      row.style.paddingLeft = '18px';
+      t.line.after(row);
+    }
+    (keyInput ?? valueInput).focus();
+  }
+
+  function inlineInput(anchor: HTMLElement, text: string, save: (v: string) => Promise<void>, placeholder: string): void {
+    const input = h('input.input.jin', { placeholder, spellcheck: 'false', 'aria-label': placeholder }) as HTMLInputElement;
+    input.value = text;
+    const size = () => (input.style.width = `${Math.min(80, Math.max(8, input.value.length + 2))}ch`);
+    size();
+    input.addEventListener('input', size);
+    let state: 'open' | 'saving' | 'done' = 'open';
+    const finish = async (commit: boolean, stay: boolean) => {
+      if (state !== 'open') return;
+      if (commit && input.value !== text) {
+        state = 'saving';
+        try {
+          await save(input.value);
+          state = 'done';
+          return;
+        } catch (e) {
+          toast((e as Error).message, 'error');
+          state = 'open';
+          if (stay) return input.focus();
+        }
+      }
+      state = 'done';
+      input.replaceWith(anchor);
+    };
+    input.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        void finish(false, false);
+      } else if (e.key === 'Enter' || (mod && e.key.toLowerCase() === 's')) {
+        e.preventDefault();
+        e.stopPropagation();
+        void finish(true, true);
+      }
+    });
+    input.addEventListener('blur', () => void finish(true, false));
+    anchor.replaceWith(input);
+    input.focus();
+    input.select();
+  }
+
+  function editDocInline(el: HTMLElement, r: number, field?: string): void {
+    const doc = docs[r];
+    const text = JSON.stringify(doc, null, 2);
+    inlineEditor(el, text, field === undefined ? 0 : fieldCaret(text, field), (v) => replaceDoc(doc, v));
+  }
+
+  function inlineEditor(el: HTMLElement, text: string, at: number, save: (v: string) => Promise<void>): void {
+    const ta = jsonEditor(text, Math.min(40, text.split('\n').length + 1));
+    const err = h('div.m-error');
+    const cancel = () => box.replaceWith(el);
+    const submit = async () => {
+      err.textContent = '';
+      try {
+        await save(ta.value);
+      } catch (e) {
+        err.textContent = (e as Error).message;
+      }
+    };
+    ta.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        cancel();
+      } else if (mod && (e.key === 'Enter' || e.key.toLowerCase() === 's')) {
+        e.preventDefault();
+        e.stopPropagation();
+        void submit();
+      }
+    });
+    const box = h(
+      'div.jdoc-editor',
+      null,
+      ta,
+      h(
+        'div.jdoc-foot',
+        null,
+        err,
+        h('span.muted', null, '⌘↵ save · Esc cancel'),
+        btn('Cancel', { class: 'sm ghost', onClick: cancel }),
+        btn('Save', { icon: 'save', class: 'sm primary', onClick: () => void submit() }),
+      ),
+    );
+    el.replaceWith(box);
+    ta.focus();
+    ta.setSelectionRange(at, at);
+    ta.scrollTop = Math.max(0, (text.slice(0, at).split('\n').length - 3) * (parseFloat(getComputedStyle(ta).lineHeight) || 18));
   }
 
   function insertDoc(template?: Record<string, unknown>): void {
@@ -591,8 +829,13 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   function renderBody(): void {
     if (!loaded) {
       if (!I.initialData) clear(content, skeleton(), side);
-    } else if (view === 'json' && !isSql) clear(content, h('div.scroll', null, jsonView(docs, 1)), side);
-    else clear(content, h('div.grid-wrap', null, grid.el), side);
+    } else if (view === 'json' && !isSql) {
+      const top = keepJsonScroll ? (content.querySelector('.scroll')?.scrollTop ?? 0) : 0;
+      keepJsonScroll = false;
+      const scroll = h('div.scroll', null, jsonDocs());
+      clear(content, scroll, side);
+      scroll.scrollTop = top;
+    } else clear(content, h('div.grid-wrap', null, grid.el), side);
   }
 
   function updateActions(): void {
@@ -693,12 +936,13 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') void load(true);
     });
+    const idle = `Generate a ${tag} filter with AI · describe it in this field`;
     const ai =
-      tag === 'WHERE' && I.ai
+      (tag === 'WHERE' || tag === 'FILTER' || tag === 'QUERY') && I.ai
         ? btn(null, {
             icon: 'sparkle',
             class: 'sm ghost ai-filter-button',
-            title: 'Generate a WHERE filter with AI · describe it in this field',
+            title: idle,
             onClick: async () => {
               ai!.disabled = true;
               ai!.setAttribute('aria-busy', 'true');
@@ -721,8 +965,8 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
                 wrap.classList.remove('ai-busy');
                 ai!.disabled = false;
                 ai!.removeAttribute('aria-busy');
-                ai!.setAttribute('aria-label', 'Generate a WHERE filter with AI');
-                ai!.title = 'Generate a WHERE filter with AI · describe it in this field';
+                ai!.setAttribute('aria-label', `Generate a ${tag} filter with AI`);
+                ai!.title = idle;
                 clear(ai!, icon('sparkle'));
               }
             },
@@ -788,7 +1032,14 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
           : null,
         btn('CSV', { icon: 'export', class: 'sm ghost', title: 'Export current page as CSV', onClick: () => void exportData('csv') }),
         btn('JSON', { icon: 'export', class: 'sm ghost', title: 'Export current page as JSON', onClick: () => void exportData('json') }),
-        isSql && I.ai ? btn(null, { icon: 'sparkle', class: 'sm outline ai-chat-open', title: 'Ask AI about this table', onClick: () => void rpc('chat') }) : null,
+        I.ai
+          ? btn(null, {
+              icon: 'sparkle',
+              class: 'sm outline ai-chat-open',
+              title: `Ask AI about this ${isSql ? 'table' : I.mode === 'mongo' ? 'collection' : 'index'}`,
+              onClick: () => void rpc('chat'),
+            })
+          : null,
         btn(null, { icon: 'refresh', class: 'sm outline', title: 'Refresh (F5)', onClick: () => void load() }),
       ),
       h(

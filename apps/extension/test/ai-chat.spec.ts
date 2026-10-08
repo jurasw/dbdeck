@@ -2,10 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ChatMessage, ChatReply, chatSystemPrompt, databaseTools, runChatTurn, ToolEvent } from '../src/ai-chat';
 import { chatReply } from '../src/ai-client';
-import type { SqlDriver } from '../src/drivers/sql';
+import { aiDatabase } from '../src/ai-database';
+import { ElasticDriver } from '../src/drivers/elastic';
+import { MongoDriver } from '../src/drivers/mongo';
+import { SqlDriver } from '../src/drivers/sql';
 
 function stubDriver(log: string[] = []) {
-  return {
+  const driver = Object.assign(Object.create(SqlDriver.prototype), {
     dialect: 'postgres',
     objects: async (database?: string, schema?: string) => {
       log.push(`objects ${database} ${schema}`);
@@ -23,7 +26,8 @@ function stubDriver(log: string[] = []) {
       if (/delete/i.test(sql)) throw new Error('Only read-only SELECT, WITH, SHOW, DESCRIBE and EXPLAIN statements can run here.');
       return { columns: [{ name: 'n' }, { name: 'note' }], rows: Array.from({ length: 150 }, (_, i) => [i, 'x'.repeat(400)]), durationMs: 3 };
     },
-  } as unknown as SqlDriver;
+  });
+  return aiDatabase(driver, 'app')!;
 }
 
 const call = (name: string, args: unknown, id = name) => ({ id, name, arguments: JSON.stringify(args) });
@@ -34,7 +38,7 @@ test('chat tools read schema and hide queries until the user allows them', async
   let allowed = false;
   const tools = databaseTools(
     stubDriver(log),
-    { database: 'app' },
+    {},
     () => allowed,
     (e) => events.push(e),
   );
@@ -74,7 +78,7 @@ test('chat tools use the opened schema without a schema prefix', async () => {
   const log: string[] = [];
   const tools = databaseTools(
     stubDriver(log),
-    { database: 'app', schema: 'public' },
+    { schema: 'public' },
     () => false,
     () => undefined,
   );
@@ -118,7 +122,7 @@ test('a chat turn runs tools until the model answers', async () => {
 });
 
 test('the system prompt says whether the assistant may run queries', () => {
-  const context = { connection: 'Prod', database: 'app', dialect: 'mysql' };
+  const context = { connection: 'Prod', database: 'app', dialect: 'mysql', family: 'sql' as const };
   assert.match(chatSystemPrompt(context, true), /Call run_query/);
   assert.match(chatSystemPrompt(context, false), /You cannot run queries/);
   assert.match(chatSystemPrompt(context, false), /mysql database \(connection "Prod", database "app"\)/);
@@ -233,4 +237,55 @@ test('Claude chat groups tool results and returns tool use blocks', async () => 
   } finally {
     globalThis.fetch = original;
   }
+});
+
+test('MongoDB chat runs only read-only finds and aggregations', async () => {
+  const calls: unknown[][] = [];
+  const driver = Object.create(MongoDriver.prototype);
+  driver.collections = async () => ['orders'];
+  driver.db = (name: string) => ({
+    collection: (coll: string) => ({
+      find: (filter: unknown, options: unknown) => ({ toArray: async () => (calls.push([name, coll, 'find', filter, options]), [{ _id: 1, status: 'active' }]) }),
+      aggregate: (pipeline: unknown) => ({ toArray: async () => (calls.push([name, coll, 'aggregate', pipeline]), [{ _id: 'active', n: 2 }]) }),
+    }),
+  });
+  const db = aiDatabase(driver, 'shop')!;
+  const events: ToolEvent[] = [];
+  const tools = databaseTools(
+    db,
+    {},
+    () => true,
+    (e) => events.push(e),
+  );
+  assert.deepEqual(Object.keys((tools.tools()[2].parameters as { properties: object }).properties), ['query']);
+  assert.deepEqual(JSON.parse(await tools.execute(call('list_tables', {}))).tables, ['orders']);
+  const found = JSON.parse(await tools.execute(call('run_query', { query: '{"collection": "orders", "filter": {"status": "active"}, "limit": 5}' })));
+  assert.deepEqual(found.rows, [[1, 'active']]);
+  await tools.execute(call('run_query', { query: '{"collection": "orders", "pipeline": [{"$group": {"_id": "$status", "n": {"$sum": 1}}}]}' }));
+  assert.match(await tools.execute(call('run_query', { query: '{"collection": "orders", "pipeline": [{"$facet": {"a": [{"$out": "copy"}]}}]}' })), /^Error: \$out and \$merge/);
+  assert.match(await tools.execute(call('run_query', { query: 'db.orders.drop()' })), /^Error:/);
+  assert.deepEqual(calls, [
+    ['shop', 'orders', 'find', { status: 'active' }, { projection: undefined, sort: undefined, limit: 5, maxTimeMS: 30000 }],
+    ['shop', 'orders', 'aggregate', [{ $group: { _id: '$status', n: { $sum: 1 } } }, { $limit: 100 }]],
+  ]);
+  const prompt = chatSystemPrompt({ connection: 'Prod', database: 'shop', table: 'orders', dialect: 'mongodb', family: 'mongo' }, true);
+  assert.match(prompt, /collection orders open/);
+  assert.match(prompt, /```javascript/);
+});
+
+test('Elasticsearch chat runs only read-only requests', async () => {
+  const requests: string[] = [];
+  const driver = Object.create(ElasticDriver.prototype);
+  driver.request = async (method: string, path: string) => {
+    requests.push(`${method} ${path}`);
+    return { status: 200, durationMs: 1, body: { hits: { hits: [{ _id: 'a', _index: 'logs', _score: 1, _source: { level: 'error' } }] } } };
+  };
+  const db = aiDatabase(driver, undefined)!;
+  assert.deepEqual((await db.runReadOnly('POST /logs/_search\n{ "size": 1 }')).rows, [['a', 'logs', 1, 'error']]);
+  await db.runReadOnly('GET /_cat/indices');
+  await assert.rejects(db.runReadOnly('DELETE /logs'), /Only GET requests/);
+  await assert.rejects(db.runReadOnly('POST /logs/_update_by_query\n{}'), /Only GET requests/);
+  await assert.rejects(db.runReadOnly('POST /logs/_mapping\n{}'), /Only GET requests/);
+  await assert.rejects(db.runReadOnly('GET /a/_search\n\nGET /b/_search'), /exactly one request/);
+  assert.deepEqual(requests, ['POST /logs/_search', 'GET /_cat/indices']);
 });

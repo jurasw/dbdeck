@@ -11,7 +11,7 @@ const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   for (const job of [
     { file: "og/og.html", output: "og/og.png", width: 1200, height: 630, scale: 2 },
-    { file: "buy-me-a-coffee/cover.html", output: "buy-me-a-coffee/cover.png", width: 1600, height: 400, scale: 1 },
+    { file: "buy-me-a-coffee/cover.html", output: "buy-me-a-coffee/cover.png", width: 1600, height: 400, scale: 2 },
   ]) {
     const page = await browser.newPage({ viewport: { width: job.width, height: job.height }, deviceScaleFactor: job.scale });
     await page.goto(pathToFileURL(join(brand, job.file)).href, { waitUntil: "networkidle" });

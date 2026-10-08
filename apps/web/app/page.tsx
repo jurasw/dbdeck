@@ -238,7 +238,7 @@ function Chat() {
           </div>
           <div className="order-1 lg:order-2 lg:col-span-5">
             <Heading lead="Ask your database." rest="Get answers, not just SQL." />
-            <Lede>Chat with any SQL connection. The assistant reads the schema, runs read-only queries when you allow it and answers from the results.</Lede>
+            <Lede>Chat with any SQL, MongoDB or Elasticsearch connection. The assistant reads the schema, runs read-only queries when you allow it and answers from the results.</Lede>
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">Every query it suggests opens in your editor or runs read-only in the chat. Writes never run on their own.</p>
           </div>
         </div>

@@ -292,6 +292,44 @@ export class MongoDriver extends BaseDriver {
     return `${formatCount(s.count ?? 0)} docs · ${formatBytes(s.size ?? 0)} data · ${formatBytes(s.totalIndexSize ?? 0)} indexes`;
   }
 
+  async fields(db: string, coll: string): Promise<{ name: string; type: string }[]> {
+    const docs = await this.db(db)
+      .collection(coll)
+      .aggregate([{ $sample: { size: 100 } }], { maxTimeMS: 10000 })
+      .toArray();
+    const types = new Map<string, Set<string>>();
+    const walk = (doc: Document, prefix: string, depth: number) => {
+      for (const [key, value] of Object.entries(doc)) {
+        const name = prefix + key;
+        const type = bsonType(value);
+        if (!types.has(name)) types.set(name, new Set());
+        types.get(name)!.add(type);
+        if (type === 'object' && depth < 2) walk(value as Document, `${name}.`, depth + 1);
+      }
+    };
+    for (const doc of docs) walk(doc, '', 0);
+    return [...types].slice(0, 300).map(([name, t]) => ({ name, type: [...t].join(' | ') }));
+  }
+
+  async readOnly(db: string, text: string): Promise<QueryResult> {
+    const spec = EJSON.parse(text, { relaxed: true }) as { collection?: unknown; filter?: Document; sort?: Document; projection?: Document; limit?: unknown; pipeline?: unknown };
+    if (!spec || typeof spec !== 'object' || typeof spec.collection !== 'string' || !spec.collection)
+      throw new Error('Pass {"collection": "...", "filter": {...}} or {"collection": "...", "pipeline": [...]}.');
+    const limit = Math.min(Math.max(Math.floor(Number(spec.limit)) || 100, 1), MAX_DOCS);
+    const coll = this.db(db).collection(spec.collection);
+    const t = Date.now();
+    let docs: Document[];
+    if (spec.pipeline !== undefined) {
+      if (!Array.isArray(spec.pipeline)) throw new Error('pipeline must be an array of stages.');
+      if (writesData(spec.pipeline)) throw new Error('$out and $merge stages cannot run here.');
+      docs = await coll.aggregate([...(spec.pipeline as Document[]), { $limit: limit }], { maxTimeMS: 30000 }).toArray();
+    } else {
+      docs = await coll.find(spec.filter ?? {}, { projection: spec.projection, sort: spec.sort, limit, maxTimeMS: 30000 }).toArray();
+    }
+    const plain = docs.map(toPlain);
+    return { ...docsToGrid(plain), json: plain, durationMs: Date.now() - t };
+  }
+
   async script(dbName: string, code: string): Promise<QueryResult> {
     const logs: string[] = [];
     let current = dbName;
@@ -380,6 +418,19 @@ export class MongoDriver extends BaseDriver {
     const plain = value === undefined ? undefined : toPlain(value);
     return { columns: [], rows: [], durationMs, json: plain, message: logs.join('\n') || (plain === undefined ? 'OK' : undefined) };
   }
+}
+
+function bsonType(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  if (value instanceof Date) return 'date';
+  if (value && typeof value === 'object') return (value as { _bsontype?: string })._bsontype ?? 'object';
+  return typeof value;
+}
+
+export function writesData(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(writesData);
+  return !!value && typeof value === 'object' && Object.entries(value).some(([key, child]) => key === '$out' || key === '$merge' || writesData(child));
 }
 
 export function docsToGrid(docs: unknown[]): { columns: { name: string }[]; rows: unknown[][] } {

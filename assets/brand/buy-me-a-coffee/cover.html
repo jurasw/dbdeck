@@ -2,35 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@500;600;700&family=Geist+Mono:wght@400;500&display=block" rel="stylesheet" />
     <style>
       * { box-sizing: border-box; }
       html, body { width: 1600px; height: 400px; margin: 0; overflow: hidden; }
-      body { position: relative; color: #f5f7fb; background: #060606; font-family: Arial, Helvetica, sans-serif; }
+      body { position: relative; color: #f5f7fb; background: #060606; font-family: "Funnel Display", system-ui, sans-serif; }
       .glow { position: absolute; inset: 0; background: radial-gradient(740px 400px at 77% 12%, rgba(255, 255, 255, .12), transparent 75%); }
       .grid { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.1) 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(90deg, #000, transparent 85%); }
-      .content { position: absolute; left: 100px; top: 65px; z-index: 2; }
-      .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 700; letter-spacing: -.03em; }
-      .brand img { width: 56px; height: 56px; }
-      h1 { margin: 42px 0 0; font-size: 60px; line-height: 1.04; letter-spacing: -.05em; }
-      h1 span { display: block; color: #8e8e95; }
-      p { margin: 23px 0 0; color: #b4b4ba; font-size: 20px; }
-      .site { position: absolute; left: 101px; bottom: 36px; z-index: 2; color: #d8d8dc; font-size: 18px; font-weight: 700; letter-spacing: .07em; }
-      .shot { position: absolute; left: 870px; top: 40px; width: 830px; transform: perspective(1400px) rotateY(-10deg) rotateZ(-2deg); transform-origin: left center; }
+      .content { position: absolute; left: 100px; top: 167px; z-index: 2; display: flex; align-items: center; gap: 34px; transform: translateY(-50%); }
+      .content img { width: 128px; height: 128px; filter: drop-shadow(0 8px 24px rgba(255,255,255,.1)); }
+      h1 { margin: 0; font-size: 50px; line-height: 1.04; font-weight: 600; letter-spacing: -.035em; white-space: nowrap; }
+      h1 span { display: block; color: #85858c; }
+      p { margin: 16px 0 0; color: #b0b0b6; font-family: "Geist Mono", monospace; font-size: 16px; white-space: nowrap; }
+      p b { color: #f5f7fb; font-weight: 500; }
+      p i { margin: 0 10px; color: #55555b; font-style: normal; }
+      .shot { position: absolute; left: 900px; top: 76px; width: 800px; transform: perspective(1400px) rotateY(-10deg) rotateZ(-2deg); transform-origin: left center; }
       .frame { overflow: hidden; border: 1px solid #3a3a3f; border-radius: 14px; background: #111113; box-shadow: 0 20px 80px #000, 0 0 80px #ffffff14; }
       .bar { height: 28px; padding: 10px; border-bottom: 1px solid #2c2c30; background: #1a1a1d; }
       .bar i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: #55555b; }
       .frame img { display: block; width: 100%; }
-      .fade { position: absolute; inset: 0; background: linear-gradient(90deg, transparent 67%, #06060655), linear-gradient(0deg, #060606ee, transparent 26%); }
+      .fade { position: absolute; inset: 0; background: linear-gradient(90deg, transparent 67%, #06060655), linear-gradient(0deg, #060606ee, transparent 30%); }
     </style>
   </head>
   <body>
     <div class="glow"></div><div class="grid"></div>
     <div class="content">
-      <div class="brand"><img src="../icon-128.png" alt="" />DBDeck</div>
-      <h1>Your databases.<span>Inside your editor.</span></h1>
-      <p>Free, open source database client for VS Code and Cursor.</p>
+      <img src="../icon.svg" alt="" />
+      <div>
+        <h1>Your databases.<span>Inside your editor.</span></h1>
+        <p>Free, open source for <b>VS Code</b> and <b>Cursor</b><i>/</i>dbdeck.dev</p>
+      </div>
     </div>
-    <div class="site">DBDECK.DEV</div>
     <div class="shot"><div class="frame"><div class="bar"><i></i><i></i><i></i></div><img src="../../screenshots/data-grid.png" alt="" /></div></div>
     <div class="fade"></div>
   </body>

@@ -79,7 +79,7 @@ Nothing leaves your machine except the queries you send to your own databases.
       <img src="assets/readme/mongo-inline-edit.gif" alt="A MongoDB users collection in the grid: two fields are edited inline and saved, then the JSON view opens" width="100%">
       <h3>Documents, edited in place</h3>
       <p>MongoDB and Elasticsearch documents in a grid or a JSON tree.
-      Double-click a field to change it, or write shell-style queries like <code>db.users.find({...}).sort(...)</code>.</p>
+      Double-click a field to change it, edit nested values and keys in the JSON view, or write shell-style queries like <code>db.users.find({...}).sort(...)</code>.</p>
     </td>
     <td valign="top" width="50%">
       <img src="assets/screenshots/redis.png" alt="Redis key tree grouped by prefix and the hash editor for user:42" width="100%">
@@ -104,14 +104,14 @@ Nothing leaves your machine except the queries you send to your own databases.
 - **Responsive table browsing**: fast first-page results appear with the panel, wide tables render only visible rows and columns, and tables open in a reusable preview tab. A start tab with recent tables loads in the background so the first table appears at once.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
 - **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
-- **Chat with Database**: ask questions about a SQL connection in a chat panel. The assistant reads the schema itself; turn on read-only queries to let it answer from your data. SQL in answers opens in an editor or runs read-only in the chat.
+- **Chat with Database**: ask questions about a SQL, MongoDB or Elasticsearch connection in a chat panel. The assistant reads the schema itself; turn on read-only queries to let it answer from your data. Queries in answers open in an editor or run read-only in the chat.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
 - **BigQuery and Snowflake** in the same tree. BigQuery signs in with Google under Options or with a service account key and previews tables for free. Snowflake signs in with a programmatic access token or a key pair. Both are read-only in the grid; run DML from the SQL editor.
 - **Elasticsearch through Kibana**: choose **Kibana URL**, enter the address, open **Kibana API keys** and sign in with Google or company SSO in your browser. Create a Personal API key, paste its Encoded value and test the connection. DBDeck connects through Kibana or directly on Elastic Cloud; browser sign-in alone does not connect the extension.
 - **S3, MinIO, R2 and Google Cloud Storage** buckets in the same tree: open, upload, download, copy the `s3://` or `gs://` URI. Google Cloud Storage signs in with your Google account under Options.
 - **Read-only connections** block every write, and destructive actions always ask first.
 
-Describe a filter in the SQL table’s WHERE field and click the sparkle button to generate a condition from that table’s schema. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
+Describe a filter in the WHERE field of a SQL table, the FILTER field of a MongoDB collection or the QUERY field of an Elasticsearch index and click the sparkle button to generate a condition from its schema. MongoDB fields come from a local sample of up to 100 documents; only field names and types are sent. DBDeck applies it right away; edit the condition and press Enter to refine it. If AI is not connected, DBDeck opens **AI settings**; connect a provider, choose a model and use **Back to table** to return with your text preserved.
 
 AI Query builds its context automatically: from a schema it uses that schema, from a table or database it uses the whole database with the current table first. The compact composer includes the Generate query action inside the input area; expand Database context to inspect or search the included tables.
 

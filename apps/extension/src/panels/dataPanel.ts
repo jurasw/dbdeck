@@ -187,24 +187,42 @@ function session(
     confirm: async ({ message, action }: { message: string; action: string }) => (await vscode.window.showWarningMessage(message, { modal: true }, action)) === action,
   };
 
+  const aiFilter =
+    (dialect: string, schema: () => Promise<unknown>, check: (filter: string) => void = () => undefined) =>
+    async ({ prompt }: { prompt: string }) => {
+      if (!ai || !editors) throw new Error('AI is unavailable.');
+      const status = await ai.status();
+      if (!status.connected || !status.model) {
+        await AiPanel.show({ extensionUri: extUri }, manager, editors, ai, n, () => panel.reveal());
+        return null;
+      }
+      if (typeof prompt !== 'string' || !prompt.trim()) throw new Error('Describe the filter in the filter field first.');
+      const filter = await ai.generate(prompt, JSON.stringify(await schema()), dialect, new AbortController().signal, true);
+      check(filter);
+      return filter;
+    };
+  const chat = () => vscode.commands.executeCommand('dbdeck.aiChat', n, { beside: true });
+  const jsonObject = (filter: string) => {
+    let value: unknown;
+    try {
+      value = JSON.parse(filter);
+    } catch {
+      throw new Error('AI returned a filter that is not valid JSON. Try again.');
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('AI returned a filter that is not a JSON object. Try again.');
+  };
+
   const handlersReady = (async () => {
     const driver = await manager.get(n.connId);
     let handlers: Record<string, (p: any) => unknown>;
     if (driver instanceof SqlDriver) {
       handlers = {
         ...common,
-        aiFilter: async ({ prompt }: { prompt: string }) => {
-          if (!ai || !editors) throw new Error('AI is unavailable.');
-          const status = await ai.status();
-          if (!status.connected || !status.model) {
-            await AiPanel.show({ extensionUri: extUri }, manager, editors, ai, n, () => panel.reveal());
-            return null;
-          }
-          if (typeof prompt !== 'string' || !prompt.trim()) throw new Error('Describe the filter in the WHERE field first.');
-          const columns = await driver.columns(ref);
-          const schema = JSON.stringify({ table: ref.table, schema: ref.schema, columns: columns.map((c) => ({ name: c.name, type: c.type })) });
-          return ai.generate(prompt, schema, driver.dialect, new AbortController().signal, true);
-        },
+        aiFilter: aiFilter(driver.dialect, async () => ({
+          table: ref.table,
+          schema: ref.schema,
+          columns: (await driver.columns(ref)).map((c) => ({ name: c.name, type: c.type })),
+        })),
         load: (o: PageOptions) => driver.page(ref, o),
         count: ({ where, search }: { where?: string; search?: string }) => driver.count(ref, where, search),
         apply: async (ch: RowChanges) => {
@@ -213,7 +231,7 @@ function session(
           return n;
         },
         ddl: () => driver.ddl(ref, n.kind),
-        chat: () => vscode.commands.executeCommand('dbdeck.aiChat', n, { beside: true }),
+        chat,
         sql: (o: PageOptions) => driver.selectSql(ref, o),
         insertSql: ({ rows, columns }: { rows: unknown[][]; columns: string[] }) =>
           rows
@@ -242,6 +260,8 @@ function session(
           return r;
         },
         stats: () => driver.stats(db, coll),
+        aiFilter: aiFilter('mongodb', async () => ({ collection: coll, columns: await driver.fields(db, coll) }), jsonObject),
+        chat,
       };
     } else if (driver instanceof ElasticDriver) {
       const index = n.table!;
@@ -290,6 +310,8 @@ function session(
           return `${p?.docs?.count ?? 0} docs · ${((p?.store?.size_in_bytes ?? 0) / 1048576).toFixed(1)} MB`;
         },
         mapping: async () => JSON.stringify(check(await driver.request('GET', `/${enc}/_mapping`)), null, 2),
+        aiFilter: aiFilter('elasticsearch', async () => ({ index, columns: await driver.fields(index) }), jsonObject),
+        chat,
       };
     } else {
       throw new Error('Unsupported object');

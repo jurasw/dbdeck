@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.4 (2026-10-08)
+
+- AI for MongoDB and Elasticsearch: the sparkle button in the FILTER or QUERY field generates a filter, the header sparkle opens Chat with Database, and AI Query writes mongosh queries or Kibana Dev Tools requests. With read-only queries on, the chat runs finds, aggregations without `$out` or `$merge`, and read-only Elasticsearch requests.
+- MongoDB and Elasticsearch JSON view: double-click a value to change it in place, or a key to rename it; Enter saves, Esc cancels. Nested values, dates and ObjectIds keep their type. Right-click a line to add, delete or copy a field or array item. The pencil button edits the whole document as JSON.
+
 ## 0.4.3 (2026-10-08)
 
 - Updated the DBDeck icon to white glass Data Core on black, with matching website, README, social preview, favicon and extension icons.

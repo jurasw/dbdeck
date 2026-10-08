@@ -13,7 +13,8 @@ test('cell edits preserve strings and validate typed document values', () => {
   assert.equal(parseCellValue('hello', undefined), 'hello');
   assert.throws(() => parseCellValue('"12"', 1), /number/);
   assert.throws(() => parseCellValue('1', true), /true or false/);
-  assert.throws(() => parseCellValue('{bad}', {}));
+  assert.throws(() => parseCellValue('{bad}', {}), /valid JSON/);
+  assert.throws(() => parseCellValue('fast', 1), /number/);
 });
 
 test('MongoDB cell updates change only the selected field and decode BSON IDs', async () => {

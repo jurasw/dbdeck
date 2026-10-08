@@ -281,6 +281,44 @@ test('AI filter passes only current table metadata and preserves SQL generation 
   panel.dispose();
 });
 
+test('AI filter works for MongoDB collections and Elasticsearch indices', async () => {
+  const mongo = Object.create(MongoDriver.prototype);
+  mongo.fields = async (db: string, coll: string) => [{ name: `${db}.${coll}.status`, type: 'string' }];
+  const es = Object.create(ElasticDriver.prototype);
+  es.fields = async (index: string) => [{ name: `${index}.level`, type: 'keyword' }];
+  const replies = ['{ "status": "active" }', 'db.orders.find()', '{ "term": { "level": "error" } }'];
+  const seen: unknown[][] = [];
+  const ai = {
+    status: async () => ({ connected: true, model: 'local' }),
+    generate: async (...args: unknown[]) => {
+      seen.push([JSON.parse(args[1] as string), args[2], args[4]]);
+      return replies.shift();
+    },
+  };
+  const open = async (type: string, driver: unknown, node: DbNode) => {
+    const manager = { store: { get: () => ({ name: 'Test', type }) }, get: async () => driver } as unknown as ConnectionManager;
+    await DataPanel.show({} as any, manager, node, () => {}, ai as any, {} as any);
+    return panels.at(-1);
+  };
+  const results = (panel: any) => panel.messages.filter((m: any) => m.type === 'rpc:res').map((m: any) => m.result ?? m.error);
+  const collection = await open('mongodb', mongo, { connId: 'ai-mongo', kind: 'collection', database: 'shop', table: 'orders', label: 'orders' });
+  await collection.receive({ type: 'rpc', id: 1, method: 'aiFilter', params: { prompt: 'active orders' } });
+  await collection.receive({ type: 'rpc', id: 2, method: 'aiFilter', params: { prompt: 'active orders' } });
+  assert.deepEqual(results(collection), ['{ "status": "active" }', 'AI returned a filter that is not valid JSON. Try again.']);
+  collection.dispose();
+  const index = await open('elasticsearch', es, { connId: 'ai-es', kind: 'esIndex', table: 'logs', label: 'logs' });
+  await index.receive({ type: 'rpc', id: 3, method: 'aiFilter', params: { prompt: 'errors' } });
+  await index.receive({ type: 'rpc', id: 4, method: 'chat' });
+  assert.equal(results(index)[0], '{ "term": { "level": "error" } }');
+  assert.deepEqual(seen, [
+    [{ collection: 'orders', columns: [{ name: 'shop.orders.status', type: 'string' }] }, 'mongodb', true],
+    [{ collection: 'orders', columns: [{ name: 'shop.orders.status', type: 'string' }] }, 'mongodb', true],
+    [{ index: 'logs', columns: [{ name: 'logs.level', type: 'keyword' }] }, 'elasticsearch', true],
+  ]);
+  assert.deepEqual(commands.at(-1)?.slice(0, 2), ['dbdeck.aiChat', { connId: 'ai-es', kind: 'esIndex', table: 'logs', label: 'logs' }]);
+  index.dispose();
+});
+
 test('missing AI setup opens settings and returns to the same table', async () => {
   const driver = Object.create(SqlDriver.prototype);
   driver.dialect = 'postgres';

@@ -2,14 +2,30 @@ import { h } from './lib';
 
 const MAX_CHILDREN = 500;
 
-export function jsonView(value: unknown, expandDepth = 2): HTMLElement {
+export type JsonPath = (string | number)[];
+
+export interface JsonViewOptions {
+  item?: (el: HTMLElement, index: number) => void;
+  open?: Map<string, boolean>;
+  key?: (path: JsonPath) => string;
+}
+
+const paths = new WeakMap<Element, JsonPath>();
+
+export function jsonPath(line: Element): JsonPath | undefined {
+  return paths.get(line);
+}
+
+export function jsonView(value: unknown, expandDepth = 2, opts: JsonViewOptions = {}): HTMLElement {
   const root = h('div.json');
-  root.appendChild(node(undefined, value, 0, expandDepth, true));
+  root.appendChild(node(undefined, value, [], expandDepth, true, opts));
   return root;
 }
 
-function node(key: string | undefined, value: unknown, depth: number, expandDepth: number, last: boolean): HTMLElement {
+function node(key: string | undefined, value: unknown, path: JsonPath, expandDepth: number, last: boolean, opts: JsonViewOptions): HTMLElement {
+  const depth = path.length;
   const line = h('div.jl');
+  paths.set(line, path);
   const keyEl = key !== undefined ? [h('span.k', null, JSON.stringify(key)), ': '] : [];
   const comma = last ? '' : ',';
   if (value === null || typeof value !== 'object') {
@@ -18,14 +34,14 @@ function node(key: string | undefined, value: unknown, depth: number, expandDept
   }
   const special = ejson(value as Record<string, unknown>);
   if (special) {
-    line.append(h('span.tog'), ...keyEl, h('span.oid', null, special), comma);
+    line.append(h('span.tog'), ...keyEl, h('span.oid.v', null, special), comma);
     return line;
   }
   const isArr = Array.isArray(value);
   const entries: [string, unknown][] = isArr ? (value as unknown[]).map((v, i) => [String(i), v]) : Object.entries(value as object);
   const [open, close] = isArr ? ['[', ']'] : ['{', '}'];
   if (!entries.length) {
-    line.append(h('span.tog'), ...keyEl, `${open}${close}${comma}`);
+    line.append(h('span.tog'), ...keyEl, h('span.v', null, `${open}${close}`), comma);
     return line;
   }
   const wrap = h('div');
@@ -37,16 +53,21 @@ function node(key: string | undefined, value: unknown, depth: number, expandDept
       ? `_id: ${ejson(idEntry[1] as Record<string, unknown>) ?? JSON.stringify(idEntry[1])} · ${entries.length} keys`
       : `${entries.length} keys`;
   const preview = h('span.p', null, ` ${summary} `);
-  const head = h('div.jl', null, tog, ...keyEl, open, preview);
+  line.append(tog, ...keyEl, open, preview);
   const kids = h('div.jc');
   const tail = h('div.jl', null, h('span.tog'), `${close}${comma}`);
   let built = false;
   const build = () => {
     if (built) return;
     built = true;
-    entries.slice(0, MAX_CHILDREN).forEach(([k, v], i) => kids.appendChild(node(isArr ? undefined : k, v, depth + 1, expandDepth, i === entries.length - 1)));
+    entries.slice(0, MAX_CHILDREN).forEach(([k, v], i) => {
+      const child = node(isArr ? undefined : k, v, [...path, isArr ? i : k], expandDepth, i === entries.length - 1, opts);
+      if (isArr && !depth) opts.item?.(child, i);
+      kids.appendChild(child);
+    });
     if (entries.length > MAX_CHILDREN) kids.appendChild(h('div.jl.p', null, `… ${entries.length - MAX_CHILDREN} more`));
   };
+  const stateKey = opts.open && opts.key ? opts.key(path) : undefined;
   const set = (open_: boolean) => {
     if (open_) build();
     kids.classList.toggle('hidden', !open_);
@@ -54,19 +75,23 @@ function node(key: string | undefined, value: unknown, depth: number, expandDept
     preview.textContent = open_ ? '' : ` ${summary} ${close}${comma}`;
     tog.textContent = open_ ? '▾' : '▸';
   };
-  tog.addEventListener('click', () => set(kids.classList.contains('hidden')));
-  preview.addEventListener('click', () => set(true));
-  set(depth < expandDepth);
-  wrap.append(head, kids, tail);
+  const toggle = (open_: boolean) => {
+    set(open_);
+    if (stateKey !== undefined) opts.open!.set(stateKey, open_);
+  };
+  tog.addEventListener('click', () => toggle(kids.classList.contains('hidden')));
+  preview.addEventListener('click', () => toggle(true));
+  set((stateKey !== undefined ? opts.open!.get(stateKey) : undefined) ?? depth < expandDepth);
+  wrap.append(line, kids, tail);
   return wrap;
 }
 
 function scalar(v: unknown): HTMLElement {
-  if (v === null) return h('span.z', null, 'null');
-  if (v === undefined) return h('span.z', null, 'undefined');
-  if (typeof v === 'number' || typeof v === 'bigint') return h('span.n', null, String(v));
-  if (typeof v === 'boolean') return h('span.b', null, String(v));
-  return h('span.s', null, JSON.stringify(v));
+  if (v === null) return h('span.z.v', null, 'null');
+  if (v === undefined) return h('span.z.v', null, 'undefined');
+  if (typeof v === 'number' || typeof v === 'bigint') return h('span.n.v', null, String(v));
+  if (typeof v === 'boolean') return h('span.b.v', null, String(v));
+  return h('span.s.v', null, JSON.stringify(v));
 }
 
 function ejson(v: Record<string, unknown>): string | undefined {

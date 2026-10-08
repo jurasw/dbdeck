@@ -5,7 +5,7 @@ import { ConnectionManager } from '../connections';
 import { QueryEditors } from '../editor';
 import { DbNode } from '../types';
 import { bindRpc, webviewHtml, webviewOptions } from '../webviewHost';
-import { sqlContext } from './ai-panel';
+import { aiContext } from './ai-panel';
 
 const queriesKey = 'dbdeck.ai.chat.queries';
 const PANEL_ROWS = 200;
@@ -21,12 +21,12 @@ export class ChatPanel {
     node?: DbNode,
     beside = false,
   ): Promise<void> {
-    const context = await sqlContext(manager, editors, node, 'Chat with database');
+    const context = await aiContext(manager, editors, node, 'Chat with database');
     if (!context) return;
-    const { driver, database } = context;
+    const { db, database } = context;
     const config = manager.store.get(context.node.connId)!;
-    const scope = { database, schema: context.node.table ? undefined : context.node.schema };
-    const key = [config.id, database, scope.schema ?? ''].join('/');
+    const scope = { schema: context.node.table ? undefined : context.node.schema };
+    const key = [config.id, database ?? '', scope.schema ?? ''].join('/');
     const focusName = (n: DbNode) => (n.table && n.kind !== 'routine' ? [n.schema, n.table].filter(Boolean).join('.') : undefined);
     const existing = ChatPanel.open.get(key);
     if (existing) {
@@ -53,7 +53,7 @@ export class ChatPanel {
     });
     const history: ChatMessage[] = [];
     let request: AbortController | undefined;
-    const tools = databaseTools(driver, scope, allowed, (event) => void panel.webview.postMessage({ type: 'chat:event', event }));
+    const tools = databaseTools(db, scope, allowed, (event) => void panel.webview.postMessage({ type: 'chat:event', event }));
     const busy = (action: string) => {
       if (request) throw new Error(`Cancel the current answer before ${action}.`);
     };
@@ -88,7 +88,7 @@ export class ChatPanel {
             {
               modal: true,
               detail:
-                'The assistant can run SELECT and other read-only statements to answer your questions. Query results are sent to your AI provider. Inserts, updates and schema changes never run from the chat.',
+                'The assistant can run read-only queries to answer your questions. Query results are sent to your AI provider. Inserts, updates, deletes and schema changes never run from the chat.',
             },
             'Allow',
           );
@@ -105,7 +105,7 @@ export class ChatPanel {
         const mark = history.length;
         history.push({ role: 'user', content: text.trim() });
         try {
-          const system = chatSystemPrompt({ connection: config.name, database, schema: scope.schema, table: focus, dialect: driver.dialect }, allowed());
+          const system = chatSystemPrompt({ connection: config.name, database, schema: scope.schema, table: focus, dialect: db.dialect, family: db.family }, allowed());
           return await runChatTurn((messages) => ai.chat(system, messages, tools.tools(), controller.signal), history, tools.execute, controller.signal);
         } catch (e) {
           history.length = mark;
@@ -122,7 +122,7 @@ export class ChatPanel {
       },
       open: async ({ sql }: { sql: string }) => editors.newQuery(target, `${String(sql).trim()}\n`),
       run: async ({ sql }: { sql: string }) => {
-        const r = await driver.runReadOnly(String(sql), database);
+        const r = await db.runReadOnly(String(sql));
         return { columns: r.columns.map((c) => c.name), rows: r.rows.slice(0, PANEL_ROWS), truncated: r.rows.length > PANEL_ROWS, durationMs: r.durationMs };
       },
       mcp: () => vscode.commands.executeCommand('dbdeck.mcpSetup'),
@@ -136,7 +136,8 @@ export class ChatPanel {
     panel.webview.html = webviewHtml(panel.webview, ctx.extensionUri, 'chat', `Chat · ${config.name}`, {
       connection: config.name,
       location: [database, scope.schema].filter(Boolean).join(' › '),
-      dialect: driver.dialect,
+      dialect: db.dialect,
+      family: db.family,
       queries: allowed(),
       focus,
     });

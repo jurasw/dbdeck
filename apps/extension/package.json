@@ -2,7 +2,7 @@
   "name": "dbdeck",
   "displayName": "DBDeck - Database Client",
   "description": "Free database client for MySQL, PostgreSQL, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "publisher": "dbdeck",
   "icon": "media/icon.png",
   "license": "MIT",
@@ -271,13 +271,13 @@
       },
       {
         "command": "dbdeck.s3.download",
-        "title": "Download\u2026",
+        "title": "Download…",
         "category": "DBDeck",
         "icon": "$(cloud-download)"
       },
       {
         "command": "dbdeck.s3.upload",
-        "title": "Upload Files\u2026",
+        "title": "Upload Files…",
         "category": "DBDeck",
         "icon": "$(cloud-upload)"
       },
@@ -448,7 +448,7 @@
         },
         {
           "command": "dbdeck.aiChat",
-          "when": "view == dbdeck.connections && viewItem =~ /\\bconn sql\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\bconn (sql|mongo|es)\\b/",
           "group": "inline@2"
         },
         {
@@ -673,12 +673,12 @@
         },
         {
           "command": "dbdeck.aiQuery",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema|table|view) sql\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b((conn|database|schema|table|view) sql|(conn|database|collection) mongo|(conn|esIndex) es)\\b/",
           "group": "2_query@3"
         },
         {
           "command": "dbdeck.aiChat",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(conn|database|schema) sql\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b((conn|database|schema) sql|(conn|database|collection) mongo|(conn|esIndex) es)\\b/",
           "group": "2_query@4"
         },
         {
@@ -705,12 +705,12 @@
         },
         {
           "command": "dbdeck.aiQuery",
-          "when": "dbdeck.boundEditor && editorLangId == sql",
+          "when": "dbdeck.boundEditor && editorLangId =~ /^(sql|javascript|dbdeck-es)$/",
           "group": "navigation@2"
         },
         {
           "command": "dbdeck.aiChat",
-          "when": "dbdeck.boundEditor && editorLangId == sql",
+          "when": "dbdeck.boundEditor && editorLangId =~ /^(sql|javascript|dbdeck-es)$/",
           "group": "navigation@3"
         }
       ],
@@ -894,7 +894,7 @@
         "dbdeck.codeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Show \u25b6 Run above each statement in bound editors."
+          "description": "Show ▶ Run above each statement in bound editors."
         },
         "dbdeck.mcp.enabled": {
           "type": "boolean",

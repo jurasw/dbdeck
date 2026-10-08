@@ -42,6 +42,14 @@ const SQL_LANGUAGES = new Set([
   'partiql',
 ]);
 
+const CODE_LANGUAGES: Record<string, Set<string>> = {
+  sql: SQL_LANGUAGES,
+  mongo: new Set(['', 'javascript', 'js', 'mongodb', 'mongo', 'mongosh']),
+  es: new Set(['', 'es', 'http', 'elasticsearch', 'console']),
+};
+const codeLanguages = CODE_LANGUAGES[String(INIT.family ?? 'sql')] ?? SQL_LANGUAGES;
+const runnable = INIT.family !== 'mongo';
+
 document.body.classList.add('chat-page');
 const app = document.getElementById('app')!;
 const log = h('div.chat-log', { role: 'log', 'aria-live': 'polite' });
@@ -138,7 +146,7 @@ function table(result: ResultTable): HTMLElement {
 
 function codeBlock(language: string, code: string): HTMLElement {
   const output = h('div.chat-code-output');
-  const isSql = SQL_LANGUAGES.has(language.toLowerCase());
+  const isQuery = codeLanguages.has(language.toLowerCase());
   const run = btn('Run', {
     icon: 'play',
     class: 'sm ghost',
@@ -176,7 +184,7 @@ function codeBlock(language: string, code: string): HTMLElement {
         'div.chat-code-actions',
         null,
         copy,
-        isSql
+        isQuery
           ? btn(null, {
               icon: 'go-to-file',
               class: 'sm ghost',
@@ -186,7 +194,7 @@ function codeBlock(language: string, code: string): HTMLElement {
               },
             })
           : null,
-        isSql ? run : null,
+        isQuery && runnable ? run : null,
       ),
     ),
     h('pre', null, code),

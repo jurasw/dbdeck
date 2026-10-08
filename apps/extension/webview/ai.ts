@@ -23,8 +23,8 @@ const preview = h('pre', { tabindex: 0, style: 'white-space:pre-wrap;overflow-wr
 const tables = h('div.ai-table-list');
 const search = h('input.input', {
   type: 'search',
-  placeholder: 'Search tables…',
-  'aria-label': 'Search schema tables',
+  placeholder: `Search ${INIT.noun}…`,
+  'aria-label': `Search schema ${INIT.noun}`,
   onInput: () => {
     for (const row of Array.from(tables.children) as HTMLElement[]) row.hidden = !row.textContent?.toLowerCase().includes(search.value.toLowerCase());
   },
@@ -34,7 +34,7 @@ for (const object of INIT.objects as { index: number; label: string }[]) {
   selected.add(object.index);
   tables.append(h('div.ai-table-row', null, icon('table'), h('span', null, object.label)));
 }
-selectionCount.textContent = `${selected.size} tables · automatic context`;
+selectionCount.textContent = `${selected.size} ${INIT.noun} · automatic context`;
 let busy = false;
 let connected = false;
 async function action(method: string) {
@@ -167,7 +167,7 @@ const emptyPreview = h(
   'div.ai-empty',
   null,
   icon('code'),
-  h('strong', null, 'Your SQL starts here'),
+  h('strong', null, `Your ${INIT.language} query starts here`),
   h('p', null, 'Describe what you need. Your database context is already included.'),
 );
 const settings = h(
@@ -199,7 +199,12 @@ clear(
     h(
       'header.ai-header',
       null,
-      h('div.row', null, h('span.ai-mark', null, icon('sparkle')), h('div', null, h('h1', null, 'AI Query'), h('p.ai-muted', null, `${INIT.connection} › ${INIT.database}`))),
+      h(
+        'div.row',
+        null,
+        h('span.ai-mark', null, icon('sparkle')),
+        h('div', null, h('h1', null, 'AI Query'), h('p.ai-muted', null, [INIT.connection, INIT.database].filter(Boolean).join(' › '))),
+      ),
       h('div.ai-actions', null, connectionStatus),
       h(
         'div.ai-actions',
@@ -250,7 +255,7 @@ clear(
         h(
           'section.ai-result',
           null,
-          h('div.ai-section-head', null, h('h2', null, 'Query preview'), h('span.ai-count', null, 'SQL')),
+          h('div.ai-section-head', null, h('h2', null, 'Query preview'), h('span.ai-count', null, String(INIT.language))),
           emptyPreview,
           preview,
           h('div.ai-result-footer', null, h('p.ai-muted', null, 'Review before running. Nothing executes automatically.'), insert),
