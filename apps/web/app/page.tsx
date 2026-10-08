@@ -22,14 +22,19 @@ import {
 
 const services = [
   { icon: "postgres", name: "PostgreSQL" },
-  { icon: "mysql", name: "MySQL / MariaDB" },
   { icon: "sqlite", name: "SQLite" },
-  { icon: "clickhouse", name: "ClickHouse" },
+  { icon: "mysql", name: "MySQL / MariaDB" },
+  { icon: "redis", name: "Redis" },
+  { icon: "mssql", name: "Microsoft SQL Server" },
+  { icon: "mongodb", name: "MongoDB" },
+  { icon: "elasticsearch", name: "Elasticsearch" },
+  { icon: "oracle", name: "Oracle" },
+  { icon: "dynamodb", name: "DynamoDB" },
   { icon: "bigquery", name: "BigQuery" },
   { icon: "snowflake", name: "Snowflake" },
-  { icon: "mongodb", name: "MongoDB" },
-  { icon: "redis", name: "Redis" },
-  { icon: "elasticsearch", name: "Elasticsearch" },
+  { icon: "clickhouse", name: "ClickHouse" },
+  { icon: "cassandra", name: "Cassandra" },
+  { icon: "d1", name: "Cloudflare D1" },
   { icon: "s3", name: "S3 / MinIO / R2" },
   { icon: "docker", name: "Docker" },
 ];
@@ -115,7 +120,7 @@ function Services() {
     <section id="features" aria-label="Supported services" className="scroll-mt-24 pb-6">
       <Shell className="text-center">
         <h2 className="text-sm text-muted-foreground">All your connections. One place.</h2>
-        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-6 lg:grid-cols-11">
+        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-6 lg:grid-cols-7">
           {services.map((s, i) => (
             <li key={s.name} className="service-mark group flex flex-col items-center gap-3" style={{ animationDelay: `${i * -0.7}s` }}>
               <span className="relative grid size-16 place-items-center sm:size-20">
@@ -128,6 +133,7 @@ function Services() {
           ))}
         </ul>
       </Shell>
+      <Shell><p className="mt-6 text-center text-sm leading-relaxed text-muted-foreground">SQL Server includes schema browsing, transactional row editing and foreign key diagrams. DynamoDB includes item browsing and PartiQL queries with AWS credentials. Cassandra includes keyspaces, native paging and CQL queries. DynamoDB and Cassandra use the query editor for changes; full-text table search is unavailable.</p></Shell>
     </section>
   );
 }
@@ -140,7 +146,7 @@ function Sql() {
           <div className="lg:col-span-5">
             <Heading lead="Write SQL" rest="where you write code." />
             <Lede>Write a query. Press <Kbd>⌘ Enter</Kbd>. See your results. Browse wide tables with smooth scrolling.</Lede>
-            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players: Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB.</p>
+            <p className="mt-5 text-base leading-relaxed text-muted-foreground">Looking for a value? Open Omnisearch beside a database or schema. Type JUREK and find players: Jurek (name), then open the matching records. Works with PostgreSQL, MySQL / MariaDB, SQLite, Cloudflare D1, Oracle, MSSQL, ClickHouse, BigQuery, Snowflake and MongoDB.</p>
           </div>
           <div className="min-w-0 lg:col-span-7">
             <SqlFigure code={"SELECT name, total\nFROM orders\nWHERE status = 'paid';"} />
@@ -165,7 +171,7 @@ function Schema() {
           </div>
           <div className="order-1 lg:order-2 lg:col-span-5">
             <Heading lead="The schema," rest="drawn for you." />
-            <Lede>See your tables and how they connect.</Lede>
+            <Lede>See your tables and how they connect. Foreign keys are linked for PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle and MSSQL.</Lede>
           </div>
         </div>
       </Shell>

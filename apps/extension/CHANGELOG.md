@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Fixed Kibana connections: the server form separates the Kibana URL, browser login and API key entry, rejects login redirects and HTML pages, and shows readable API access errors even in narrow panels. Session-only Kibana connections ask for the API key on reconnect.
+- Fixed missing pointer cursors on buttons, switches and connection form selectors.
+
+- Added Microsoft SQL Server with schema browsing, transactional row editing, DDL, Omnisearch and foreign key diagrams.
+- Added DynamoDB table and item browsing, native paging and PartiQL queries, with AWS credentials and custom endpoints.
+- Added Cassandra keyspaces, tables, native paging, metadata, DDL and CQL queries. DynamoDB and Cassandra changes run in the query editor.
+- Reduced the connection picker to sixteen compact buttons in two rows and sorted databases by Stack Overflow Developer Survey 2026 usage.
+
+- Cloudflare D1 connections use an Account ID, Database ID and API token: browse tables and views, run SQL, search values with Omnisearch, inspect DDL and view foreign keys. The grid is read-only; use the SQL editor for writes.
+- Oracle connections use Thin mode without Oracle Client libraries: schemas, SQL and PL/SQL, row editing in a transaction, DDL, Omnisearch and foreign key diagrams. Connect by service name, with optional TLS and SSH tunnels.
+
 - The landing page shows copyable install commands and editor icons for VS Code, Cursor, VSCodium and Windsurf.
 
 ## 0.4.1 (2026-10-08)

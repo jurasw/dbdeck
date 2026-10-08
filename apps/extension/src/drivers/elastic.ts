@@ -26,11 +26,25 @@ export function searchQuery(text: string): Record<string, unknown> {
 }
 
 export function kibanaEndpoints(url: string): { kibana: string; direct?: string } {
-  const u = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
-  const cut = u.pathname.search(/\/(s\/[^/]+\/)?(app|login|api)(\/|$)/);
+  let u: URL;
+  try {
+    if (!url.trim()) throw new Error();
+    u = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+    if (!['https:', 'http:'].includes(u.protocol) || u.username || u.password) throw new Error();
+  } catch {
+    throw new Error('Enter a valid HTTP or HTTPS Kibana URL, such as https://kibana.example.com.');
+  }
+  const cut = u.pathname.search(/\/(s\/[^/]+(?:\/|$)|(?:app|login|api)(?:\/|$))/);
   const kibana = `${u.origin}${(cut >= 0 ? u.pathname.slice(0, cut) : u.pathname).replace(/\/+$/, '')}`;
   const cloud = u.hostname.match(/^([^.]+)\.kb\.(.+\.(?:cloud\.es\.io|elastic-cloud\.com))$/);
   return { kibana, direct: cloud ? `${u.protocol}//${cloud[1]}.es.${cloud[2]}${u.port ? `:${u.port}` : ''}` : undefined };
+}
+
+export function elasticApiKey(value: string): string {
+  const key = value.trim().replace(/^ApiKey\s+/i, '');
+  if (!key) throw new Error('Paste the Encoded API key from Kibana.');
+  if (/\s/.test(key)) throw new Error('Paste only the Encoded API key, without the request headers.');
+  return key.includes(':') ? Buffer.from(key).toString('base64') : key;
 }
 
 const HEALTH_COLOR: Record<string, string> = { green: 'charts.green', yellow: 'charts.yellow', red: 'charts.red' };
@@ -48,29 +62,38 @@ export class ElasticDriver extends BaseDriver {
     const r = await this.request('GET', '/');
     if (r.status >= 400) throw new Error(errorText(r.body) || `HTTP ${r.status}`);
     this.version = (r.body as { version?: { number?: string } })?.version?.number ?? '';
+    if (typeof this.version !== 'string' || !this.version)
+      throw new Error('The server did not return Elasticsearch cluster information. Check the Elasticsearch host or choose Kibana URL.');
   }
 
   private async connectKibana(url: string): Promise<void> {
-    if (!this.config.apiKey) throw new Error('Sign in to Kibana in Options to create an API key.');
+    if (!this.config.apiKey?.trim())
+      throw new Error('Open Kibana API keys, sign in in your browser, create a Personal API key and paste its Encoded value into the API key field.');
     const { kibana, direct } = kibanaEndpoints(url);
     if (direct) {
       this.base = direct;
       const r = await this.request('GET', '/').catch(() => undefined);
       if (r && r.status < 400) {
         this.version = (r.body as { version?: { number?: string } })?.version?.number ?? '';
-        return;
+        if (typeof this.version === 'string' && this.version) return;
       }
       this.base = '';
     }
     this.kibana = kibana;
     const r = await this.request('GET', '/');
-    if (r.status === 401) throw new Error('Kibana rejected the API key. Create a new one with Sign in to Kibana.');
-    if (r.status === 403 || r.status === 404)
+    if (r.status === 401) throw new Error('Kibana rejected the API key. Paste the Encoded value of a valid Personal API key created in this Kibana instance.');
+    if (r.status === 403)
       throw new Error(
-        `Kibana does not forward requests to Elasticsearch for this user (HTTP ${r.status}). Ask your admin for the Dev Tools privilege, or enter the Elasticsearch URL as host.`,
+        'Kibana denied access (HTTP 403). The API key needs Elasticsearch access and the Kibana Dev Tools privilege. Ask your administrator to check these permissions.',
+      );
+    if (r.status === 404)
+      throw new Error(
+        'Kibana console proxy was not found (HTTP 404). Check the Kibana URL and base path, and whether Dev Tools is enabled. You can also connect to the Elasticsearch host directly.',
       );
     if (r.status >= 400) throw new Error(errorText(r.body) || `HTTP ${r.status}`);
     this.version = (r.body as { version?: { number?: string } })?.version?.number ?? '';
+    if (typeof this.version !== 'string' || !this.version)
+      throw new Error('Kibana did not return Elasticsearch cluster information. Check the Kibana URL and whether its console proxy is enabled.');
   }
 
   protected async disconnect(): Promise<void> {
@@ -80,7 +103,7 @@ export class ElasticDriver extends BaseDriver {
 
   async request(method: string, path: string, body?: unknown): Promise<EsResponse> {
     const headers: Record<string, string> = { accept: 'application/json' };
-    if (this.config.apiKey) headers.authorization = `ApiKey ${this.config.apiKey}`;
+    if (this.config.apiKey) headers.authorization = `ApiKey ${elasticApiKey(this.config.apiKey)}`;
     else if (this.config.user) headers.authorization = `Basic ${Buffer.from(`${this.config.user}:${this.config.password ?? ''}`).toString('base64')}`;
     let payload: string | undefined;
     if (body !== undefined && body !== '') {
@@ -105,6 +128,13 @@ export class ElasticDriver extends BaseDriver {
       rejectUnauthorized: this.config.rejectUnauthorized ?? !!this.config.kibanaUrl,
     });
     const durationMs = Date.now() - t;
+    if ((r.status >= 300 && r.status < 400) || /text\/html/i.test(String(r.headers['content-type'] ?? '')) || /^\s*<(?:!doctype\s+html|html)\b/i.test(r.body)) {
+      throw new Error(
+        this.kibana
+          ? 'Kibana returned a browser login page or redirect instead of Elasticsearch data. Browser sign-in does not sign DBDeck in. Use a Personal API key; if a sign-in proxy blocks API requests, ask your administrator for API access or the direct Elasticsearch URL.'
+          : 'The server returned a browser page or redirect instead of Elasticsearch data. Use the Elasticsearch endpoint, or choose Kibana URL in the connection form.',
+      );
+    }
     let parsed: unknown = r.body;
     if (String(r.headers['content-type'] ?? '').includes('json')) {
       try {
@@ -191,8 +221,9 @@ export class ElasticDriver extends BaseDriver {
 
 export function errorText(body: unknown): string {
   if (typeof body === 'string') return body;
-  const e = (body as { error?: { reason?: string; type?: string; root_cause?: { reason?: string }[] } | string })?.error;
-  if (!e) return '';
+  const response = body as { message?: string; error?: { reason?: string; type?: string; root_cause?: { reason?: string }[] } | string } | undefined;
+  const e = response?.error;
+  if (!e) return typeof response?.message === 'string' ? response.message : '';
   if (typeof e === 'string') return e;
   return [e.type, e.reason ?? e.root_cause?.[0]?.reason].filter(Boolean).join(': ');
 }

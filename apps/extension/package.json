@@ -1,7 +1,7 @@
 {
   "name": "dbdeck",
   "displayName": "DBDeck - Database Client",
-  "description": "Free database client for MySQL, PostgreSQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
+  "description": "Free database client for MySQL, PostgreSQL, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No paywalls, no telemetry.",
   "version": "0.4.1",
   "publisher": "dbdeck",
   "icon": "media/icon.png",
@@ -19,6 +19,13 @@
     "postgres",
     "postgresql",
     "sqlite",
+    "cloudflare",
+    "d1",
+    "oracle",
+    "mssql",
+    "sqlserver",
+    "dynamodb",
+    "cassandra",
     "mongodb",
     "redis",
     "elasticsearch",
@@ -264,13 +271,13 @@
       },
       {
         "command": "dbdeck.s3.download",
-        "title": "Download…",
+        "title": "Download\u2026",
         "category": "DBDeck",
         "icon": "$(cloud-download)"
       },
       {
         "command": "dbdeck.s3.upload",
-        "title": "Upload Files…",
+        "title": "Upload Files\u2026",
         "category": "DBDeck",
         "icon": "$(cloud-upload)"
       },
@@ -541,12 +548,12 @@
         },
         {
           "command": "dbdeck.truncateTable",
-          "when": "view == dbdeck.connections && viewItem =~ /\\btable sql\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\btable sql\\b/ && viewItem !~ /\\bdynamodb\\b/",
           "group": "9_danger@1"
         },
         {
           "command": "dbdeck.dropObject",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view|collection|database)\\b.*\\b(sql|mongo)\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(table|view|collection|database)\\b.*\\b(sql|mongo)\\b/ && viewItem !~ /\\bdynamodb\\b/",
           "group": "9_danger@2"
         },
         {
@@ -681,12 +688,12 @@
         },
         {
           "command": "dbdeck.omnisearch",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) (sql|mongo)\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) (sql|mongo)\\b/ && viewItem !~ /\\b(cassandra|dynamodb)\\b/",
           "group": "inline@3"
         },
         {
           "command": "dbdeck.omnisearch",
-          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) (sql|mongo)\\b/",
+          "when": "view == dbdeck.connections && viewItem =~ /\\b(database|schema) (sql|mongo)\\b/ && viewItem !~ /\\b(cassandra|dynamodb)\\b/",
           "group": "1_query@4"
         }
       ],
@@ -887,7 +894,7 @@
         "dbdeck.codeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Show ▶ Run above each statement in bound editors."
+          "description": "Show \u25b6 Run above each statement in bound editors."
         },
         "dbdeck.mcp.enabled": {
           "type": "boolean",
@@ -921,19 +928,26 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@aws-sdk/client-dynamodb": "^3.1147.0",
     "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/util-dynamodb": "^3.996.9",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "bson": "^6.10.4",
+    "cassandra-driver": "^4.10.0",
     "ioredis": "^5.4.1",
     "mongodb": "^6.10.0",
+    "mssql": "^12.7.4",
     "mysql2": "^3.11.0",
+    "oracledb": "^7.0.1",
     "pg": "^8.13.0",
     "ssh2": "^1.16.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
+    "@types/mssql": "^12.3.0",
     "@types/node": "^20.14.0",
+    "@types/oracledb": "^7.0.3",
     "@types/pg": "^8.11.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

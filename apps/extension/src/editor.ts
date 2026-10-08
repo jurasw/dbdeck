@@ -17,7 +17,7 @@ interface Binding {
 
 const LANGUAGE = { sql: 'sql', mongo: 'javascript', es: 'dbdeck-es' } as const;
 const SQL_KEYWORDS =
-  'SELECT FROM WHERE AND OR NOT IN IS NULL LIKE ILIKE BETWEEN EXISTS JOIN LEFT RIGHT INNER OUTER FULL CROSS ON USING GROUP BY ORDER HAVING LIMIT OFFSET UNION ALL DISTINCT AS CASE WHEN THEN ELSE END INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE VIEW INDEX DROP ALTER ADD COLUMN PRIMARY KEY FOREIGN REFERENCES DEFAULT CONSTRAINT UNIQUE CHECK RETURNING WITH RECURSIVE TRUNCATE BEGIN COMMIT ROLLBACK EXPLAIN ANALYZE COUNT SUM AVG MIN MAX COALESCE CAST NOW ASC DESC TRUE FALSE'.split(
+  'SELECT FROM WHERE AND OR NOT IN IS NULL LIKE ILIKE BETWEEN EXISTS JOIN LEFT RIGHT INNER OUTER FULL CROSS ON USING GROUP BY ORDER HAVING LIMIT TOP OFFSET FETCH NEXT ROWS ONLY UNION ALL DISTINCT AS CASE WHEN THEN ELSE END INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE VIEW INDEX DROP ALTER ADD COLUMN PRIMARY KEY FOREIGN REFERENCES DEFAULT CONSTRAINT UNIQUE CHECK RETURNING WITH RECURSIVE TRUNCATE BEGIN COMMIT ROLLBACK EXPLAIN ANALYZE COUNT SUM AVG MIN MAX COALESCE CAST NOW ASC DESC TRUE FALSE'.split(
     ' ',
   );
 
@@ -212,7 +212,7 @@ export class QueryEditors implements vscode.Disposable {
     const text = doc.getText();
     if (text.length > 500000) return [];
     let ranges: { start: number }[] = [];
-    if (doc.languageId === 'sql') ranges = splitSql(text, cfg && FAMILY[cfg.type] === 'sql' ? (cfg.type as SqlDialect) : 'postgres');
+    if (doc.languageId === 'sql') ranges = splitSql(text, cfg && FAMILY[cfg.type] === 'sql' ? ((cfg.type === 'd1' ? 'sqlite' : cfg.type) as SqlDialect) : 'postgres');
     else if (doc.languageId === 'dbdeck-es') ranges = parseEsRequests(text);
     else return [];
     const lenses = ranges.map((s: { start: number }) => {

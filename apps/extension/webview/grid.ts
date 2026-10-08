@@ -5,6 +5,7 @@ export interface GridColumn {
   type?: string;
   pk?: boolean;
   nullable?: boolean;
+  generated?: boolean;
 }
 
 export interface GridOptions {

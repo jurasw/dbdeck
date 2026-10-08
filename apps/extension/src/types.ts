@@ -1,11 +1,32 @@
-export type DbType = 'mysql' | 'postgres' | 'sqlite' | 'clickhouse' | 'bigquery' | 'snowflake' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
+export type DbType =
+  | 'mssql'
+  | 'cassandra'
+  | 'dynamodb'
+  | 'mysql'
+  | 'postgres'
+  | 'sqlite'
+  | 'd1'
+  | 'oracle'
+  | 'clickhouse'
+  | 'bigquery'
+  | 'snowflake'
+  | 'mongodb'
+  | 'redis'
+  | 'elasticsearch'
+  | 'docker'
+  | 's3';
 
 export type Family = 'sql' | 'mongo' | 'redis' | 'es' | 'docker' | 's3';
 
 export const FAMILY: Record<DbType, Family> = {
+  mssql: 'sql',
+  cassandra: 'sql',
+  dynamodb: 'sql',
   mysql: 'sql',
   postgres: 'sql',
   sqlite: 'sql',
+  d1: 'sql',
+  oracle: 'sql',
   clickhouse: 'sql',
   bigquery: 'sql',
   snowflake: 'sql',
@@ -17,9 +38,14 @@ export const FAMILY: Record<DbType, Family> = {
 };
 
 export const TYPE_LABEL: Record<DbType, string> = {
+  mssql: 'Microsoft SQL Server',
+  cassandra: 'Cassandra',
+  dynamodb: 'DynamoDB',
   mysql: 'MySQL / MariaDB',
   postgres: 'PostgreSQL',
   sqlite: 'SQLite',
+  d1: 'Cloudflare D1',
+  oracle: 'Oracle',
   clickhouse: 'ClickHouse',
   bigquery: 'BigQuery',
   snowflake: 'Snowflake',
@@ -31,9 +57,14 @@ export const TYPE_LABEL: Record<DbType, string> = {
 };
 
 export const DEFAULT_PORT: Record<DbType, number> = {
+  mssql: 1433,
+  cassandra: 9042,
+  dynamodb: 443,
   mysql: 3306,
   postgres: 5432,
   sqlite: 0,
+  d1: 443,
+  oracle: 1521,
   clickhouse: 8123,
   bigquery: 443,
   snowflake: 443,
@@ -71,11 +102,15 @@ export interface ConnectionConfig {
   uri?: string;
   authSource?: string;
   apiKey?: string;
+  accountId?: string;
   useSocket?: boolean;
   socketPath?: string;
   endpoint?: string;
   region?: string;
   forcePathStyle?: boolean;
+  sessionToken?: string;
+  temporaryCredentials?: boolean;
+  localDatacenter?: string;
   googleAuth?: boolean;
   kibanaUrl?: string;
   googleEmail?: string;
@@ -142,6 +177,7 @@ export interface ColumnMeta {
   type?: string;
   pk?: boolean;
   nullable?: boolean;
+  generated?: boolean;
   defaultValue?: string | null;
   comment?: string;
 }

@@ -4,7 +4,7 @@ export interface Statement {
   end: number;
 }
 
-export type SqlDialect = 'mysql' | 'postgres' | 'sqlite' | 'clickhouse' | 'bigquery' | 'snowflake';
+export type SqlDialect = 'mssql' | 'cassandra' | 'dynamodb' | 'mysql' | 'postgres' | 'sqlite' | 'oracle' | 'clickhouse' | 'bigquery' | 'snowflake';
 
 export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Statement[] {
   const out: Statement[] = [];
@@ -20,22 +20,38 @@ export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Stateme
   while (i < n) {
     const c = src[i];
     const next = src[i + 1];
-    if (c === '-' && next === '-') {
+    if (dialect === 'oracle' && c === '/' && /^\s*\/\s*$/.test(src.slice(src.lastIndexOf('\n', i - 1) + 1, src.indexOf('\n', i) < 0 ? n : src.indexOf('\n', i)))) {
+      push(i);
+      i = lineEnd(src, i);
+      start = i;
+    } else if (dialect === 'oracle' && (c === 'q' || c === 'Q') && next === "'" && src[i + 2]) {
+      const open = src[i + 2];
+      const close = ({ '[': ']', '{': '}', '(': ')', '<': '>' } as Record<string, string>)[open] || open;
+      const end = src.indexOf(`${close}'`, i + 3);
+      i = end < 0 ? n : end + 2;
+    } else if (c === '-' && next === '-') {
       i = lineEnd(src, i);
     } else if (c === '#' && (dialect === 'mysql' || dialect === 'bigquery')) {
       i = lineEnd(src, i);
     } else if (c === '/' && next === '*') {
       const e = src.indexOf('*/', i + 2);
       i = e === -1 ? n : e + 2;
+    } else if (c === '[' && dialect === 'mssql') {
+      i = quoteEnd(src, i, ']', false);
     } else if (c === "'" || c === '"' || c === '`') {
-      i = quoteEnd(src, i, c, dialect !== 'postgres' && dialect !== 'sqlite');
-    } else if (c === '$' && (dialect === 'postgres' || dialect === 'snowflake')) {
+      i = quoteEnd(src, i, c, !['postgres', 'sqlite', 'oracle', 'mssql', 'cassandra', 'dynamodb'].includes(dialect));
+    } else if (c === '$' && (dialect === 'postgres' || dialect === 'snowflake' || dialect === 'cassandra')) {
       const m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(src.slice(i, i + 64));
       if (m) {
         const e = src.indexOf(m[0], i + m[0].length);
         i = e === -1 ? n : e + m[0].length;
       } else i++;
-    } else if (c === ';' && !(dialect === 'sqlite' && insideTrigger(src.slice(start, i)))) {
+    } else if (
+      c === ';' &&
+      !(dialect === 'sqlite' && insideTrigger(src.slice(start, i))) &&
+      !(dialect === 'oracle' && oracleBlock(src.slice(start, i))) &&
+      !(dialect === 'cassandra' && cassandraBatch(src.slice(start, i)))
+    ) {
       push(i);
       start = i + 1;
       i++;
@@ -43,6 +59,17 @@ export function splitSql(src: string, dialect: SqlDialect = 'postgres'): Stateme
   }
   push(n);
   return out;
+}
+
+function cassandraBatch(text: string): boolean {
+  const code = stripComments(text).trim();
+  return /^BEGIN\s+(?:(?:UNLOGGED|COUNTER)\s+)?BATCH\b/i.test(code) && !/\bAPPLY\s+BATCH$/i.test(code);
+}
+
+function oracleBlock(text: string): boolean {
+  return /^(?:begin|declare|create\s+(?:or\s+replace\s+)?(?:(?:editionable|noneditionable)\s+)?(?:procedure|function|package|trigger|type\s+body))\b/i.test(
+    stripComments(text).trim(),
+  );
 }
 
 function insideTrigger(text: string): boolean {

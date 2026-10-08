@@ -102,6 +102,8 @@ function describe(c: ConnectionConfig): string {
   if (c.type === 'docker') return c.useSocket !== false ? c.socketPath || 'local socket' : `${c.host}:${c.port ?? 2375}`;
   if (c.type === 'mongodb' && c.useUri) return '';
   if (c.type === 'elasticsearch' && c.kibanaUrl) return `via Kibana · ${c.kibanaUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}`;
+  if (c.type === 'dynamodb') return [c.region || 'us-east-1', c.endpoint].filter(Boolean).join(' · ');
+  if (c.type === 'd1') return [c.accountId, c.database].filter(Boolean).join(' · ');
   if (c.type === 'sqlite') return c.database?.replace(os.homedir(), '~') ?? '';
   if (c.type === 'bigquery') return [c.project || 'default project', c.region].filter(Boolean).join(' · ');
   if (c.type === 'snowflake') return [`${c.user ?? ''}@${c.host ?? ''}`, c.warehouse].filter(Boolean).join(' · ');

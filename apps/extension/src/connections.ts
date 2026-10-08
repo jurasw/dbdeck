@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
+import { MssqlDriver } from './drivers/mssql';
+import { CassandraDriver } from './drivers/cassandra';
+import { DynamoDbDriver } from './drivers/dynamodb';
 import { BaseDriver } from './drivers/base';
 import { BIGQUERY_SCOPE, BigQueryDriver } from './drivers/bigquery';
 import { ClickHouseDriver } from './drivers/clickhouse';
 import { DockerDriver } from './drivers/docker';
+import { D1Driver } from './drivers/d1';
+import { OracleDriver } from './drivers/oracle';
 import { ElasticDriver } from './drivers/elastic';
 import { GcsDriver } from './drivers/gcs';
 import { MongoDriver } from './drivers/mongo';
@@ -22,18 +27,29 @@ interface Secrets {
   password?: string;
   uri?: string;
   apiKey?: string;
+  sessionToken?: string;
   sshPassword?: string;
   sshPassphrase?: string;
 }
 
 export function createDriver(c: ConnectionConfig): BaseDriver {
   switch (c.type) {
+    case 'mssql':
+      return new MssqlDriver(c);
+    case 'cassandra':
+      return new CassandraDriver(c);
+    case 'dynamodb':
+      return new DynamoDbDriver(c);
     case 'mysql':
       return new MysqlDriver(c);
     case 'postgres':
       return new PostgresDriver(c);
     case 'sqlite':
       return new SqliteDriver(c);
+    case 'd1':
+      return new D1Driver(c);
+    case 'oracle':
+      return new OracleDriver(c);
     case 'clickhouse':
       return new ClickHouseDriver(c);
     case 'bigquery':
@@ -80,13 +96,21 @@ export class ConnectionStore {
       password: s.password,
       uri: s.uri,
       apiKey: s.apiKey,
+      sessionToken: s.sessionToken,
       ssh: c.ssh ? { ...c.ssh, password: s.sshPassword, passphrase: s.sshPassphrase } : undefined,
     };
   }
 
   async save(c: ConnectionConfig): Promise<void> {
-    const s: Secrets = { password: c.password, uri: c.uri, apiKey: c.apiKey, sshPassword: c.ssh?.password, sshPassphrase: c.ssh?.passphrase };
-    const plain: ConnectionConfig = { ...c, password: undefined, uri: undefined, apiKey: undefined };
+    const s: Secrets = { password: c.password, uri: c.uri, apiKey: c.apiKey, sessionToken: c.sessionToken, sshPassword: c.ssh?.password, sshPassphrase: c.ssh?.passphrase };
+    const plain: ConnectionConfig = {
+      ...c,
+      password: undefined,
+      uri: undefined,
+      apiKey: undefined,
+      sessionToken: undefined,
+      temporaryCredentials: c.type === 'dynamodb' ? !!c.sessionToken : undefined,
+    };
     if (plain.ssh) plain.ssh = { ...plain.ssh, password: undefined, passphrase: undefined };
     const list = this.list();
     const i = list.findIndex((x) => x.id === c.id);
@@ -120,12 +144,35 @@ export class ConnectionStore {
     const s = this.session.get(c.id) ?? {};
     const needsPassword =
       c.type !== 'docker' &&
+      c.type !== 'd1' &&
+      !(c.type === 'elasticsearch' && c.kibanaUrl) &&
       !c.googleAuth &&
       !(c.type === 'mongodb' && c.useUri) &&
       !(c.type === 'snowflake' && c.authMethod === 'keyPair') &&
       !!c.user &&
       s.password === undefined;
     const needsUri = c.type === 'mongodb' && c.useUri && !s.uri;
+    if (c.type === 'elasticsearch' && c.kibanaUrl && !s.apiKey) {
+      const key = await vscode.window.showInputBox({
+        title: c.name,
+        prompt: 'Encoded Kibana API key (kept in memory for this session only)',
+        password: true,
+        ignoreFocusOut: true,
+        validateInput: (value) => (value.trim() ? undefined : 'Paste the Encoded API key from Kibana.'),
+      });
+      if (key === undefined) return undefined;
+      s.apiKey = key.trim();
+    }
+    if (c.type === 'd1' && !s.apiKey) {
+      const token = await vscode.window.showInputBox({
+        title: c.name,
+        prompt: 'Cloudflare API token (kept in memory for this session only)',
+        password: true,
+        ignoreFocusOut: true,
+      });
+      if (token === undefined) return undefined;
+      s.apiKey = token.trim();
+    }
     const needsSsh = !!c.ssh?.enabled && c.ssh.authType === 'password' && s.sshPassword === undefined;
     if (needsUri) {
       const v = await vscode.window.showInputBox({ title: c.name, prompt: 'Connection string (kept in memory for this session only)', password: true, ignoreFocusOut: true });
@@ -135,12 +182,17 @@ export class ConnectionStore {
     if (needsPassword) {
       const v = await vscode.window.showInputBox({
         title: c.name,
-        prompt: `${c.type === 's3' ? 'Secret access key' : c.type === 'snowflake' ? 'Programmatic access token' : 'Password'} for ${c.user} (kept in memory for this session only)`,
+        prompt: `${c.type === 's3' || c.type === 'dynamodb' ? 'Secret access key' : c.type === 'snowflake' ? 'Programmatic access token' : 'Password'} for ${c.user} (kept in memory for this session only)`,
         password: true,
         ignoreFocusOut: true,
       });
       if (v === undefined) return undefined;
       s.password = v;
+    }
+    if (c.type === 'dynamodb' && c.temporaryCredentials && !s.sessionToken) {
+      const token = await vscode.window.showInputBox({ title: c.name, prompt: 'AWS session token (kept in memory for this session only)', password: true, ignoreFocusOut: true });
+      if (token === undefined) return undefined;
+      s.sessionToken = token;
     }
     if (needsSsh) {
       const v = await vscode.window.showInputBox({ title: c.name, prompt: `SSH password for ${c.ssh!.username}@${c.ssh!.host}`, password: true, ignoreFocusOut: true });
@@ -148,7 +200,14 @@ export class ConnectionStore {
       s.sshPassword = v;
     }
     this.session.set(c.id, s);
-    return { ...c, password: s.password, uri: s.uri, apiKey: s.apiKey, ssh: c.ssh ? { ...c.ssh, password: s.sshPassword, passphrase: s.sshPassphrase } : undefined };
+    return {
+      ...c,
+      password: s.password,
+      uri: s.uri,
+      apiKey: s.apiKey,
+      sessionToken: s.sessionToken,
+      ssh: c.ssh ? { ...c.ssh, password: s.sshPassword, passphrase: s.sshPassphrase } : undefined,
+    };
   }
 
   forget(id: string): void {

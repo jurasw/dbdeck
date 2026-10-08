@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { ElasticDriver, kibanaEndpoints } from '../src/drivers/elastic';
+import { ElasticDriver, elasticApiKey, errorText, kibanaEndpoints } from '../src/drivers/elastic';
 import { ConnectionConfig } from '../src/types';
 
 test('Kibana URLs are reduced to the base path and Elastic Cloud gets a direct endpoint', () => {
@@ -75,8 +75,55 @@ test('Kibana sign-in problems explain the next step', async () => {
     await assert.rejects(new ElasticDriver(config(k.url)).connect(), /rejected the API key/);
     status = 403;
     await assert.rejects(new ElasticDriver(config(k.url)).connect(), /Dev Tools privilege/);
-    await assert.rejects(new ElasticDriver(config(k.url, { apiKey: undefined })).connect(), /Sign in to Kibana/);
+    await assert.rejects(new ElasticDriver(config(k.url, { apiKey: undefined })).connect(), /Open Kibana API keys/);
   } finally {
     k.close();
   }
+});
+
+test('Kibana URLs accept custom domains and reject invalid protocols and embedded credentials', () => {
+  assert.deepEqual(kibanaEndpoints('https://kibana.elastic.megarax.net'), { kibana: 'https://kibana.elastic.megarax.net', direct: undefined });
+  assert.equal(kibanaEndpoints('https://kibana.example.com/logs/s/team').kibana, 'https://kibana.example.com/logs');
+  for (const url of ['', 'ftp://kibana.example.com', 'https://user:secret@kibana.example.com', 'not a URL']) {
+    assert.throws(() => kibanaEndpoints(url), /valid HTTP or HTTPS Kibana URL/);
+  }
+});
+
+test('copied API key headers and id:key pairs produce the correct authorization value', () => {
+  assert.equal(elasticApiKey('  ApiKey a2V5  '), 'a2V5');
+  assert.equal(elasticApiKey('id:key'), Buffer.from('id:key').toString('base64'));
+  assert.throws(() => elasticApiKey('  '), /Encoded API key/);
+  assert.throws(() => elasticApiKey('Authorization: ApiKey key'), /without the request headers/);
+});
+
+test('browser redirects, HTML login pages and unrelated JSON are never successful Kibana connections', async () => {
+  let response = 'redirect';
+  const k = await kibana((_req, _url, _body, res) => {
+    if (response === 'json') return json(res, 200, { message: 'login required' });
+    if (response === 'redirect') {
+      res.writeHead(302, { Location: '/login' });
+      return res.end();
+    }
+    res.writeHead(200, { 'Content-Type': response === 'html' ? 'text/html' : 'text/plain' });
+    res.end('<!doctype html><html><body>Sign in with Google</body></html>');
+  });
+  try {
+    for (response of ['redirect', 'html', 'plain']) {
+      await assert.rejects(new ElasticDriver(config(k.url)).connect(), /browser login page or redirect/);
+    }
+    response = 'json';
+    await assert.rejects(new ElasticDriver(config(k.url)).connect(), /did not return Elasticsearch cluster information/);
+  } finally {
+    k.close();
+  }
+});
+
+test('Kibana routing and permission errors describe their distinct causes', async () => {
+  const k = await kibana((_req, _url, _body, res) => json(res, 404, { message: 'Not Found' }));
+  try {
+    await assert.rejects(new ElasticDriver(config(k.url)).connect(), /Check the Kibana URL and base path/);
+  } finally {
+    k.close();
+  }
+  assert.equal(errorText({ statusCode: 400, message: 'Bad proxy request' }), 'Bad proxy request');
 });

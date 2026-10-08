@@ -211,6 +211,9 @@ export class DockerDriver extends BaseDriver {
       [/postgres|postgis|timescale/, 'postgres', 5432],
       [/tidb/, 'mysql', 4000],
       [/mysql|mariadb|percona|singlestore|memsql/, 'mysql', 3306],
+      [/mssql\/server|azure-sql-edge/, 'mssql', 1433],
+      [/cassandra/, 'cassandra', 9042],
+      [/dynamodb-local/, 'dynamodb', 8000],
       [/mongo|ferretdb/, 'mongodb', 27017],
       [/redis|valkey|keydb|dragonfly/, 'redis', 6379],
       [/elasticsearch|opensearch/, 'elasticsearch', 9200],
@@ -233,6 +236,18 @@ export class DockerDriver extends BaseDriver {
     switch (type) {
       case 'postgres':
         return { ...base, user: env.POSTGRES_USER || 'postgres', password: env.POSTGRES_PASSWORD, database: env.POSTGRES_DB };
+      case 'mssql':
+        return { ...base, user: 'sa', password: env.MSSQL_SA_PASSWORD || env.SA_PASSWORD, database: 'master', ssl: true, rejectUnauthorized: false };
+      case 'cassandra':
+        return { ...base, localDatacenter: env.CASSANDRA_DC || 'datacenter1' };
+      case 'dynamodb':
+        return {
+          ...base,
+          endpoint: `http://${base.host}:${base.port}`,
+          region: 'us-east-1',
+          user: env.AWS_ACCESS_KEY_ID || 'local',
+          password: env.AWS_SECRET_ACCESS_KEY || 'local',
+        };
       case 'mysql':
         return env.MYSQL_ROOT_PASSWORD || env.MARIADB_ROOT_PASSWORD
           ? { ...base, user: 'root', password: env.MYSQL_ROOT_PASSWORD || env.MARIADB_ROOT_PASSWORD, database: env.MYSQL_DATABASE || env.MARIADB_DATABASE }

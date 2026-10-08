@@ -11,6 +11,14 @@ cpSync('node_modules/@vscode/codicons/dist/codicon.css', 'dist/webview/codicon.c
 cpSync('node_modules/@vscode/codicons/dist/codicon.ttf', 'dist/webview/codicon.ttf');
 cpSync('webview/style.css', 'dist/webview/style.css');
 
+// node-oracledb loads its Thin implementation at runtime. Preserve its module
+// layout in the VSIX while excluding native binaries used only by Thick mode.
+mkdirSync('dist/node_modules/oracledb', { recursive: true });
+for (const file of ['index.js', 'package.json', 'LICENSE.txt', 'NOTICE.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  cpSync(`node_modules/oracledb/${file}`, `dist/node_modules/oracledb/${file}`);
+}
+cpSync('node_modules/oracledb/lib', 'dist/node_modules/oracledb/lib', { recursive: true });
+
 const tailwind = ['-i', 'webview/ui/globals.css', '-o', 'dist/webview/connection.css', ...(production ? ['--minify'] : [])];
 if (watch) spawn('node_modules/.bin/tailwindcss', [...tailwind, '--watch'], { stdio: 'inherit' });
 else execFileSync('node_modules/.bin/tailwindcss', tailwind, { stdio: 'inherit' });
@@ -26,6 +34,7 @@ const extension = await esbuild.context({
   target: 'node18',
   external: [
     'vscode',
+    'oracledb',
     'cpu-features',
     'pg-native',
     'kerberos',

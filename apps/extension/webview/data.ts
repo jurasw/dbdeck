@@ -34,7 +34,7 @@ interface Init {
   location: string;
   pageSize: number;
   editable: boolean;
-  dialect?: 'mysql' | 'postgres' | 'sqlite' | 'clickhouse' | 'bigquery' | 'snowflake';
+  dialect?: 'mssql' | 'cassandra' | 'dynamodb' | 'mysql' | 'postgres' | 'sqlite' | 'oracle' | 'clickhouse' | 'bigquery' | 'snowflake';
   initialSearch?: string;
   initialData?: PageData;
 }
@@ -142,19 +142,24 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   const pkCols = () => columns.map((c, i) => (c.pk ? i : -1)).filter((i) => i >= 0);
   const canEditRows = () => I.editable && isSql && pkCols().length > 0;
   const savingCells = new Set<string>();
-  const canEditCell = (r: number, c: number) => (isSql ? canEditRows() : I.editable && docs[r]?._id !== undefined && columns[c]?.name !== '_id' && !savingCells.has(`${r}:${c}`));
+  const canEditCell = (r: number, c: number) =>
+    isSql ? canEditRows() && !columns[c]?.generated : I.editable && docs[r]?._id !== undefined && columns[c]?.name !== '_id' && !savingCells.has(`${r}:${c}`);
   const dirty = () => edits.size > 0 || added.size > 0 || deleted.size > 0;
 
   const quote = (n: string) =>
-    I.dialect === 'postgres' || I.dialect === 'sqlite' || I.dialect === 'snowflake'
-      ? `"${n.replace(/"/g, '""')}"`
-      : I.dialect === 'bigquery'
-        ? `\`${n.replace(/[\\`]/g, '\\$&')}\``
-        : `\`${n.replace(/`/g, '``')}\``;
+    I.dialect === 'mssql'
+      ? `[${n.replace(/\]/g, ']]')}]`
+      : I.dialect === 'postgres' || I.dialect === 'sqlite' || I.dialect === 'snowflake' || I.dialect === 'oracle' || I.dialect === 'cassandra' || I.dialect === 'dynamodb'
+        ? `"${n.replace(/"/g, '""')}"`
+        : I.dialect === 'bigquery'
+          ? `\`${n.replace(/[\\`]/g, '\\$&')}\``
+          : `\`${n.replace(/`/g, '``')}\``;
   const sqlLiteral = (v: unknown) => {
     if (v === null) return 'NULL';
+    if (I.dialect === 'mssql' && typeof v === 'boolean') return v ? '1' : '0';
     if (typeof v === 'number' || typeof v === 'boolean') return String(v);
     const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    if (I.dialect === 'mssql') return `N'${s.replace(/'/g, "''")}'`;
     return I.dialect === 'bigquery' ? `'${s.replace(/[\\']/g, '\\$&').replace(/\n/g, '\\n')}'` : `'${s.replace(/'/g, "''")}'`;
   };
 
@@ -167,7 +172,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   };
 
   const grid = new Grid({
-    sort: 'server',
+    sort: I.dialect === 'cassandra' || I.dialect === 'dynamodb' ? 'client' : 'server',
     editable: canEditCell,
     rowOffset: () => page * pageSize,
     onSort: (c, dir) => {
@@ -426,7 +431,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     added.add(r);
     grid.setData(columns, rows, true);
     grid.scrollToRow(r);
-    const first = columns.findIndex((c) => !/auto_increment|nextval|identity/i.test(`${c.type ?? ''}`));
+    const first = columns.findIndex((c) => !c.generated && !/auto_increment|nextval|identity/i.test(`${c.type ?? ''}`));
     grid.startEdit(grid.viewCount - 1, Math.max(0, first));
     updateActions();
   }
@@ -447,7 +452,8 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     if (!dirty()) return;
     const pks = pkCols();
     const keyOf = (r: number) => Object.fromEntries(pks.map((c) => [columns[c].name, (originals.get(r) ?? rows[r])[c]]));
-    const asObject = (row: unknown[]) => Object.fromEntries(columns.map((c, i) => [c.name, row[i]]).filter(([, v]) => v !== undefined));
+    const asObject = (row: unknown[]) =>
+      Object.fromEntries(columns.map((c, i) => [c.name, row[i]]).filter(([k, v]) => v !== undefined && !columns.find((c) => c.name === k)?.generated));
     const updated = [...edits].filter(([r]) => !deleted.has(r));
     const removed = [...deleted].filter((r) => !added.has(r));
     const changes: RowChanges = {
@@ -455,12 +461,15 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       inserts: [...added].filter((r) => !deleted.has(r)).map((r) => asObject(rows[r])),
       deletes: removed.map(keyOf),
     };
-    const revert = undoChanges(
-      pks.map((c) => columns[c].name),
-      changes,
-      updated.map(([r]) => asObject(originals.get(r)!)),
-      removed.map((r) => asObject(originals.get(r) ?? rows[r])),
-    );
+    const revert =
+      removed.length && columns.some((c) => c.pk && c.generated)
+        ? null
+        : undoChanges(
+            pks.map((c) => columns[c].name),
+            changes,
+            updated.map(([r]) => asObject(originals.get(r)!)),
+            removed.map((r) => asObject(originals.get(r) ?? rows[r])),
+          );
     loading(app, true);
     try {
       const n = await rpc<number>('apply', changes);
@@ -645,7 +654,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     }
     clear(
       actions,
-      h('div.data-search', null, searchInput, searchClear, searchButton),
+      I.dialect === 'cassandra' || I.dialect === 'dynamodb' ? null : h('div.data-search', null, searchInput, searchClear, searchButton),
       left,
       h('div.grow'),
       h(
@@ -770,7 +779,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
               icon: 'code',
               class: 'sm ghost',
               title: 'Show CREATE statement',
-              onClick: async () => rpc('openInEditor', { content: await rpc('ddl'), language: 'sql' }),
+              onClick: async () => rpc('openInEditor', { content: await rpc('ddl'), language: I.dialect === 'dynamodb' ? 'json' : 'sql' }),
             })
           : null,
         I.mode === 'es'

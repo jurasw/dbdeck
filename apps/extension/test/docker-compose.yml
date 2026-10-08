@@ -1,6 +1,43 @@
 name: dbdeck-test
 
 services:
+  dynamodb:
+    profiles: ['dynamodb']
+    image: amazon/dynamodb-local:3.1.0
+    command: ['-jar', 'DynamoDBLocal.jar', '-inMemory', '-sharedDb']
+    ports: ['18000:8000']
+  mssql:
+    profiles: ['mssql']
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: dbdeckTest123!
+    ports: ['11433:1433']
+  cassandra:
+    profiles: ['cassandra']
+    image: cassandra:5.0
+    environment:
+      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 128M
+    ports: ['19042:9042']
+    healthcheck:
+      test: ['CMD', 'cqlsh', '-e', 'SELECT release_version FROM system.local;']
+      interval: 10s
+      timeout: 10s
+      retries: 60
+  oracle:
+    profiles: ['oracle']
+    image: gvenzl/oracle-free:23-slim
+    environment:
+      ORACLE_PASSWORD: dbdeckTest123
+      APP_USER: dbdeck
+      APP_USER_PASSWORD: dbdeckTest123
+    ports: ['11521:1521']
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh']
+      interval: 10s
+      timeout: 5s
+      retries: 60
   postgres:
     image: postgres:16-alpine
     environment:

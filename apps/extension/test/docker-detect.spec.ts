@@ -43,3 +43,19 @@ test('Plain database images keep their existing credentials', async () => {
   assert.equal((await container('postgres:16-alpine', 5432, ['POSTGRES_PASSWORD=x']))?.user, 'postgres');
   assert.equal((await container('mariadb:11', 3306, ['MARIADB_ROOT_PASSWORD=x']))?.password, 'x');
 });
+
+test('Docker discovers SQL Server, Cassandra and DynamoDB Local with service-specific credentials', async () => {
+  const sql = await container('mcr.microsoft.com/mssql/server:2022-latest', 1433, ['MSSQL_SA_PASSWORD=test']);
+  assert.equal(sql?.type, 'mssql');
+  assert.equal(sql?.user, 'sa');
+  assert.equal(sql?.password, 'test');
+  assert.equal(sql?.port, 11433);
+  assert.equal(sql?.rejectUnauthorized, false);
+  const cassandra = await container('cassandra:5.0', 9042, ['CASSANDRA_DC=dc2']);
+  assert.equal(cassandra?.type, 'cassandra');
+  assert.equal(cassandra?.localDatacenter, 'dc2');
+  const dynamo = await container('amazon/dynamodb-local:3.1.0', 8000);
+  assert.equal(dynamo?.type, 'dynamodb');
+  assert.equal(dynamo?.endpoint, 'http://127.0.0.1:18000');
+  assert.equal(dynamo?.user, 'local');
+});

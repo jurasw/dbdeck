@@ -64,7 +64,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   cmd('dbdeck.addConnection', () => openForm());
   cmd('dbdeck.omnisearch', async (node?: DbNode) => {
     const selected = node?.connId ? node : view.selection[0];
-    const supported = store.list().filter((c) => FAMILY[c.type] === 'sql' || c.type === 'mongodb');
+    const supported = store.list().filter((c) => (FAMILY[c.type] === 'sql' && c.type !== 'cassandra' && c.type !== 'dynamodb') || c.type === 'mongodb');
     let config = supported.find((c) => c.id === selected?.connId);
     if (!config) {
       if (!supported.length) {
@@ -276,7 +276,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     const d = await manager.get<SqlDriver>(n.connId);
     const cols = await d.columns({ database: n.database, schema: n.schema, table: n.table! });
     const list = cols.length ? cols.map((c) => d.quote(c.name)).join(', ') : '*';
-    await editors.newQuery(n, `SELECT ${list}\nFROM ${d.qualified({ database: n.database, schema: n.schema, table: n.table! })}\nLIMIT 100;\n`);
+    const ref = { database: n.database, schema: n.schema, table: n.table! };
+    const sql = d.selectSql(ref, { limit: 100, offset: 0 }).replace('SELECT *', `SELECT ${list}`);
+    await editors.newQuery(n, `${sql};\n`);
   });
   cmd('dbdeck.showDdl', async (n: DbNode) => {
     const d = await manager.get<SqlDriver>(n.connId);
@@ -285,6 +287,11 @@ export function activate(ctx: vscode.ExtensionContext): void {
         ? { database: n.database, schema: d.dialect === 'mysql' ? n.ref : n.schema, table: d.dialect === 'postgres' ? n.ref! : n.table! }
         : { database: n.database, schema: n.schema, table: n.table! };
     const ddl = await d.ddl(ref, n.kind);
+    if (d.dialect === 'dynamodb') {
+      const doc = await vscode.workspace.openTextDocument({ content: ddl, language: 'json' });
+      await vscode.window.showTextDocument(doc, { preview: false });
+      return;
+    }
     await editors.newQuery(n, ddl + '\n');
   });
   cmd('dbdeck.copyName', async (n: DbNode) => {
@@ -294,6 +301,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   cmd('dbdeck.truncateTable', async (n: DbNode) => {
     const d = await manager.get<SqlDriver>(n.connId);
     if (d.config.readonly) throw new Error('This connection is read-only');
+    if (d.config.type === 'dynamodb') throw new Error('DynamoDB does not support TRUNCATE. Delete items in the PartiQL editor or manage the table in AWS.');
     if (!(await confirm(`Truncate table ${n.table}? All rows will be deleted.`, 'Truncate'))) return;
     await d.run(`${d.dialect === 'sqlite' ? 'DELETE FROM' : 'TRUNCATE TABLE'} ${d.qualified({ database: n.database, schema: n.schema, table: n.table! })}`, n.database);
     refreshParent(n);
@@ -302,13 +310,16 @@ export function activate(ctx: vscode.ExtensionContext): void {
   cmd('dbdeck.dropObject', async (n: DbNode) => {
     const d = await manager.get(n.connId);
     if (d.config.readonly) throw new Error('This connection is read-only');
+    if (d.config.type === 'd1' && n.kind === 'database') throw new Error('Delete D1 databases in the Cloudflare dashboard.');
+    if (d.config.type === 'oracle' && (n.kind === 'database' || n.kind === 'schema')) throw new Error('Manage Oracle services and schemas with your database administrator.');
     if (d instanceof SqlDriver && d.dialect === 'sqlite' && n.kind === 'database') throw new Error('A SQLite database is a file. Delete the connection or the file instead.');
+    if (d.config.type === 'dynamodb') throw new Error('Manage DynamoDB tables in AWS. PartiQL supports item queries and changes.');
     const what = n.kind === 'database' ? `database ${n.database}` : `${n.kind} ${n.table}`;
     if (!(await confirm(`Drop ${what}? This cannot be undone.`, 'Drop'))) return;
     if (d instanceof SqlDriver) {
       const sql =
         n.kind === 'database'
-          ? `DROP ${d.dialect === 'bigquery' ? 'SCHEMA' : 'DATABASE'} ${d.quote(n.database!)}`
+          ? `DROP ${d.dialect === 'bigquery' ? 'SCHEMA' : d.dialect === 'cassandra' ? 'KEYSPACE' : 'DATABASE'} ${d.quote(n.database!)}`
           : `DROP ${n.kind === 'view' ? 'VIEW' : 'TABLE'} ${d.qualified({ database: n.database, schema: n.schema, table: n.table! })}`;
       await d.run(sql, n.kind === 'database' ? undefined : n.database);
     } else if (d instanceof MongoDriver) {

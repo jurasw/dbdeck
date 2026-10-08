@@ -28,7 +28,7 @@
   h1 .muted { color: #7d89a8; }
   .sub { margin-top: 28px; font-family: "Geist Mono", monospace; font-size: 18px; line-height: 1.6; color: #aab4cf; }
   .sub b { color: #f5f7fb; font-weight: 500; }
-  .types { position: absolute; left: 72px; bottom: 64px; display: flex; gap: 10px; }
+  .types { position: absolute; left: 72px; bottom: 64px; display: grid; grid-template-columns: repeat(8, 46px); gap: 10px; }
   .types div { width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.035);
     display: grid; place-items: center; }
   .types img { width: 24px; height: 24px; }
@@ -56,14 +56,19 @@
   </div>
   <div class="types">
     <div><img src="../../../apps/web/public/types/postgres-on.svg" alt=""></div>
-    <div><img src="../../../apps/web/public/types/mysql-on.svg" alt=""></div>
     <div><img src="../../../apps/web/public/types/sqlite-on.svg" alt=""></div>
-    <div><img src="../../../apps/web/public/types/clickhouse-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/mysql-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/redis-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/mssql-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/mongodb-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/elasticsearch-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/oracle-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/dynamodb-on.svg" alt=""></div>
     <div><img src="../../../apps/web/public/types/bigquery-on.svg" alt=""></div>
     <div><img src="../../../apps/web/public/types/snowflake-on.svg" alt=""></div>
-    <div><img src="../../../apps/web/public/types/mongodb-on.svg" alt=""></div>
-    <div><img src="../../../apps/web/public/types/redis-on.svg" alt=""></div>
-    <div><img src="../../../apps/web/public/types/elasticsearch-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/clickhouse-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/cassandra-on.svg" alt=""></div>
+    <div><img src="../../../apps/web/public/types/d1-on.svg" alt=""></div>
     <div><img src="../../../apps/web/public/types/s3-on.svg" alt=""></div>
     <div><img src="../../../apps/web/public/types/docker-on.svg" alt=""></div>
   </div>

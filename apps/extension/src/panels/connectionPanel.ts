@@ -85,17 +85,11 @@ export class ConnectionPanel {
         );
         return googleIdentity(new GoogleCredentials(undefined, STORAGE_SCOPE));
       },
-      kibanaSignIn: async ({ url }: { url: string }) => {
+      openKibanaApiKeys: async ({ url }: { url: string }) => {
         const { kibana } = kibanaEndpoints(url);
-        await vscode.env.openExternal(vscode.Uri.parse(`${kibana}/app/management/security/api_keys`));
-        const key = await vscode.window.showInputBox({
-          title: 'Sign in to Kibana',
-          prompt: 'Kibana opened in your browser. Sign in, click Create API key, then paste the Encoded key here.',
-          password: true,
-          ignoreFocusOut: true,
-          validateInput: (v) => (v.trim() ? undefined : 'Paste the Encoded API key.'),
-        });
-        return key ? { kibana, apiKey: key.trim() } : null;
+        const opened = await vscode.env.openExternal(vscode.Uri.parse(`${kibana}/app/management/security/api_keys`));
+        if (!opened) throw new Error('Could not open Kibana. Open the Kibana URL in your browser and go to Stack Management > API Keys.');
+        return { kibana };
       },
       googleProjects: async () => listProjects(await new GoogleCredentials(undefined, STORAGE_SCOPE).token()),
       googleBuckets: async ({ project }: { project: string }) => listBuckets(await new GoogleCredentials(undefined, STORAGE_SCOPE).token(), project),

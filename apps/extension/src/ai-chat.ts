@@ -73,6 +73,11 @@ export function chatSystemPrompt(context: { connection: string; database?: strin
     .join(', ');
   return [
     `You are the DBDeck database assistant for a ${context.dialect} database (${where}).`,
+    context.dialect === 'mssql' ? 'Use SQL Server T-SQL. Limit SELECT results with TOP, or ORDER BY with OFFSET/FETCH. Do not use LIMIT.' : '',
+    context.dialect === 'cassandra' ? 'Use Cassandra CQL with key-based WHERE filters. No joins, OFFSET, full-text predicates or SQL transactions.' : '',
+    context.dialect === 'dynamodb'
+      ? 'Use DynamoDB PartiQL. No LIMIT/OFFSET clauses, joins or COUNT aggregates. Table metadata lists only key attributes; never assume other fields exist.'
+      : '',
     context.table ? `The user has table ${context.table} open. Questions that name no table most likely refer to it.` : '',
     'Answer questions about this database. Call list_tables and describe_table to learn the schema before you write SQL. Never invent tables or columns.',
     queries

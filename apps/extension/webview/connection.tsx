@@ -14,7 +14,23 @@ import { cn } from '@/lib/utils';
 import { parseConnectionUrl } from './connection-url';
 import { INIT, rpc } from './lib';
 
-type DbType = 'mysql' | 'postgres' | 'sqlite' | 'clickhouse' | 'bigquery' | 'snowflake' | 'mongodb' | 'redis' | 'elasticsearch' | 'docker' | 's3';
+type DbType =
+  | 'mssql'
+  | 'cassandra'
+  | 'dynamodb'
+  | 'mysql'
+  | 'postgres'
+  | 'sqlite'
+  | 'd1'
+  | 'oracle'
+  | 'clickhouse'
+  | 'bigquery'
+  | 'snowflake'
+  | 'mongodb'
+  | 'redis'
+  | 'elasticsearch'
+  | 'docker'
+  | 's3';
 
 interface Ssh {
   enabled: boolean;
@@ -43,11 +59,14 @@ interface Conn {
   uri?: string;
   authSource?: string;
   apiKey?: string;
+  accountId?: string;
   useSocket?: boolean;
   socketPath?: string;
   endpoint?: string;
   region?: string;
   forcePathStyle?: boolean;
+  sessionToken?: string;
+  localDatacenter?: string;
   googleAuth?: boolean;
   kibanaUrl?: string;
   googleEmail?: string;
@@ -66,21 +85,29 @@ type Status = { kind: 'ok' | 'err' | 'busy'; text: string } | null;
 
 const I = INIT as { connection: Partial<Conn> | null; defaults: Record<DbType, number>; dockerSocket: string; groups: string[]; icons: Record<DbType, string> };
 
-const TYPES: { type: DbType; label: string; hint: string }[] = [
+// Database usage, Stack Overflow Developer Survey 2026 (all respondents).
+// https://survey.stackoverflow.co/2026/technology/data/databases
+// D1 has no comparable survey entry; storage and container tools follow databases.
+const TYPES: { type: DbType; label: string; pickerLabel?: string; hint: string }[] = [
   { type: 'postgres', label: 'PostgreSQL', hint: 'Postgres, Timescale, Supabase, Neon' },
-  { type: 'mysql', label: 'MySQL', hint: 'MySQL, MariaDB, TiDB, PlanetScale' },
   { type: 'sqlite', label: 'SQLite', hint: 'Local .db, .sqlite and .sqlite3 files' },
-  { type: 'clickhouse', label: 'ClickHouse', hint: 'HTTP interface' },
+  { type: 'mysql', label: 'MySQL', hint: 'MySQL, MariaDB, TiDB, PlanetScale' },
+  { type: 'redis', label: 'Redis', hint: 'Redis, Valkey, KeyDB, Dragonfly' },
+  { type: 'mssql', label: 'MSSQL', hint: 'Microsoft SQL Server and Azure SQL · SQL authentication' },
+  { type: 'mongodb', label: 'MongoDB', hint: 'Host or connection string' },
+  { type: 'elasticsearch', label: 'Elasticsearch', pickerLabel: 'Elastic', hint: 'Elasticsearch, OpenSearch' },
+  { type: 'oracle', label: 'Oracle', hint: 'Oracle Database 12.1 or later · service name · no Oracle Client required' },
+  { type: 'dynamodb', label: 'DynamoDB', hint: 'AWS DynamoDB and DynamoDB Local · PartiQL queries' },
   { type: 'bigquery', label: 'BigQuery', hint: 'Google BigQuery · gcloud credentials or a service account key' },
   { type: 'snowflake', label: 'Snowflake', hint: 'Programmatic access token or key pair' },
-  { type: 'mongodb', label: 'MongoDB', hint: 'Host or connection string' },
-  { type: 'redis', label: 'Redis', hint: 'Redis, Valkey, KeyDB, Dragonfly' },
-  { type: 'elasticsearch', label: 'Elasticsearch', hint: 'Elasticsearch, OpenSearch' },
+  { type: 'clickhouse', label: 'ClickHouse', hint: 'HTTP interface' },
+  { type: 'cassandra', label: 'Cassandra', hint: 'Apache Cassandra · keyspaces, tables and CQL queries' },
+  { type: 'd1', label: 'Cloudflare D1', pickerLabel: 'D1', hint: 'Cloudflare D1 · Account ID, Database ID and a Cloudflare API token' },
   { type: 's3', label: 'S3', hint: 'AWS S3, MinIO, Cloudflare R2, Wasabi, Backblaze B2' },
   { type: 'docker', label: 'Docker', hint: 'Containers, images, volumes' },
 ];
 
-const DEFAULT_USER: Partial<Record<DbType, string>> = { postgres: 'postgres', mysql: 'root', clickhouse: 'default' };
+const DEFAULT_USER: Partial<Record<DbType, string>> = { postgres: 'postgres', mysql: 'root', clickhouse: 'default', mssql: 'sa' };
 
 const URL_TYPES = new Set<DbType>(['postgres', 'mysql', 'clickhouse', 'redis']);
 
@@ -100,7 +127,7 @@ function initial(): Conn {
     name: '',
     type: 'postgres',
     host: '127.0.0.1',
-    rejectUnauthorized: I.connection?.type === 's3',
+    rejectUnauthorized: I.connection?.type === 's3' || !!I.connection?.kibanaUrl,
     useSocket: true,
     ...I.connection,
     ssh: { enabled: false, host: '', port: 22, username: '', authType: 'password', ...I.connection?.ssh },
@@ -220,10 +247,14 @@ function App() {
   const [status, setStatus] = useState<Status>(null);
   const [sshOpen, setSshOpen] = useState(!!c.ssh?.enabled);
   const [optionsOpen, setOptionsOpen] = useState(!!(c.showSystem || c.readonly || c.ssl || c.googleAuth || c.kibanaUrl));
+  const [elasticMode, setElasticMode] = useState<'direct' | 'kibana'>(c.kibanaUrl ? 'kibana' : 'direct');
   const meta = TYPES.find((x) => x.type === c.type)!;
   const ssh = c.ssh!;
 
-  const set = (patch: Partial<Conn>) => setC((p) => ({ ...p, ...patch }));
+  const set = (patch: Partial<Conn>) => {
+    setC((p) => ({ ...p, ...patch }));
+    setStatus(null);
+  };
   const setSsh = (patch: Partial<Ssh>) => setC((p) => ({ ...p, ssh: { ...p.ssh!, ...patch } }));
 
   const text = (key: keyof Conn, placeholder = '', type = 'text', mono = false) => (
@@ -263,7 +294,10 @@ function App() {
       type,
       port: !p.port || p.port === I.defaults[p.type] ? undefined : p.port,
       user: !p.user || p.user === DEFAULT_USER[p.type] ? DEFAULT_USER[type] : p.user,
-      rejectUnauthorized: isNew ? type === 's3' : p.rejectUnauthorized,
+      ssl: type === 'mssql' ? true : p.ssl,
+      ssh: ['dynamodb', 'cassandra'].includes(type) && p.ssh ? { ...p.ssh, enabled: false } : p.ssh,
+      googleAuth: type === 's3' ? p.googleAuth : false,
+      rejectUnauthorized: isNew ? type === 's3' || type === 'dynamodb' || type === 'mssql' : p.rejectUnauthorized,
     }));
     setStatus(null);
   };
@@ -274,8 +308,13 @@ function App() {
       ? `${meta.label} ${c.database?.split(/[\\/]/).pop() ?? ''}`
       : c.type === 'bigquery'
         ? `${meta.label} ${c.project || c.database || ''}`
-        : `${meta.label} ${c.endpoint || c.host || ''}`;
-  const payload = (): Conn => JSON.parse(JSON.stringify({ ...c, name: c.name || fallbackName.trim() }));
+        : c.type === 'd1'
+          ? `${meta.label} ${c.database || ''}`
+          : `${meta.label} ${c.type === 'elasticsearch' && elasticMode === 'kibana' ? c.kibanaUrl || '' : c.endpoint || c.host || ''}`;
+  const payload = (): Conn => {
+    if (c.type === 'elasticsearch' && elasticMode === 'kibana' && !c.kibanaUrl?.trim()) throw new Error('Enter the Kibana URL.');
+    return JSON.parse(JSON.stringify({ ...c, name: c.name || fallbackName.trim() }));
+  };
 
   const [google, setGoogle] = useState<{ email?: string; project?: string } | null>(null);
   const [projects, setProjects] = useState<{ id: string; name: string }[] | null>(null);
@@ -370,20 +409,14 @@ function App() {
     </div>
   );
 
-  const [kibanaDraft, setKibanaDraft] = useState(c.kibanaUrl ?? '');
   const [kibanaBusy, setKibanaBusy] = useState(false);
 
-  const kibanaSignIn = async () => {
+  const openKibanaApiKeys = async () => {
     setKibanaBusy(true);
-    setStatus({ kind: 'busy', text: 'Sign in to Kibana in your browser, then paste the API key…' });
+    setStatus(null);
     try {
-      const r = await rpc<{ kibana: string; apiKey: string } | null>('kibanaSignIn', { url: kibanaDraft });
-      if (!r) return setStatus(null);
-      const next: Conn = { ...c, kibanaUrl: r.kibana, apiKey: r.apiKey, user: undefined, password: undefined, rejectUnauthorized: true, ssh: { ...c.ssh!, enabled: false } };
-      setC(next);
-      setKibanaDraft(r.kibana);
-      setStatus({ kind: 'busy', text: 'Connecting through Kibana…' });
-      setStatus({ kind: 'ok', text: await rpc<string>('test', JSON.parse(JSON.stringify({ ...next, name: next.name || 'Elasticsearch' }))) });
+      const r = await rpc<{ kibana: string }>('openKibanaApiKeys', { url: c.kibanaUrl });
+      set({ kibanaUrl: r.kibana });
     } catch (e) {
       setStatus({ kind: 'err', text: (e as Error).message });
     } finally {
@@ -391,37 +424,51 @@ function App() {
     }
   };
 
-  const kibanaOptions = (): ReactNode => (
-    <div className="col-span-12 flex flex-col gap-3 rounded-lg border p-3">
-      <div className="flex flex-col gap-1">
-        <span className="text-[13px] font-medium">Kibana sign-in</span>
-        <span className="text-[11px] text-muted-foreground">
-          {c.kibanaUrl
-            ? `Connected through ${c.kibanaUrl} with an API key. Works with company SSO and Elastic Cloud.`
-            : 'Use your Kibana account (company SSO, Elastic Cloud) instead of host and password. Kibana opens in your browser; create an API key there and paste it.'}
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          id="kibanaUrl"
-          value={kibanaDraft}
-          placeholder="https://kibana.example.com"
-          spellCheck={false}
-          autoComplete="off"
-          className="h-8 min-w-64 flex-1 font-mono text-xs"
-          onChange={(e) => setKibanaDraft(e.target.value)}
-        />
-        <Button type="button" variant="outline" size="sm" disabled={!kibanaDraft.trim() || kibanaBusy} onClick={kibanaSignIn}>
-          {kibanaBusy ? <Loader2 className="animate-spin" /> : <LogIn />}
-          {c.kibanaUrl ? 'Create a new API key' : 'Sign in to Kibana'}
+  const elasticModePicker = (
+    <div className="col-span-12 flex flex-wrap gap-2" role="group" aria-label="Elasticsearch connection method">
+      {(['direct', 'kibana'] as const).map((mode) => (
+        <Button
+          key={mode}
+          type="button"
+          variant={elasticMode === mode ? 'secondary' : 'outline'}
+          size="sm"
+          aria-pressed={elasticMode === mode}
+          onClick={() => {
+            if (mode === elasticMode) return;
+            setElasticMode(mode);
+            set({ kibanaUrl: undefined, apiKey: undefined, rejectUnauthorized: mode === 'kibana', ssh: { ...c.ssh!, enabled: false } });
+          }}
+        >
+          {mode === 'kibana' ? 'Kibana URL' : 'Elasticsearch host'}
         </Button>
-        {c.kibanaUrl && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => set({ kibanaUrl: undefined, apiKey: undefined })}>
-            Use host and password instead
-          </Button>
-        )}
-      </div>
+      ))}
     </div>
+  );
+
+  const kibanaFields = (): ReactNode => (
+    <>
+      {elasticModePicker}
+      <Field label="Kibana URL" span={12} htmlFor="kibanaUrl" hint="Use the address you open in your browser, including any base path.">
+        {text('kibanaUrl', 'https://kibana.example.com', 'text', true)}
+      </Field>
+      <div className="col-span-12 flex flex-col items-start gap-2">
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Open Kibana, sign in with Google or your company account, then create a Personal API key and copy its Encoded value. Browser sign-in alone does not connect DBDeck.
+        </p>
+        <Button type="button" variant="outline" size="sm" disabled={!c.kibanaUrl?.trim() || kibanaBusy} onClick={openKibanaApiKeys}>
+          {kibanaBusy ? <Loader2 className="animate-spin" /> : <LogIn />}
+          Open Kibana API keys
+        </Button>
+      </div>
+      <Field
+        label="API key"
+        span={12}
+        htmlFor="apiKey"
+        hint="Paste the Encoded value, then use Test connection. DBDeck uses the Kibana console proxy, or the direct endpoint on Elastic Cloud."
+      >
+        {password('apiKey', c.apiKey, (v) => set({ apiKey: v }), 'Encoded API key')}
+      </Field>
+    </>
   );
 
   const googleOptions = (): ReactNode => (
@@ -560,6 +607,7 @@ function App() {
 
   const save = async () => {
     try {
+      if (status?.kind === 'busy' || kibanaBusy) return;
       await rpc('save', payload());
     } catch (e) {
       setStatus({ kind: 'err', text: (e as Error).message });
@@ -654,6 +702,95 @@ function App() {
           </Field>
           <Field label="Default dataset" span={6} htmlFor="database" hint="All datasets are listed; this one is opened first.">
             {text('database', 'optional')}
+          </Field>
+        </>
+      );
+    }
+    if (t === 'd1') {
+      return (
+        <>
+          <Field label="Account ID" span={6} htmlFor="accountId" hint="Cloudflare dashboard: account overview.">
+            {text('accountId', 'Cloudflare Account ID', 'text', true)}
+          </Field>
+          <Field label="Database ID" span={6} htmlFor="database" hint="D1 database UUID from the Cloudflare dashboard.">
+            {text('database', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', 'text', true)}
+          </Field>
+          <Field label="API token" span={12} htmlFor="apiKey" hint="D1 Read for browsing, D1 Write for SQL changes. Grid editing is unavailable; use the SQL editor.">
+            {password('apiKey', c.apiKey, (v) => set({ apiKey: v }))}
+          </Field>
+        </>
+      );
+    }
+    if (t === 'dynamodb') {
+      return (
+        <>
+          <Field label="Region" span={6} htmlFor="region" hint="AWS region containing your tables.">
+            {text('region', 'us-east-1')}
+          </Field>
+          <Field label="Endpoint" span={6} htmlFor="endpoint" hint="Optional. For DynamoDB Local: http://localhost:8000.">
+            {text('endpoint', 'AWS endpoint', 'text', true)}
+          </Field>
+          <Field label="Access key ID" span={6} htmlFor="user" hint="Leave both keys empty to use your AWS profile or environment credentials.">
+            {text('user', 'AWS credential chain', 'text', true)}
+          </Field>
+          <Field label="Secret access key" span={6} htmlFor="password">
+            {password('password', c.password, (v) => set({ password: v }))}
+          </Field>
+          <Field
+            label="Session token"
+            span={12}
+            htmlFor="sessionToken"
+            hint="Optional, for temporary AWS credentials. Grid browsing and PartiQL queries; edit items in the query editor."
+          >
+            {password('sessionToken', c.sessionToken, (v) => set({ sessionToken: v }))}
+          </Field>
+        </>
+      );
+    }
+    if (t === 'cassandra') {
+      return (
+        <>
+          <Field label="Contact point" span={8} htmlFor="host" hint="One Cassandra node used to discover the cluster.">
+            {text('host', '127.0.0.1')}
+          </Field>
+          <Field label="Port" span={4} htmlFor="port">
+            {text('port', portPh, 'number')}
+          </Field>
+          <Field label="Local datacenter" span={6} htmlFor="localDatacenter" hint="Must match your cluster's datacenter name.">
+            {text('localDatacenter', 'datacenter1')}
+          </Field>
+          <Field label="Default keyspace" span={6} htmlFor="database">
+            {text('database', 'optional')}
+          </Field>
+          <Field label="User" span={6} htmlFor="user">
+            {text('user', 'optional')}
+          </Field>
+          <Field label="Password" span={6} htmlFor="password">
+            {password('password', c.password, (v) => set({ password: v }))}
+          </Field>
+          <div className="col-span-12 text-xs text-muted-foreground">
+            Browse tables and run CQL. Use key-based WHERE filters; full-text search and staged grid edits are unavailable. SSH tunnels are unavailable for cluster discovery.
+          </div>
+        </>
+      );
+    }
+    if (t === 'oracle') {
+      return (
+        <>
+          <Field label="Host" span={8} htmlFor="host">
+            {text('host', '127.0.0.1', 'text', true)}
+          </Field>
+          <Field label="Port" span={4} htmlFor="port">
+            {text('port', '1521', 'number')}
+          </Field>
+          <Field label="Service name" span={12} htmlFor="database" hint="Oracle service name, for example FREEPDB1 or XEPDB1.">
+            {text('database', 'FREEPDB1', 'text', true)}
+          </Field>
+          <Field label="User" span={6} htmlFor="user">
+            {text('user', 'APP', 'text', true)}
+          </Field>
+          <Field label="Password" span={6} htmlFor="password">
+            {password('password', c.password, (v) => set({ password: v }))}
           </Field>
         </>
       );
@@ -796,16 +933,11 @@ function App() {
         </Field>
       </>
     );
-    if (t === 'elasticsearch' && c.kibanaUrl) {
-      return (
-        <Field label="Kibana" span={12} hint="Sign-in is in Options below. DBDeck reaches Elasticsearch through Kibana, or directly on Elastic Cloud.">
-          <span className="font-mono text-xs">{c.kibanaUrl}</span>
-        </Field>
-      );
-    }
+    if (t === 'elasticsearch' && elasticMode === 'kibana') return kibanaFields();
     if (t === 'elasticsearch') {
       return (
         <>
+          {elasticModePicker}
           {hostPort}
           <Field label="Username" span={4} htmlFor="user">
             {text('user', 'elastic')}
@@ -855,10 +987,10 @@ function App() {
 
   const isDocker = c.type === 'docker';
   const isS3 = c.type === 's3';
-  const isCloud = c.type === 'bigquery' || c.type === 'snowflake';
+  const isCloud = c.type === 'dynamodb' || c.type === 'bigquery' || c.type === 'snowflake' || c.type === 'd1';
   const isFile = c.type === 'sqlite';
-  const isKibana = c.type === 'elasticsearch' && !!c.kibanaUrl;
-  const showSsh = !isS3 && !isCloud && !isFile && !isKibana && !(isDocker && c.useSocket !== false);
+  const isKibana = c.type === 'elasticsearch' && elasticMode === 'kibana';
+  const showSsh = c.type !== 'cassandra' && !isS3 && !isCloud && !isFile && !isKibana && !(isDocker && c.useSocket !== false);
   const showSsl = !isS3 && !isCloud && !isFile && !isKibana && (!isDocker || c.useSocket === false);
 
   return (
@@ -871,22 +1003,26 @@ function App() {
           </h1>
 
           {isNew && (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(92px,1fr))] gap-2.5">
-              {TYPES.map((x) => (
-                <button
-                  key={x.type}
-                  type="button"
-                  title={x.hint}
-                  onClick={() => pickType(x.type)}
-                  className={cn(
-                    'flex cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card px-2 pt-3.5 pb-3 text-xs transition outline-none hover:-translate-y-px hover:border-input focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                    x.type === c.type && 'border-ring bg-primary/15 ring-1 ring-ring hover:border-ring',
-                  )}
-                >
-                  <img src={I.icons[x.type]} alt="" className="size-7" />
-                  {x.label}
-                </button>
-              ))}
+            <div className="overflow-x-auto py-1">
+              <div className="grid min-w-[640px] grid-cols-8 gap-1.5">
+                {TYPES.map((x) => (
+                  <button
+                    key={x.type}
+                    type="button"
+                    title={x.hint}
+                    aria-label={x.type === 'elasticsearch' ? 'Elasticsearch' : x.type === 'd1' ? 'Cloudflare D1' : x.label}
+                    aria-pressed={x.type === c.type}
+                    onClick={() => pickType(x.type)}
+                    className={cn(
+                      'flex min-w-0 cursor-pointer flex-col items-center gap-1.5 rounded-md border bg-card px-1 py-2 text-[10px] transition outline-none hover:-translate-y-px hover:border-input focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                      x.type === c.type && 'border-ring bg-primary/15 ring-1 ring-ring hover:border-ring',
+                    )}
+                  >
+                    <img src={I.icons[x.type]} alt="" className="size-5" />
+                    {x.pickerLabel ?? x.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -917,7 +1053,19 @@ function App() {
             {!isDocker && !isFile && c.type !== 'bigquery' && !c.googleAuth && (
               <Toggle
                 id="savePassword"
-                label={isS3 ? 'Remember secret key' : c.type === 'snowflake' ? (c.authMethod === 'keyPair' ? 'Remember passphrase' : 'Remember token') : 'Remember password'}
+                label={
+                  isS3 || c.type === 'dynamodb'
+                    ? 'Remember secret key'
+                    : c.type === 'd1'
+                      ? 'Remember token'
+                      : isKibana || (c.type === 'elasticsearch' && !!c.apiKey)
+                        ? 'Remember API key'
+                        : c.type === 'snowflake'
+                          ? c.authMethod === 'keyPair'
+                            ? 'Remember passphrase'
+                            : 'Remember token'
+                          : 'Remember password'
+                }
                 hint="On: OS keychain. Off: asked on connect, kept in memory only."
                 checked={c.savePassword !== false}
                 onChange={(v) => set({ savePassword: v })}
@@ -992,7 +1140,6 @@ function App() {
           <Section title="Options" open={optionsOpen} onOpenChange={setOptionsOpen}>
             {isS3 && googleOptions()}
             {c.type === 'bigquery' && bigQueryGoogle()}
-            {c.type === 'elasticsearch' && kibanaOptions()}
             {showSsl && <Toggle id="ssl" label="Use SSL / TLS" hint="Encrypt the connection" checked={!!c.ssl} onChange={(v) => set({ ssl: v })} />}
             {(showSsl || (isS3 && !c.googleAuth) || isKibana) && (
               <Toggle
@@ -1026,10 +1173,12 @@ function App() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5 border-t bg-background/90 px-6 py-3 backdrop-blur">
+      <div className="flex flex-wrap items-center justify-end gap-2.5 border-t bg-background/90 px-6 py-3 backdrop-blur max-[620px]:px-4">
         <div
+          role="status"
           className={cn(
-            'mr-auto flex min-w-0 items-center gap-1.5 text-xs [&>svg]:size-3.5 [&>svg]:shrink-0',
+            'mr-auto flex min-w-0 items-start gap-1.5 text-xs [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0',
+            status && 'w-full',
             status?.kind === 'ok' && 'text-success',
             status?.kind === 'err' && 'text-destructive',
           )}
@@ -1038,7 +1187,7 @@ function App() {
           {status?.kind === 'ok' && <CircleCheck />}
           {status?.kind === 'err' && <CircleAlert />}
           {status && (
-            <span className="truncate" title={status.text}>
+            <span className="min-w-0 wrap-anywhere whitespace-pre-line" title={status.text}>
               {status.text}
             </span>
           )}
@@ -1051,7 +1200,7 @@ function App() {
           <X />
           Cancel
         </Button>
-        <Button size="sm" onClick={save}>
+        <Button size="sm" onClick={save} disabled={status?.kind === 'busy' || kibanaBusy}>
           <Check />
           Save
         </Button>

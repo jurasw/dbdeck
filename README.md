@@ -52,7 +52,7 @@ Nothing leaves your machine except the queries you send to your own databases.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/readme/services-dark.svg">
-    <img alt="Eleven connection types: PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 / MinIO / R2 and Docker" src="assets/readme/services-light.svg" width="100%">
+    <img alt="Sixteen connection types: PostgreSQL, MySQL / MariaDB, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 / MinIO / R2 and Docker" src="assets/readme/services-light.svg" width="100%">
   </picture>
 </p>
 
@@ -67,7 +67,7 @@ Nothing leaves your machine except the queries you send to your own databases.
     <td valign="top" width="50%">
       <img src="assets/readme/schema-diagram.gif" alt="A schema diagram of seven tables: zoom in, search for order, drag a table and arrange the layout" width="100%">
       <h3>Schema diagrams</h3>
-      <p>Any PostgreSQL, MySQL or SQLite schema as a diagram, foreign keys linked column to column.
+      <p>Any PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle or MSSQL schema as a diagram, foreign keys linked column to column.
       Drag, pan, zoom and search; hover a table to light up its relations.</p>
     </td>
   </tr>
@@ -90,16 +90,24 @@ Nothing leaves your machine except the queries you send to your own databases.
   </tr>
 </table>
 
+- **MSSQL** connects to SQL Server and Azure SQL with SQL authentication. Browse databases and schemas, edit primary-key rows in a transaction, run SQL, search values and view foreign key diagrams.
+- **DynamoDB** browses tables and items with native paging and runs PartiQL queries. Use access keys, optional session tokens or the AWS credential chain; custom endpoints support DynamoDB Local.
+- **Cassandra** browses keyspaces and tables with native paging, column metadata and CQL queries. Configure a contact point and local datacenter, with optional authentication and TLS.
+- **DynamoDB and Cassandra changes** run in the query editor. Staged grid editing and full-text table search are unavailable; Cassandra uses key-based CQL filters. DynamoDB table definitions show AWS metadata, and exact row counts are unavailable.
+- **Connection picker** shows sixteen compact buttons in two rows, ordered by database usage in the [Stack Overflow Developer Survey 2026](https://survey.stackoverflow.co/2026/technology/data/databases). D1 follows the ranked databases; storage and container tools follow D1.
+
+- **Cloudflare D1** connects with an Account ID, Database ID and API token. Browse tables, run SQL, search values and view foreign keys. The grid is read-only; run DML from the SQL editor.
+- **Oracle** connects by host, port and service name using Thin mode, without Oracle Client libraries. Browse schemas, run SQL and PL/SQL, edit rows in a transaction and view foreign keys.
 - **SQLite files** as connections: pick a `.db`, `.sqlite` or `.sqlite3` file to browse, query and edit it. Nothing to install.
 - **Paste a connection URL** from Neon, Supabase, PlanetScale or Heroku and DBDeck fills the form. The URL itself is not stored.
-- **Inline row edits** for PostgreSQL, MySQL and SQLite tables with a primary key. Changes are staged and saved in one transaction, and the confirmation toast offers **Undo**.
+- **Inline row edits** for PostgreSQL, MySQL, SQLite, Oracle and MSSQL tables with a primary key. Changes are staged and saved in one transaction, and the confirmation toast offers **Undo**.
 - **Responsive table browsing**: fast first-page results appear with the panel, wide tables render only visible rows and columns, and tables open in a reusable preview tab. A start tab with recent tables loads in the background so the first table appears at once.
 - **Docker containers become connections** in one click: DBDeck reads the credentials from the container environment.
 - **AI queries** with ChatGPT sign-in, your own OpenAI or Claude API key or a local Ollama model. Only table and column names are shared, never rows.
 - **Chat with Database**: ask questions about a SQL connection in a chat panel. The assistant reads the schema itself; turn on read-only queries to let it answer from your data. SQL in answers opens in an editor or runs read-only in the chat.
 - **MCP server for AI agents**: Claude Code, Cursor, Copilot and Codex read schema and run read-only queries on connections you allow. Changes open in an editor for your review.
 - **BigQuery and Snowflake** in the same tree. BigQuery signs in with Google under Options or with a service account key and previews tables for free. Snowflake signs in with a programmatic access token or a key pair. Both are read-only in the grid; run DML from the SQL editor.
-- **Elasticsearch behind Kibana SSO**: sign in to Kibana under Options, create an API key and DBDeck connects through Kibana or directly on Elastic Cloud.
+- **Elasticsearch through Kibana**: choose **Kibana URL**, enter the address, open **Kibana API keys** and sign in with Google or company SSO in your browser. Create a Personal API key, paste its Encoded value and test the connection. DBDeck connects through Kibana or directly on Elastic Cloud; browser sign-in alone does not connect the extension.
 - **S3, MinIO, R2 and Google Cloud Storage** buckets in the same tree: open, upload, download, copy the `s3://` or `gs://` URI. Google Cloud Storage signs in with your Google account under Options.
 - **Read-only connections** block every write, and destructive actions always ask first.
 
@@ -204,7 +212,7 @@ DBDeck is free and open source. If it helps you, you can [buy us a coffee](https
 
 ### Search all values
 
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, Cloudflare D1, Oracle, MSSQL, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
 
 Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 

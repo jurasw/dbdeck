@@ -96,6 +96,16 @@ textarea {
   font: inherit;
   color: inherit;
 }
+button:not(:disabled):not([aria-disabled='true']),
+a[href],
+select:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled='true'] {
+  cursor: default;
+}
 .codicon {
   font-size: 14px;
   vertical-align: middle;
@@ -1030,7 +1040,7 @@ textarea {
   gap: 8px;
   padding: 6px 8px;
   border-radius: 4px;
-  cursor: default;
+  cursor: pointer;
 }
 .menu .mi:hover {
   background: var(--bg-3);

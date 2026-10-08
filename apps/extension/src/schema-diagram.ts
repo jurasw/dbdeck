@@ -1,5 +1,5 @@
 import { SqlDriver } from './drivers/sql';
-import { SqliteDriver } from './drivers/sqlite';
+import { SqliteSchemaDriver } from './drivers/sqlite-schema';
 import { ColumnMeta, TableRef } from './types';
 
 export interface DiagramTable extends TableRef {
@@ -35,7 +35,7 @@ export async function loadSchemaDiagram(driver: SqlDriver, database: string, sch
       )),
     );
   }
-  if (driver instanceof SqliteDriver) {
+  if (driver instanceof SqliteSchemaDriver) {
     const byId = new Map(tables.map((t) => [t.id, t]));
     const relations = (await driver.foreignKeys(database))
       .map((fk) => ({
@@ -46,6 +46,52 @@ export async function loadSchemaDiagram(driver: SqlDriver, database: string, sch
         targetColumn: fk.targetColumn ?? byId.get(tableId(undefined, fk.target))?.columns.find((c) => c.pk)?.name ?? '',
       }))
       .filter((r) => byId.has(r.source) && byId.has(r.target) && r.targetColumn);
+    return { tables, relations };
+  }
+  if (driver.dialect === 'mssql') {
+    const result = await driver.run(
+      `SELECT fk.name, ss.name, st.name, sc.name, ts.name, tt.name, tc.name
+      FROM sys.foreign_keys fk JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+      JOIN sys.tables st ON st.object_id = fk.parent_object_id JOIN sys.schemas ss ON ss.schema_id = st.schema_id
+      JOIN sys.columns sc ON sc.object_id = st.object_id AND sc.column_id = fkc.parent_column_id
+      JOIN sys.tables tt ON tt.object_id = fk.referenced_object_id JOIN sys.schemas ts ON ts.schema_id = tt.schema_id
+      JOIN sys.columns tc ON tc.object_id = tt.object_id AND tc.column_id = fkc.referenced_column_id
+      ${schema ? 'WHERE ss.name = @p1' : ''} ORDER BY ss.name, st.name, fk.name, fkc.constraint_column_id`,
+      database,
+      schema ? [schema] : [],
+    );
+    const ids = new Set(tables.map((t) => t.id));
+    const relations = result.rows
+      .map((r) => ({
+        name: String(r[0]),
+        source: tableId(String(r[1]), String(r[2])),
+        sourceColumn: String(r[3]),
+        target: tableId(String(r[4]), String(r[5])),
+        targetColumn: String(r[6]),
+      }))
+      .filter((r) => ids.has(r.source) && ids.has(r.target));
+    return { tables, relations };
+  }
+  if (driver.dialect === 'oracle') {
+    const result = await driver.run(
+      `SELECT k.constraint_name, k.owner, k.table_name, s.column_name, r.owner, r.table_name, t.column_name
+      FROM all_constraints k JOIN all_cons_columns s ON s.owner = k.owner AND s.constraint_name = k.constraint_name
+      JOIN all_constraints r ON r.owner = k.r_owner AND r.constraint_name = k.r_constraint_name
+      JOIN all_cons_columns t ON t.owner = r.owner AND t.constraint_name = r.constraint_name AND t.position = s.position
+      WHERE k.constraint_type = 'R' ${schema ? 'AND k.owner = :1' : ''} ORDER BY k.owner, k.table_name, k.constraint_name, s.position`,
+      database,
+      schema ? [schema] : [],
+    );
+    const ids = new Set(tables.map((t) => t.id));
+    const relations = result.rows
+      .map((row) => ({
+        name: String(row[0]),
+        source: tableId(String(row[1]), String(row[2])),
+        sourceColumn: String(row[3]),
+        target: tableId(String(row[4]), String(row[5])),
+        targetColumn: String(row[6]),
+      }))
+      .filter((r) => ids.has(r.source) && ids.has(r.target));
     return { tables, relations };
   }
   if (driver.dialect !== 'postgres' && driver.dialect !== 'mysql') return { tables, relations: [] };

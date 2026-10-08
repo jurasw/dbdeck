@@ -22,7 +22,25 @@ interface ToolEvent {
   error?: string;
 }
 
-const SQL_LANGUAGES = new Set(['', 'sql', 'pgsql', 'postgresql', 'mysql', 'sqlite', 'clickhouse', 'bigquery', 'snowflake']);
+const SQL_LANGUAGES = new Set([
+  '',
+  'sql',
+  'pgsql',
+  'postgresql',
+  'mysql',
+  'sqlite',
+  'clickhouse',
+  'bigquery',
+  'snowflake',
+  'oracle',
+  'd1',
+  'mssql',
+  'tsql',
+  'cassandra',
+  'cql',
+  'dynamodb',
+  'partiql',
+]);
 
 document.body.classList.add('chat-page');
 const app = document.getElementById('app')!;

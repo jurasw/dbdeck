@@ -1,6 +1,7 @@
 import { ColumnMeta, QueryResult, TableRef, ValueSearchPage } from '../types';
 import { splitSql, SqlDialect, stripComments } from '../sqlSplit';
 import { BaseDriver } from './base';
+import { sqlCode } from './read-only-select';
 
 export interface PageOptions {
   limit: number;
@@ -48,7 +49,7 @@ export abstract class SqlDriver extends BaseDriver {
   }
 
   qualified(t: TableRef): string {
-    const owner = this.dialect === 'postgres' ? t.schema : t.database;
+    const owner = this.dialect === 'postgres' || this.dialect === 'oracle' || this.dialect === 'mssql' ? t.schema : t.database;
     return [owner, t.table]
       .filter(Boolean)
       .map((x) => this.quote(x!))
@@ -59,13 +60,24 @@ export abstract class SqlDriver extends BaseDriver {
     let sql = `SELECT * FROM ${this.qualified(t)}`;
     if (o.where?.trim()) sql += ` WHERE ${o.where.trim()}`;
     if (o.orderBy?.trim()) sql += ` ORDER BY ${o.orderBy.trim()}`;
-    return `${sql} LIMIT ${o.limit} OFFSET ${o.offset}`;
+    return this.paginate(sql, o.limit, o.offset);
+  }
+
+  protected paginate(sql: string, limit: number, offset?: number): string {
+    if (this.dialect === 'mssql') return `${sql}${/\bORDER\s+BY\b/i.test(sqlCode(sql)) ? '' : ' ORDER BY (SELECT NULL)'} OFFSET ${offset ?? 0} ROWS FETCH NEXT ${limit} ROWS ONLY`;
+    return this.dialect === 'oracle'
+      ? `${sql} OFFSET ${offset ?? 0} ROWS FETCH NEXT ${limit} ROWS ONLY`
+      : `${sql} LIMIT ${limit}${offset === undefined ? '' : ` OFFSET ${offset}`}`;
   }
 
   async page(t: TableRef, o: PageOptions): Promise<QueryResult> {
     const cols = await this.columns(t).catch(() => [] as ColumnMeta[]);
     const pk = cols.filter((c) => c.pk).map((c) => this.quote(c.name));
-    const orderBy = o.orderBy?.trim() || ((this.dialect === 'postgres' || this.dialect === 'mysql' || this.dialect === 'sqlite') && pk.length ? pk.join(', ') : undefined);
+    const orderBy =
+      o.orderBy?.trim() ||
+      ((this.dialect === 'postgres' || this.dialect === 'mysql' || this.dialect === 'sqlite' || this.dialect === 'oracle' || this.dialect === 'mssql') && pk.length
+        ? pk.join(', ')
+        : undefined);
     const res = await this.run(this.selectSql(t, { ...o, where: this.searchWhere(cols, o.where, o.search), orderBy }), t.database);
     const byName = new Map(cols.map((c) => [c.name, c]));
     res.columns = res.columns.map((c) => ({ ...c, ...byName.get(c.name), name: c.name }));
@@ -102,6 +114,8 @@ export abstract class SqlDriver extends BaseDriver {
     if (this.dialect === 'bigquery') return `CONTAINS_SUBSTR(${column}, ${this.literal(text)})`;
     if (this.dialect === 'snowflake') return `CONTAINS(LOWER(TO_VARCHAR(${column})), LOWER(${this.literal(text)}))`;
     if (this.dialect === 'sqlite') return `instr(lower(CAST(${column} AS TEXT)), lower(${this.literal(text)})) > 0`;
+    if (this.dialect === 'mssql') return `CHARINDEX(LOWER(${this.literal(text)}), LOWER(CONVERT(nvarchar(max), ${column}))) > 0`;
+    if (this.dialect === 'oracle') return `INSTR(LOWER(TO_CHAR(${column})), LOWER(${this.literal(text)})) > 0`;
     return this.dialect === 'postgres'
       ? `strpos(lower(${column}::text), lower(${this.literal(text)})) > 0`
       : `LOCATE(LOWER(${this.literal(text)}), LOWER(CAST(${column} AS CHAR))) > 0`;
@@ -119,6 +133,10 @@ export abstract class SqlDriver extends BaseDriver {
         return `FORMAT('%t', ${column})`;
       case 'snowflake':
         return `TO_VARCHAR(${column})`;
+      case 'mssql':
+        return `CONVERT(nvarchar(max), ${column})`;
+      case 'oracle':
+        return `TO_CHAR(${column})`;
       default:
         return `toString(${column})`;
     }
@@ -135,7 +153,7 @@ export abstract class SqlDriver extends BaseDriver {
       const column = this.quote(c.name);
       return `CASE WHEN ${this.contains(column, search.trim())} THEN ${this.text(column)} ELSE NULL END AS ${column}`;
     });
-    const result = await this.readOnly(`SELECT ${projection.join(', ')} FROM ${this.qualified(t)} WHERE ${where} LIMIT 21`, t.database);
+    const result = await this.readOnly(this.paginate(`SELECT ${projection.join(', ')} FROM ${this.qualified(t)} WHERE ${where}`, 21), t.database);
     if (cancelled()) return { matches: [], limited: false };
     return {
       matches: result.rows.slice(0, 20).flatMap((row) => row.flatMap((value, i) => (value == null ? [] : [{ column: columns[i].name, value: String(value) }]))),
@@ -172,18 +190,26 @@ export abstract class SqlDriver extends BaseDriver {
       const params = entries.map(([, v]) => v);
       const sql = entries.length
         ? `INSERT INTO ${target} (${entries.map(([k]) => this.quote(k)).join(', ')}) VALUES (${entries.map((_, i) => this.param(i + 1)).join(', ')})`
-        : `INSERT INTO ${target} DEFAULT VALUES`;
+        : await this.defaultInsert(t);
       stmts.push({ sql, params });
     }
     return this.transaction(t.database, stmts);
   }
 
+  protected async defaultInsert(t: TableRef): Promise<string> {
+    return `INSERT INTO ${this.qualified(t)} DEFAULT VALUES`;
+  }
+
   literal(v: unknown): string {
     if (v === null || v === undefined) return 'NULL';
+    if (this.dialect === 'mssql' && typeof v === 'boolean') return v ? '1' : '0';
     if (typeof v === 'number' || typeof v === 'boolean') return String(v);
     if (typeof v === 'object') v = JSON.stringify(v);
     if (this.dialect === 'bigquery') return `'${String(v).replace(/[\\'\n\r]/g, (c) => ({ '\\': '\\\\', "'": "\\'", '\n': '\\n', '\r': '\\r' })[c]!)}'`;
     const s = String(v).replace(/'/g, "''");
-    return this.dialect === 'postgres' || this.dialect === 'sqlite' ? `'${s}'` : `'${s.replace(/\\/g, '\\\\')}'`;
+    if (this.dialect === 'mssql') return `N'${s}'`;
+    return this.dialect === 'cassandra' || this.dialect === 'dynamodb' || this.dialect === 'postgres' || this.dialect === 'sqlite' || this.dialect === 'oracle'
+      ? `'${s}'`
+      : `'${s.replace(/\\/g, '\\\\')}'`;
   }
 }

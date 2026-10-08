@@ -13,7 +13,7 @@ const mono = Geist_Mono({
 });
 
 const description =
-  "Free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, SQLite, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No account, no paywall, no telemetry.";
+  "Free, open source database client for VS Code and Cursor. PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery, Snowflake, MongoDB, Redis, Elasticsearch, S3 and Docker. No account, no paywall, no telemetry.";
 const title = "DBDeck: Free database client for VS Code and Cursor";
 
 const structuredData = {

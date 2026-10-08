@@ -31,8 +31,29 @@ npm run build
 
 Extension tests use Node's runner and esbuild. Assert observable behavior rather than source spelling. Docker Compose services in `apps/extension/test/docker-compose.yml` are for manual integration checks and are not started by `npm test`.
 
+Oracle integration checks use the optional `oracle` Compose profile:
+
+```bash
+cd apps/extension
+docker compose -f test/docker-compose.yml --profile oracle up -d --wait oracle
+DBDECK_ORACLE_INTEGRATION=1 npm test
+docker compose -f test/docker-compose.yml --profile oracle stop oracle
+```
+
+D1 specs exercise the REST wire format against a disposable SQLite database served locally; no Cloudflare credentials are needed.
+
 Document visible changes and update `apps/extension/CHANGELOG.md`. Do not include credentials, database dumps or customer data in reports or fixtures.
 
 ## Release preparation
 
 See [Publishing](assets/marketplace/publishing.md). Pull requests run `extension-check-on-pr` and `web-check-on-pr`, and the extension check uploads the VSIX for review. A push to `main` that touches `apps/web` deploys dbdeck.dev (`web-prod-deploy`). Bumping the version in `apps/extension/package.json` on `main` publishes the extension (`extension-publish`): Marketplace and Open VSX when their tokens are set, plus a GitHub release.
+
+DynamoDB, MSSQL and Cassandra integration checks use optional Compose profiles:
+
+```bash
+cd apps/extension
+docker compose -f test/docker-compose.yml --profile dynamodb --profile mssql --profile cassandra up -d dynamodb mssql cassandra
+DBDECK_DYNAMODB_INTEGRATION=1 DBDECK_MSSQL_INTEGRATION=1 DBDECK_CASSANDRA_INTEGRATION=1 npm test
+```
+
+SQL Server's Linux image requires an x86-64 Docker environment or working emulation. These tests use only disposable local databases.

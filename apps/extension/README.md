@@ -22,20 +22,31 @@
 
 Browse databases, run queries and edit data without leaving your editor. Keep connections together, use SSH tunnels and inspect results in a virtualized grid.
 
-| Service                     | Tools                                                         |
-| --------------------------- | ------------------------------------------------------------- |
-| PostgreSQL, MySQL / MariaDB | SQL editor, data grid, primary-key row editing, DDL           |
-| SQLite                      | Local database files, SQL editor, row editing, DDL            |
-| ClickHouse                  | SQL editor, data browsing, DDL                                |
-| BigQuery                    | SQL editor, datasets, free table preview, DDL                 |
-| Snowflake                   | SQL editor, data browsing, DDL                                |
-| MongoDB                     | Document editor, filters, aggregation and shell-style scripts |
-| Redis                       | Key browser, value editors, TTL, CLI                          |
-| Elasticsearch / OpenSearch  | Index browser, documents and request console                  |
-| S3 / MinIO / R2 / GCS       | Buckets, folders, uploads and downloads                       |
-| Docker                      | Containers, logs, shell and database connection discovery     |
+| Service                     | Tools                                                          |
+| --------------------------- | -------------------------------------------------------------- |
+| PostgreSQL, MySQL / MariaDB | SQL editor, data grid, primary-key row editing, DDL            |
+| SQLite                      | Local database files, SQL editor, row editing, DDL             |
+| Cloudflare D1               | SQL editor, tables and views, DDL, diagrams                    |
+| MSSQL                       | SQL editor, schemas, primary-key row editing, DDL, diagrams    |
+| DynamoDB                    | Tables, item browsing, native paging and PartiQL queries       |
+| Cassandra                   | Keyspaces, tables, native paging, column metadata, CQL and DDL |
+| Oracle                      | SQL and PL/SQL, schemas, row editing, DDL, diagrams            |
+| ClickHouse                  | SQL editor, data browsing, DDL                                 |
+| BigQuery                    | SQL editor, datasets, free table preview, DDL                  |
+| Snowflake                   | SQL editor, data browsing, DDL                                 |
+| MongoDB                     | Document editor, filters, aggregation and shell-style scripts  |
+| Redis                       | Key browser, value editors, TTL, CLI                           |
+| Elasticsearch / OpenSearch  | Index browser, documents and request console                   |
+| S3 / MinIO / R2 / GCS       | Buckets, folders, uploads and downloads                        |
+| Docker                      | Containers, logs, shell and database connection discovery      |
 
 ## Features
+
+- **MSSQL** connects to SQL Server and Azure SQL with SQL authentication. Browse databases and schemas, edit primary-key rows in a transaction, run SQL, search values and view foreign key diagrams.
+- **DynamoDB** browses tables and items with native paging and runs PartiQL queries. Use access keys, optional session tokens or the AWS credential chain; custom endpoints support DynamoDB Local.
+- **Cassandra** browses keyspaces and tables with native paging, column metadata and CQL queries. Configure a contact point and local datacenter, with optional authentication and TLS.
+- **DynamoDB and Cassandra changes** run in the query editor. Staged grid editing and full-text table search are unavailable; Cassandra uses key-based CQL filters. DynamoDB table definitions show AWS metadata, and exact row counts are unavailable.
+- **Connection picker** shows sixteen compact buttons in two rows, ordered by database usage in the [Stack Overflow Developer Survey 2026](https://survey.stackoverflow.co/2026/technology/data/databases). D1 follows the ranked databases; storage and container tools follow D1.
 
 - Paste a connection URL (`postgresql://`, `mysql://`, `clickhouse://`, `redis://`, `sqlite:`) to fill the connection form, for example from Neon, Supabase, PlanetScale or Heroku. The URL itself is not stored
 - Connection tree with groups (rename or delete from the context menu), per-type icons and connection status
@@ -43,15 +54,17 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 - SSH tunnels (password or private key), SSL/TLS, read-only mode
 - Data viewer with a virtualized grid: server-side paging, sorting, `WHERE` / `ORDER BY` filters, column resize, keyboard navigation, copy as TSV / JSON / `INSERT`
 - Fast first-page results appear with the panel; wide tables render only visible rows and columns to keep scrolling responsive. Tables open in a reusable preview tab, and a start tab with recent tables loads in the background so the first table appears at once
-- Inline editing for PostgreSQL, MySQL and SQLite tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction, with **Undo** in the confirmation toast
+- Inline editing for PostgreSQL, MySQL, SQLite, Oracle and MSSQL tables with a primary key: edit cells, add, duplicate and delete rows, set `NULL`. Changes are staged and saved in one transaction, with **Undo** in the confirmation toast
 - SQL editor: run the statement under the cursor (`⌘/Ctrl+Enter`), run all (`⌘/Ctrl+Shift+Enter`), `▶ Run` CodeLens, table and column completion with alias resolution
 - Results panel: one tab per statement, row filter, JSON view, export to CSV / JSON
 - DDL for tables, views, functions and procedures; truncate and drop
 - MongoDB: document grid and JSON view, filter / sort / projection, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
 - Redis: key tree grouped by separator, SCAN filter, editors for string (text / JSON), hash, list, set, sorted set, stream and RedisJSON, TTL and rename, built-in CLI terminal
-- Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files). Sign in to Kibana under Options to connect with company SSO or Elastic Cloud through an API key
+- Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files). Choose **Kibana URL**, enter the address and use **Open Kibana API keys** to sign in with Google or company SSO in your browser. Create a Personal API key, paste its Encoded value and test the connection. Browser sign-in alone does not connect the extension
 - S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers, and with Google Cloud Storage through Sign in with Google under Options
 - Docker: containers grouped by Compose project, start / stop / restart / remove, logs, shell, inspect, images, volumes, networks, and **Add as Database Connection** that reads credentials from container env
+- Cloudflare D1: connect with an Account ID, Database ID and Cloudflare API token with D1 Read (browsing) or D1 Write (SQL changes). Tables, views, DDL, Omnisearch and foreign key diagrams. The grid is read-only; run DML from the SQL editor. Tokens use the OS keychain or session memory according to Remember token
+- Oracle: connect by host, port and service name (for example FREEPDB1). Thin mode supports Oracle Database 12.1 or later without Oracle Client libraries. Schemas, tables, views, SQL and PL/SQL, row editing in a transaction, DDL, Omnisearch and foreign key diagrams. SSH tunnels and TLS are available
 - SQLite: open a `.db`, `.sqlite` or `.sqlite3` file. Tables, views and columns in the tree, row editing with foreign keys enforced, indexes and triggers in DDL. Read-only mode opens the file read-only. Needs a current VS Code or Cursor (Node 22.16 or later in the extension host)
 - BigQuery: datasets and tables in the tree, free table preview through the BigQuery API, row counts from table metadata and the bytes each query processes. Signs in with Sign in with Google under Options (`gcloud auth application-default login`) or a service account key file
 - Snowflake: databases, schemas, tables and views in the tree, SQL with your warehouse and role. Signs in with a programmatic access token or a key pair
@@ -81,7 +94,7 @@ Open **DBDeck** in the activity bar, choose **Add Connection**, then select a da
     <td valign="top" width="50%">
       <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/assets/readme/schema-diagram.gif" alt="A schema diagram of seven tables: zoom in, search for order, drag a table and arrange the layout" width="100%">
       <h3>Schema diagrams</h3>
-      <p>Any PostgreSQL, MySQL or SQLite schema as a diagram, foreign keys linked column to column.
+      <p>Any PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle or MSSQL schema as a diagram, foreign keys linked column to column.
       Drag, pan, zoom and search; hover a table to light up its relations.</p>
     </td>
   </tr>
@@ -112,11 +125,11 @@ DBDeck makes network connections only to the databases you configure. Nothing is
 
 ## Schema diagram
 
-Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL, MySQL/MariaDB and SQLite. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse, BigQuery and Snowflake display tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
+Choose **Show Schema Diagram** on a SQL database or PostgreSQL schema in Connections. Tables show columns, primary keys and foreign keys, with column-to-column relationship lines for PostgreSQL, MySQL/MariaDB, SQLite, Cloudflare D1, Oracle and MSSQL. Drag table headers to arrange cards, drag the dotted canvas to pan, and scroll to zoom. Hover a table to highlight its relations and related tables; search highlights the links of matching tables. Use **Fit**, **Arrange**, search and **Refresh** from the toolbar. The panel remembers its layout when restored. ClickHouse, BigQuery and Snowflake display tables and columns without foreign key relationships. Relationships to tables outside the selected schema/database are omitted.
 
 ## Search all values
 
-**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
+**Omnisearch** searches a whole database or schema in PostgreSQL, MySQL / MariaDB, SQLite, Cloudflare D1, Oracle, MSSQL, ClickHouse, BigQuery, Snowflake and MongoDB. Click the document-with-magnifier icon next to a database or schema in Connections, or run **DBDeck: Omnisearch** from the Command Palette. Type `JUREK` to see results such as `players: Jurek (name)`. Matching ignores letter case and treats the phrase as a literal substring. MongoDB includes nested fields and arrays. Choose a result to open a separate data tab with that search applied, preserving existing tabs and edits.
 
 Results arrive as tables are searched. Previews cover up to 20 matching rows per table and 200 distinct table/column/value results overall; limits and skipped objects are shown. The scan searches beyond the first page and can be expensive on large databases. Changing the phrase or pressing Escape stops further requests after the current request finishes. Data stays between your editor and your database.
 
@@ -128,7 +141,7 @@ Describe a filter in the SQL table’s WHERE field and click the sparkle button 
 
 AI Query scrolls with the panel height and groups provider, model and account controls under **AI settings**, opened with the circular gear beside **AI agents (MCP)**.
 
-Use **DBDeck: Generate Query with AI**, the **Generate query with AI** action at the bottom of a bound SQL editor, or the SQL connection/table context menu. The schema or database where you open AI supplies the context automatically; from a table, the whole database is included with that table first. Describe your request in any language and review the generated SQL. **Open in query editor** creates a query bound to the selected connection; it does not execute it. PostgreSQL, MySQL, ClickHouse, BigQuery and Snowflake are supported.
+Use **DBDeck: Generate Query with AI**, the **Generate query with AI** action at the bottom of a bound SQL editor, or the SQL connection/table context menu. The schema or database where you open AI supplies the context automatically; from a table, the whole database is included with that table first. Describe your request in any language and review the generated SQL. **Open in query editor** creates a query bound to the selected connection; it does not execute it. PostgreSQL, MySQL, SQLite, Cloudflare D1, Oracle, MSSQL, DynamoDB, Cassandra, ClickHouse, BigQuery and Snowflake are supported.
 
 Choose **OpenAI · Continue with ChatGPT** to authorize DBDeck directly through OpenAI using your own eligible ChatGPT plan or credits. DBDeck uses OpenAI's public Responses API and your account's model catalog. Manage access and limits in [ChatGPT Settings → Usage](https://chatgpt.com/settings/usage). Availability depends on OpenAI's preview and your account permissions. See [OpenAI's sign-in documentation](https://developers.openai.com/siwc/token-sharing-open-source/sign-in).
 
@@ -159,7 +172,7 @@ Run **DBDeck: Connect AI Agents (MCP)** to start a local MCP server. Agents can 
 - VS Code and Cursor see DBDeck automatically while the server runs.
 - For Claude Code, choose **Copy Claude Code command** and run it in a terminal. **Copy MCP JSON config** works for Claude Desktop, Windsurf and other clients.
 - Before an agent reads a connection for the first time, DBDeck asks you. **Forget allowed connections** resets these answers.
-- `run_query` runs one SELECT, WITH, SHOW, DESCRIBE or EXPLAIN statement in a read-only transaction (ClickHouse: `readonly=1`; BigQuery: at most 10 GB billed per query; SQLite: a read-only connection to the file) with a 30-second limit. Up to `dbdeck.mcp.maxRows` rows (default 200) go back to the agent.
+- `run_query` runs one SELECT, WITH, SHOW, DESCRIBE or EXPLAIN statement in a read-only transaction (ClickHouse: `readonly=1`; BigQuery: at most 10 GB billed per query; SQLite: a read-only connection to the file; Cloudflare D1: write plans rejected before execution; Oracle: SELECT statements in a read-only transaction; MSSQL: single SELECT/CTE with write keywords rejected; DynamoDB and Cassandra: single SELECT only) with service-specific request limits. Up to `dbdeck.mcp.maxRows` rows (default 200) go back to the agent.
 - `open_query` never runs SQL. Inserts, updates and schema changes open in a query editor so you run them yourself.
 - The server listens on `127.0.0.1` only and needs an access token kept in SecretStorage. **Regenerate access token** replaces it. Turn the server off from the same command or with `dbdeck.mcp.enabled`.
 

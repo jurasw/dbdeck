@@ -17,7 +17,7 @@ const questions = [
   },
   {
     q: "Does DBDeck send anything to a server?",
-    a: "No. The extension connects only to the databases you configure. There is no telemetry, analytics or cloud sync.",
+    a: "The extension connects to the databases you configure. Cloudflare D1 queries go directly to the Cloudflare API. There is no telemetry, analytics or cloud sync.",
   },
   {
     q: "What does the AI query feature send?",
