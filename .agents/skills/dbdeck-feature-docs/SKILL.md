@@ -16,7 +16,6 @@ Never use the em dash character (U+2014) or double hyphens as punctuation in DBD
 | `apps/extension/CHANGELOG.md` | Always. Add a line under `## Unreleased` at the top (create it if missing). Fixes start with `Fixed`. |
 | `apps/extension/README.md` | Marketplace page. Service table, `## Features` list, dedicated sections (Schema diagram, AI queries) for big features. |
 | `README.md` | GitHub page. `## What it does`, feature tables, screenshots, Install, How it fits together, Developing locally. |
-| `apps/desktop/README.md`, `apps/web/content/desktop-demo.json` | Desktop demo capabilities, signing or download availability changed. Enable the release tag only after both public DMGs exist. |
 | `apps/web/app/page.tsx` | Landing page. `services` list, feature sections and their `SmallList` items, counts such as "Eight services" and "8 types". |
 | `apps/web/components/site/faq.tsx` | Feature changes privacy, data sent off the machine, pricing or supported editors. |
 | `apps/web/app/layout.tsx` | Service list or tagline changes the meta description. |
@@ -42,5 +41,3 @@ Then rename `## Unreleased` to `## <version> (<YYYY-MM-DD>)`. `extension-publish
 ## Checks
 
 Run `npm run validate` in `apps/extension` and `npm run lint` and `npm run build` in `apps/web` when the page changed. Check that README image paths exist and the root and extension READMEs list the same services. Report which surfaces were updated, which were skipped as unaffected and which images are stale.
-
-When shared extension behavior or desktop capabilities change, apply `../dbdeck-desktop-sync/SKILL.md` too. The desktop demo uses extension source and webviews directly; document platform limitations rather than implying feature parity.

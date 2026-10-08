@@ -5,7 +5,6 @@ import { Faq } from "@/components/site/faq";
 import { NavLinks } from "@/components/site/nav-links";
 import { SectionLink } from "@/components/site/section-link";
 import { Organize } from "@/components/site/organize";
-import desktopDemo from "@/content/desktop-demo.json";
 import { ProductDemo } from "@/components/site/product-demo";
 import {
   Caption,
@@ -331,42 +330,6 @@ function FaqSection() {
   );
 }
 
-function DesktopDemo() {
-  const releaseTag: string | null = desktopDemo.releaseTag;
-  const base = releaseTag ? `https://github.com/jurasw/dbdeck/releases/download/${encodeURIComponent(releaseTag)}` : null;
-  return (
-    <section id="desktop-demo" className="scroll-mt-24">
-      <Shell>
-        <div className="rounded-2xl border border-border bg-card/40 p-7 md:p-10">
-          <span className="rounded-md border border-brand/30 bg-brand/5 px-2.5 py-1 font-mono text-[10px] tracking-[0.2em] text-brand uppercase">macOS demo</span>
-          <h2 className="mt-5 text-2xl font-semibold tracking-tight md:text-3xl">DBDeck, in its own window.</h2>
-          <p className="mt-3 max-w-2xl text-[15px] leading-[1.75] text-muted-foreground">
-            An early desktop demo for your MacBook. Try the sample SQLite database or add your own connection.
-            The same drivers, connection form, data grid and schema diagrams as the extension.
-          </p>
-          <p className="mt-3 max-w-2xl text-sm leading-[1.75] text-muted-foreground">
-            Demo: AI, MCP, editor completions, storage file actions and Docker controls are available in the editor extension.
-            This demo is not notarized by Apple. macOS may ask you to allow it in Privacy &amp; Security.
-          </p>
-          {base ? (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a href={`${base}/DBDeck-demo-arm64.dmg`} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background">
-                <Download className="size-4" /> Apple Silicon DMG
-              </a>
-              <a href={`${base}/DBDeck-demo-x64.dmg`} className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium">
-                <Download className="size-4" /> Intel DMG
-              </a>
-            </div>
-          ) : (
-            <p className="mt-6 text-sm text-muted-foreground">Public DMG downloads are being prepared. <a href="https://github.com/jurasw/dbdeck/tree/main/apps/desktop" className="text-brand hover:underline">Build the demo from source</a>.</p>
-          )}
-          <p className="mt-4 text-xs text-muted-foreground">macOS 12 or newer · Apple Silicon (M1 and newer) or Intel · Free and open source</p>
-        </div>
-      </Shell>
-    </section>
-  );
-}
-
 function Coda() {
   return (
     <section className="py-28">
@@ -455,8 +418,6 @@ export default function Home() {
         <Install />
         <SoftDivider />
         <FaqSection />
-        <SoftDivider />
-        <DesktopDemo />
         <Coda />
       </main>
       <Footer />

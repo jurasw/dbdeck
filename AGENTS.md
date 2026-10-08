@@ -4,7 +4,6 @@ DBDeck is a monorepo with independent npm packages, each with its own lockfile:
 
 - `apps/extension/` — the VS Code / Cursor extension. Read `.agents/extension.md` for `src/` changes and `.agents/webview.md` for `webview/` changes.
 - `apps/web/` — the dbdeck.dev landing page (Next.js static export, shadcn/ui, Cloudflare). Read `.agents/web.md`.
-- `apps/desktop/` — the macOS Electron demo. Imports extension sources and webviews; read `.agents/desktop.md`.
 - `apps/video/` — the YouTube promo video (Remotion). `npm run render` writes `out/dbdeck-promo.mp4`, `npm run thumbnail` writes `out/thumbnail.png`; `youtube.md` holds the title and description.
 - `assets/` — brand, screenshots and store listing materials. Not shipped by either app; copy what an app needs into it.
 
@@ -19,7 +18,6 @@ Trace the affected flow and callers before editing. Reuse existing helpers and p
 - Extension behavioral tests live in `apps/extension/test/<area>.spec.ts`. Execute the interface and assert observable results rather than searching source text.
 - Extension: `npm run check`, `npm run lint`, `npm test` and `npm run build`; `npm run validate` runs all four.
 - Web: `npm run lint` and `npm run build` in `apps/web`.
-- Desktop: `npm run validate` and `npm run test:smoke` in `apps/desktop`; `npm run package` builds Apple Silicon and Intel DMGs on macOS.
 - Lock dependency changes with each package's `package-lock.json`. Use Node 22 (`.nvmrc`) and `npm ci` in CI.
 - Workflow names follow `<area>-check-on-pr.yml`, `<area>-prod-deploy.yml`, `<area>-publish.yml` and `<area>-package.yml`. Shared setup steps live in `.github/templates/` as composite actions.
 
@@ -34,5 +32,3 @@ After a user-visible change, apply `.agents/skills/dbdeck-feature-docs/SKILL.md`
 ## Local extension updates
 
 After changing the extension, apply `.agents/skills/dbdeck-local-update/SKILL.md` to validate, package and update the locally installed extension.
-
-After changing shared extension code or desktop integration, apply `.agents/skills/dbdeck-desktop-sync/SKILL.md` so the desktop demo is rebuilt from the same source.

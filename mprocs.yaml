@@ -37,16 +37,6 @@ procs:
     autostart: false
     groups: *extension_dev
 
-  desktop:
-    shell: cd apps/desktop && npm run dev
-    autostart: false
-    groups: { layer: dev, app: desktop }
-
-  desktop-package:
-    shell: cd apps/desktop && npm run package
-    autostart: false
-    groups: { layer: tools, app: desktop }
-
   test-dbs:
     shell: docker compose -f apps/extension/test/docker-compose.yml up
     autostart: false
@@ -75,6 +65,6 @@ procs:
 default_group: layer
 group_order:
   layer: [pinned, dev, infrastructure, tools]
-  app: [pinned, web, extension, desktop]
+  app: [pinned, web, extension]
 proc_list_width: 22
 scrollback: 10000
