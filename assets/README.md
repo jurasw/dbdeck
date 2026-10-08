@@ -4,8 +4,11 @@ Source materials for the brand, the store listings and the website. Nothing here
 
 | Path | What | Copied to |
 | --- | --- | --- |
-| `brand/icon.svg` | Icon source | Not applicable |
+| `brand/icon-art.mjs` | Icon source: white glass Data Core on black, drawn as SVG | Not shipped directly |
+| `brand/icon.svg` | Vector icon generated from `icon-art.mjs` | `apps/video/public/icon.svg` |
 | `brand/icon-128.png`, `icon-256.png`, `icon-512.png` | Icon exports | `apps/extension/media/icon.png` (256), `apps/web/public/icon.png` (256), `apps/web/app/icon.png` (512) |
+| `brand/icon.icns`, `icon-macos-1024.png` | macOS app and DMG icon exports | Desktop build resources |
+| `brand/export-icons.mjs` | Reproducible icon export and app asset synchronization | Web favicon and Apple touch icon included |
 | `brand/og/og.html`, `og.png` | Social preview source and its 2400×1260 render | `apps/web/public/og.png` (1200×630, under 300 KB) |
 | `brand/buy-me-a-coffee/cover.html`, `cover.png`, `profile.md` | Buy Me a Coffee cover (1600×400) and DBDeck profile text | Buy Me a Coffee profile |
 | `screenshots/*.png` | Real VS Code screenshots on disposable test data | `apps/web/public/screenshots/`, extension README (raw GitHub URLs) |
@@ -14,21 +17,18 @@ Source materials for the brand, the store listings and the website. Nothing here
 | `marketplace/listing.md` | Texts and fields for Visual Studio Marketplace and Open VSX | Paste into the publisher forms |
 | `marketplace/publishing.md` | Step-by-step publishing guide | Not applicable |
 
-Regenerate the PNG icons after editing the SVG:
+Regenerate and synchronize the icons after editing `brand/icon-art.mjs`:
 
 ```bash
-for s in 128 256 512; do rsvg-convert -w $s -h $s assets/brand/icon.svg -o assets/brand/icon-$s.png; done
-cp assets/brand/icon-256.png apps/extension/media/icon.png
-cp assets/brand/icon-256.png apps/web/public/icon.png
-cp assets/brand/icon-512.png apps/web/app/icon.png
+node assets/brand/export-icons.mjs
 ```
+
+See `brand/README.md` for requirements and outputs.
 
 Re-render the social preview after editing `og.html`:
 
 ```bash
-cd assets/brand/og
-npx -y playwright@1.58 screenshot --channel chrome --device "Desktop Chrome HiDPI" --viewport-size 1200,630 --wait-for-timeout 1500 "file://$PWD/og.html" og.png
-magick og.png -resize 1200x630 -strip -define png:compression-level=9 ../../../apps/web/public/og.png
+node assets/brand/render-social.mjs
 ```
 
 Screenshots were captured at 1440×900 (2× scale, resized to 1920 px wide) in VS Code with the Default Dark Modern theme, against the services in `apps/extension/test/docker-compose.yml` seeded with a fictional shop database.

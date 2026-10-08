@@ -1,0 +1,53 @@
+name: Check Desktop on PR
+
+on:
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/extension/**'
+      - '.github/workflows/desktop-*.yml'
+      - '.github/templates/setup-npm/**'
+      - '.nvmrc'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/extension/**'
+      - '.github/workflows/desktop-*.yml'
+      - '.github/templates/setup-npm/**'
+      - '.nvmrc'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install shared extension
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/extension
+      - name: Install desktop
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/desktop
+      - name: Validate shared desktop build
+        run: npm run validate
+      - name: Test actual Electron windows
+        run: npm run test:smoke
+      - name: Upload preview screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbdeck-desktop-preview
+          path: apps/desktop/out/screenshots/*.png
+          if-no-files-found: error

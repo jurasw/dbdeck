@@ -9,11 +9,11 @@ const questions = [
   },
   {
     q: "Which editors does it run in?",
-    a: "VS Code 1.85 or newer, Cursor, VSCodium, Windsurf and other editors that install extensions from the Visual Studio Marketplace or Open VSX.",
+    a: "VS Code 1.85 or newer, Cursor, VSCodium, Windsurf and other editors that install extensions from the Visual Studio Marketplace or Open VSX. There is also an early standalone macOS desktop demo, built from the same drivers and data panels.",
   },
   {
     q: "Where are my passwords stored?",
-    a: "In your operating system keychain through VS Code SecretStorage. Turn off Remember password on a connection to keep its secrets in memory for the current session only.",
+    a: "The extension uses your operating system keychain through VS Code SecretStorage. The macOS desktop demo encrypts remembered secrets with macOS Keychain and stores its connections separately. Turn off Remember password to keep secrets in memory for the current session only.",
   },
   {
     q: "Does DBDeck send anything to a server?",

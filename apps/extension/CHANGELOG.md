@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Updated the DBDeck icon to white glass Data Core on black, with matching website, README, social preview, favicon, extension and macOS demo icons.
+
+- Added a standalone macOS desktop demo for Apple Silicon and Intel, with DMG packaging and a demo section near the bottom of the landing page. It shares the extension's drivers, connection form, data grid, query execution, schema diagrams and Redis key editor. AI, MCP and editor integrations remain extension features.
+
 ## 0.4.2 (2026-10-08)
 
 - Fixed the landing page service icons to fit in two rows, with horizontal scrolling on narrow screens.

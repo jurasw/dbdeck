@@ -327,7 +327,7 @@ function session(
       ]);
       clearTimeout(timer);
       if (disposed) return undefined;
-      return { mode: family, title, location, pageSize, editable, dialect: family === 'sql' ? cfg.type : undefined, initialSearch: search, initialData };
+      return { mode: family, title, location, pageSize, editable, ai: !!ai && !!editors, dialect: family === 'sql' ? cfg.type : undefined, initialSearch: search, initialData };
     },
     close: () => {
       disposed = true;

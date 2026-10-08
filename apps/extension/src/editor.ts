@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { ConnectionManager } from './connections';
-import { ElasticDriver, errorText } from './drivers/elastic';
-import { docsToGrid, MongoDriver } from './drivers/mongo';
+import { ElasticDriver } from './drivers/elastic';
+import { MongoDriver } from './drivers/mongo';
 import { SqlDriver } from './drivers/sql';
 import { ResultsView } from './panels/resultsView';
-import { splitSql, SqlDialect, statementAt, Statement } from './sqlSplit';
-import { ConnectionConfig, DbNode, FAMILY, QueryResult } from './types';
+import { splitSql, SqlDialect, statementAt } from './sqlSplit';
+import { ConnectionConfig, DbNode, FAMILY } from './types';
 import { errorMessage } from './util';
+import { executeQueries, parseEsRequests } from './query-execution';
+export { parseEsRequests } from './query-execution';
 
 interface Binding {
   connId: string;
@@ -147,7 +149,6 @@ export class QueryEditors implements vscode.Disposable {
     const b = this.binding(doc) ?? (await this.selectConnection(doc));
     if (!b) return;
     const cfg = this.manager.store.get(b.connId)!;
-    const family = FAMILY[cfg.type];
     const location = [cfg.name, b.database].filter(Boolean).join(' › ');
     const sel = ed.selection;
     const text = doc.getText();
@@ -174,25 +175,8 @@ export class QueryEditors implements vscode.Disposable {
         return;
       }
       await this.results.running(location, pieces.length > 1 ? `${pieces.length} statements` : pieces[0].slice(0, 120));
-      const out: QueryResult[] = [];
       const max = vscode.workspace.getConfiguration('dbdeck').get<number>('maxResultRows') || 5000;
-      for (const p of pieces) {
-        try {
-          let r: QueryResult;
-          if (driver instanceof SqlDriver) r = await driver.run(p, b.database);
-          else if (driver instanceof MongoDriver) r = await driver.script(b.database ?? 'test', p);
-          else if (driver instanceof ElasticDriver) r = await runEs(driver, p);
-          else throw new Error('Queries are not supported for this connection');
-          if (r.rows.length > max) {
-            r.rows = r.rows.slice(0, max);
-            r.truncated = true;
-          }
-          out.push({ ...r, sql: p });
-        } catch (e) {
-          out.push({ columns: [], rows: [], durationMs: 0, sql: p, error: errorMessage(e) });
-          if (family === 'sql') break;
-        }
-      }
+      const out = await executeQueries(driver, pieces, b.database, max);
       if (out.some((r) => !r.error && /^\s*(create|drop|alter|rename|truncate)\b/i.test(r.sql ?? ''))) {
         this.schemaCache.clear();
         this.columnCache.clear();
@@ -300,49 +284,6 @@ function blockAt(text: string, offset: number): string {
   const start = s === -1 ? 0 : s;
   const e = after.search(/\n\s*\n/);
   return text.slice(start, e === -1 ? text.length : offset + e).trim();
-}
-
-export function parseEsRequests(text: string): (Statement & { method: string; path: string; body: string })[] {
-  const out: (Statement & { method: string; path: string; body: string })[] = [];
-  const re = /^[ \t]*(GET|POST|PUT|DELETE|HEAD|PATCH)[ \t]+(\S+)[^\n]*$/gim;
-  const heads = [...text.matchAll(re)];
-  heads.forEach((m, i) => {
-    const start = m.index!;
-    const end = i + 1 < heads.length ? heads[i + 1].index! - 1 : text.length;
-    const body = text
-      .slice(start + m[0].length, end)
-      .split('\n')
-      .filter((l) => !/^\s*#/.test(l))
-      .join('\n')
-      .trim();
-    out.push({ text: text.slice(start, end).trim(), start, end, method: m[1].toUpperCase(), path: m[2], body });
-  });
-  return out;
-}
-
-async function runEs(driver: ElasticDriver, text: string): Promise<QueryResult> {
-  const [req] = parseEsRequests(text);
-  if (!req) throw new Error('Expected a request like: GET /index/_search');
-  let body: string | undefined = req.body || undefined;
-  if (body && !/_bulk|_msearch/.test(req.path)) JSON.parse(body);
-  if (body && /_bulk|_msearch/.test(req.path)) {
-    body = body
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .join('\n');
-  }
-  const r = await driver.request(req.method, req.path, body);
-  if (r.status >= 400) throw new Error(`${r.status} ${errorText(r.body)}`);
-  const res: QueryResult = { columns: [], rows: [], durationMs: r.durationMs, json: r.body, message: `HTTP ${r.status}` };
-  const hits = (r.body as { hits?: { hits?: { _id: string; _index: string; _score: number; _source?: object }[] } })?.hits?.hits;
-  if (Array.isArray(hits)) Object.assign(res, docsToGrid(hits.map((h) => ({ _id: h._id, _index: h._index, _score: h._score, ...h._source }))));
-  else if (Array.isArray(r.body) && r.body.length && typeof r.body[0] === 'object') Object.assign(res, docsToGrid(r.body));
-  else if (typeof r.body === 'string') {
-    const lines = r.body.replace(/\n$/, '').split('\n');
-    Object.assign(res, { columns: [{ name: 'response' }], rows: lines.map((l) => [l]), json: undefined });
-  }
-  return res;
 }
 
 function template(cfg: ConnectionConfig, database: string | undefined, n: DbNode): string {

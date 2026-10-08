@@ -1,5 +1,7 @@
 # Store listing
 
+DBDeck also has a standalone macOS desktop demo built from the extension's drivers and panels. The Marketplace package remains the editor extension. Link to `https://dbdeck.dev/#desktop-demo` when announcing the demo; AI, MCP and editor integrations remain extension features.
+
 Fields for the Visual Studio Marketplace publisher form, the extension listing and Open VSX. The extension manifest (`apps/extension/package.json`) already carries the name, description, categories, keywords, icon and links; the Marketplace reads them from the VSIX. Fill the rest by hand.
 
 ## Publisher (marketplace.visualstudio.com/manage → Create publisher)
@@ -10,7 +12,7 @@ Fields for the Visual Studio Marketplace publisher form, the extension listing a
 | ID                     | `dbdeck` (permanent, must match `publisher` in package.json)                 |
 | Description            | Free, open source developer tools for working with databases in your editor. |
 | Company website        | https://dbdeck.dev                                                           |
-| Logo                   | `assets/brand/icon-256.png`                                                  |
+| Logo                   | `assets/brand/icon-256.png` (white glass Data Core on black) |
 | Support                | https://github.com/jurasw/dbdeck/issues                                      |
 | Source code repository | https://github.com/jurasw/dbdeck                                             |
 | LinkedIn / X           | leave empty                                                                  |

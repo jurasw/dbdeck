@@ -1,4 +1,10 @@
+<p align="center">
+  <img src="media/icon.png" alt="DBDeck" width="88" height="88">
+</p>
+
 <h1 align="center">DBDeck</h1>
+
+A standalone [macOS desktop demo](https://dbdeck.dev/#desktop-demo) is also available from source, with local DMG packaging for Apple Silicon and Intel. It shares this extension's drivers, connection form, data grid, query execution, schema diagrams and Redis key editor. AI, MCP and editor integrations remain extension features.
 
 <p align="center">
   <b>Your databases. Inside your editor.</b><br>

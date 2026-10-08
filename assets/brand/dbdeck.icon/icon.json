@@ -1,0 +1,242 @@
+{
+  "features": [
+    "refractivity",
+    "specular-location"
+  ],
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "extended-srgb:0.01961,0.01961,0.01961,1.00000",
+          "extended-srgb:0.10588,0.10588,0.10588,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.8,
+            "y": 0.9
+          },
+          "stop": {
+            "x": 0.12,
+            "y": 0.1
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "extended-srgb:0.01961,0.01961,0.01961,1.00000",
+          "extended-srgb:0.08235,0.08235,0.08235,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.8,
+            "y": 0.9
+          },
+          "stop": {
+            "x": 0.12,
+            "y": 0.1
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "name": "Upper white glass",
+      "lighting": "combined",
+      "specular": true,
+      "specular-highlight-placement": "inside",
+      "blur-material": 0.08,
+      "refractivity": {
+        "enabled": true,
+        "strength": 0.22,
+        "depth": 0.15
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.25
+      },
+      "layers": [
+        {
+          "name": "03 Top face",
+          "image-name": "03-face.svg",
+          "glass": true,
+          "fill": {
+            "linear-gradient": [
+              "extended-srgb:0.84706,0.84706,0.84706,1.00000",
+              "extended-srgb:0.98039,0.98039,0.98039,1.00000"
+            ],
+            "orientation": {
+              "start": {
+                "x": 0.8,
+                "y": 0.9
+              },
+              "stop": {
+                "x": 0.12,
+                "y": 0.1
+              }
+            }
+          }
+        },
+        {
+          "name": "03 Body",
+          "image-name": "03-body.svg",
+          "glass": true,
+          "fill": {
+            "linear-gradient": [
+              "extended-srgb:0.60000,0.60000,0.60000,1.00000",
+              "extended-srgb:0.93333,0.93333,0.93333,1.00000"
+            ],
+            "orientation": {
+              "start": {
+                "x": 0.8,
+                "y": 0.9
+              },
+              "stop": {
+                "x": 0.12,
+                "y": 0.1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Middle white glass",
+      "lighting": "combined",
+      "specular": true,
+      "specular-highlight-placement": "inside",
+      "blur-material": 0.08,
+      "refractivity": {
+        "enabled": true,
+        "strength": 0.22,
+        "depth": 0.15
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.25
+      },
+      "layers": [
+        {
+          "name": "02 Top face",
+          "image-name": "02-face.svg",
+          "glass": true,
+          "fill": {
+            "linear-gradient": [
+              "extended-srgb:0.73333,0.73333,0.73333,1.00000",
+              "extended-srgb:0.93333,0.93333,0.93333,1.00000"
+            ],
+            "orientation": {
+              "start": {
+                "x": 0.8,
+                "y": 0.9
+              },
+              "stop": {
+                "x": 0.12,
+                "y": 0.1
+              }
+            }
+          }
+        },
+        {
+          "name": "02 Body",
+          "image-name": "02-body.svg",
+          "glass": true,
+          "fill": {
+            "linear-gradient": [
+              "extended-srgb:0.46667,0.46667,0.46667,1.00000",
+              "extended-srgb:0.87059,0.87059,0.87059,1.00000"
+            ],
+            "orientation": {
+              "start": {
+                "x": 0.8,
+                "y": 0.9
+              },
+              "stop": {
+                "x": 0.12,
+                "y": 0.1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lower white glass",
+      "lighting": "combined",
+      "specular": true,
+      "specular-highlight-placement": "inside",
+      "blur-material": 0.08,
+      "refractivity": {
+        "enabled": true,
+        "strength": 0.22,
+        "depth": 0.15
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.25
+      },
+      "layers": [
+        {
+          "name": "01 Top face",
+          "image-name": "01-face.svg",
+          "glass": true,
+          "fill": {
+            "linear-gradient": [
+              "extended-srgb:0.53333,0.53333,0.53333,1.00000",
+              "extended-srgb:0.86667,0.86667,0.86667,1.00000"
+            ],
+            "orientation": {
+              "start": {
+                "x": 0.8,
+                "y": 0.9
+              },
+              "stop": {
+                "x": 0.12,
+                "y": 0.1
+              }
+            }
+          }
+        },
+        {
+          "name": "01 Body",
+          "image-name": "01-body.svg",
+          "glass": true,
+          "fill": {
+            "linear-gradient": [
+              "extended-srgb:0.34902,0.34902,0.34902,1.00000",
+              "extended-srgb:0.72157,0.72157,0.72157,1.00000"
+            ],
+            "orientation": {
+              "start": {
+                "x": 0.8,
+                "y": 0.9
+              },
+              "stop": {
+                "x": 0.12,
+                "y": 0.1
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

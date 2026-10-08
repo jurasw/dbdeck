@@ -1,0 +1,43 @@
+name: Package Desktop Demo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install shared extension
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/extension
+      - name: Install desktop
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/desktop
+      - name: Validate
+        run: npm run validate
+      - name: Test actual Electron windows
+        run: npm run test:smoke
+      - name: Package DMG without publishing
+        run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
+      - name: Upload DMG for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbdeck-desktop-demo-${{ matrix.arch }}
+          path: apps/desktop/out/DBDeck-demo-${{ matrix.arch }}.dmg
+          if-no-files-found: error

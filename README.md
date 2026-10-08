@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://dbdeck.dev">
-    <img src="assets/brand/icon.svg" alt="DBDeck" width="88" height="88">
+    <img src="assets/brand/icon-256.png" alt="DBDeck" width="88" height="88">
   </a>
 </p>
 
@@ -149,6 +149,8 @@ Open **DBDeck** in the activity bar, choose **Add Connection** and pick a databa
 
 ## How it fits together
 
+The standalone [macOS desktop demo](apps/desktop/README.md) uses the extension's drivers, connection store, tree, query execution and panels directly. The Electron host adds native windows, dialogs and Keychain encryption. Changes to shared code are built into both apps; there is one connection form and one data grid. The demo includes a read-only sample SQLite shop. AI, MCP and editor integrations remain extension features.
+
 ```mermaid
 flowchart LR
   tree["Connections tree<br>and SQL editor"] --> host
@@ -163,6 +165,7 @@ flowchart LR
 | Path             | What it is                                                                         |
 | ---------------- | ---------------------------------------------------------------------------------- |
 | `apps/extension` | The VS Code / Cursor extension, published as `dbdeck.dbdeck`                       |
+| `apps/desktop` | The macOS desktop demo, with Apple Silicon and Intel DMG packaging and shared extension code |
 | `apps/web`       | The [dbdeck.dev](https://dbdeck.dev) landing page (Next.js, shadcn/ui, Cloudflare) |
 | `assets`         | Icon, screenshots, README media, store listing texts and publishing guide          |
 | `.agents`        | Agent rules and task recipes                                                       |
@@ -175,6 +178,7 @@ Use Node.js 22 (`nvm use`) and install each app once:
 
 ```bash
 (cd apps/extension && npm ci)
+(cd apps/desktop && npm ci)
 (cd apps/web && npm ci)
 phrocs
 ```
@@ -187,6 +191,10 @@ Pressing **F5** in VS Code at the repository root also launches the extension.
 | ---------------- | ------------------ | -------------------------------- |
 | `apps/extension` | `npm run validate` | Type check, lint, test and build |
 | `apps/extension` | `npm run package`  | Build `dbdeck-<version>.vsix`    |
+| `apps/desktop` | `npm run dev` | Build shared panels and launch the desktop demo |
+| `apps/desktop` | `npm run validate` | Check, lint, test and build against shared extension code |
+| `apps/desktop` | `npm run test:smoke` | Verify the actual Electron UI with disposable demo data |
+| `apps/desktop` | `npm run package` | Build Apple Silicon and Intel demo DMGs without publishing |
 | `apps/web`       | `npm run dev`      | Landing page with hot reload     |
 | `apps/web`       | `npm run build`    | Static export to `apps/web/out`  |
 | `apps/web`       | `npm run deploy`   | Build and deploy to Cloudflare   |

@@ -34,6 +34,7 @@ interface Init {
   location: string;
   pageSize: number;
   editable: boolean;
+  ai?: boolean;
   dialect?: 'mssql' | 'cassandra' | 'dynamodb' | 'mysql' | 'postgres' | 'sqlite' | 'oracle' | 'clickhouse' | 'bigquery' | 'snowflake';
   initialSearch?: string;
   initialData?: PageData;
@@ -693,7 +694,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       if (e.key === 'Enter') void load(true);
     });
     const ai =
-      tag === 'WHERE'
+      tag === 'WHERE' && I.ai
         ? btn(null, {
             icon: 'sparkle',
             class: 'sm ghost ai-filter-button',
@@ -787,7 +788,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
           : null,
         btn('CSV', { icon: 'export', class: 'sm ghost', title: 'Export current page as CSV', onClick: () => void exportData('csv') }),
         btn('JSON', { icon: 'export', class: 'sm ghost', title: 'Export current page as JSON', onClick: () => void exportData('json') }),
-        isSql ? btn(null, { icon: 'sparkle', class: 'sm outline ai-chat-open', title: 'Ask AI about this table', onClick: () => void rpc('chat') }) : null,
+        isSql && I.ai ? btn(null, { icon: 'sparkle', class: 'sm outline ai-chat-open', title: 'Ask AI about this table', onClick: () => void rpc('chat') }) : null,
         btn(null, { icon: 'refresh', class: 'sm outline', title: 'Refresh (F5)', onClick: () => void load() }),
       ),
       h(
