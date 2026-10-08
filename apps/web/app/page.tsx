@@ -120,18 +120,20 @@ function Services() {
     <section id="features" aria-label="Supported services" className="scroll-mt-24 pb-6">
       <Shell className="text-center">
         <h2 className="text-sm text-muted-foreground">All your connections. One place.</h2>
-        <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-8 sm:grid-cols-6 lg:grid-cols-7">
-          {services.map((s, i) => (
-            <li key={s.name} className="service-mark group flex flex-col items-center gap-3" style={{ animationDelay: `${i * -0.7}s` }}>
-              <span className="relative grid size-16 place-items-center sm:size-20">
-                <span aria-hidden className="absolute inset-0 rounded-full bg-brand/10 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/types/${s.icon}-on.svg`} alt="" width={40} height={40} className="relative size-9 transition-transform duration-500 group-hover:scale-110 sm:size-10" />
-              </span>
-              <span className="text-[11px] text-muted-foreground transition-colors group-hover:text-foreground sm:text-xs">{s.name}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-8 overflow-x-auto" tabIndex={0} role="region" aria-label="Supported service icons">
+          <ul className="grid min-w-[56rem] grid-cols-8 gap-x-3 gap-y-8">
+            {services.map((s, i) => (
+              <li key={s.name} className="service-mark group flex flex-col items-center gap-3" style={{ animationDelay: `${i * -0.7}s` }}>
+                <span className="relative grid size-16 place-items-center sm:size-20">
+                  <span aria-hidden className="absolute inset-0 rounded-full bg-brand/10 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/types/${s.icon}-on.svg`} alt="" width={40} height={40} className="relative size-9 transition-transform duration-500 group-hover:scale-110 sm:size-10" />
+                </span>
+                <span className="text-[11px] text-muted-foreground transition-colors group-hover:text-foreground sm:text-xs">{s.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </Shell>
       <Shell><p className="mt-6 text-center text-sm leading-relaxed text-muted-foreground">SQL Server includes schema browsing, transactional row editing and foreign key diagrams. DynamoDB includes item browsing and PartiQL queries with AWS credentials. Cassandra includes keyspaces, native paging and CQL queries. DynamoDB and Cassandra use the query editor for changes; full-text table search is unavailable.</p></Shell>
     </section>

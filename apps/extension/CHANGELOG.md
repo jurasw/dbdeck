@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.2 (2026-10-08)
 
+- Fixed the landing page service icons to fit in two rows, with horizontal scrolling on narrow screens.
 - Fixed Kibana connections: the server form separates the Kibana URL, browser login and API key entry, rejects login redirects and HTML pages, and shows readable API access errors even in narrow panels. Session-only Kibana connections ask for the API key on reconnect.
 - Fixed missing pointer cursors on buttons, switches and connection form selectors.
 
