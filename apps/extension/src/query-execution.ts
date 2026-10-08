@@ -49,12 +49,12 @@ export async function runEs(driver: ElasticDriver, text: string): Promise<QueryR
   return res;
 }
 
-export async function executeQueries(driver: BaseDriver, pieces: string[], database?: string, maxRows = 5000, strictReadOnly = false): Promise<QueryResult[]> {
+export async function executeQueries(driver: BaseDriver, pieces: string[], database?: string, maxRows = 5000): Promise<QueryResult[]> {
   const out: QueryResult[] = [];
   for (const sql of pieces) {
     try {
       let result: QueryResult;
-      if (driver instanceof SqlDriver) result = strictReadOnly && driver.config.readonly ? await driver.runReadOnly(sql, database) : await driver.run(sql, database);
+      if (driver instanceof SqlDriver) result = await driver.run(sql, database);
       else if (driver instanceof MongoDriver) result = await driver.script(database ?? 'test', sql);
       else if (driver instanceof ElasticDriver) result = await runEs(driver, sql);
       else throw new Error('Queries are not supported for this connection');

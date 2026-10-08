@@ -10,23 +10,21 @@ The default identity is Data Core: three frosted white glass slabs on a black ti
 
 ## Export and sync
 
-Install ImageMagick and Google Chrome on macOS, run `npm ci` in `apps/desktop` for Playwright, use Node 22, then run from the repository root:
+Install ImageMagick and Google Chrome on macOS, run `npm ci` in `apps/web` for Playwright, use Node 22, then run from the repository root:
 
 ```bash
 node assets/brand/export-icons.mjs
 ```
 
-The script writes `icon.svg`, renders it with Chrome into PNG sizes, the favicon and the Apple touch icon, renders a macOS dock image with the classic safe area and shadow, builds the ICNS, writes the flat mark, and copies app-owned assets into the extension, web, desktop and video packages. To change the branding, edit `icon-art.mjs` and rerun the script.
+The script writes `icon.svg`, renders it with Chrome into PNG sizes, the favicon and the Apple touch icon, writes the flat mark, and copies app-owned assets into the extension, web and video packages. To change the branding, edit `icon-art.mjs` and rerun the script.
 
 | File | Use |
 | --- | --- |
 | `icon.svg` | Vector icon; video package |
 | `icon-128.png`, `icon-256.png`, `icon-512.png`, `icon-1024.png` | Website, README, extension and store logo |
-| `icon-macos-1024.png` | macOS dock image with safe area and shadow; desktop build |
-| `icon.icns` | Electron app and DMG icon, compatible with macOS 12+ |
 | `logo-monochrome.svg` | Flat filled mark without the background |
 | `og/og.html`, `buy-me-a-coffee/cover.html` | Social graphics; rerender after exporting icons |
 
-Rerender both social graphics with `node assets/brand/render-social.mjs`. It uses the desktop package's Playwright dependency and installed Chrome, verifies that the source images loaded, then writes the OG and support cover exports.
+Rerender both social graphics with `node assets/brand/render-social.mjs`. It uses the website package's Playwright dependency and installed Chrome, verifies that the source images loaded, then writes the OG and support cover exports.
 
 Publication and website deployment remain separate operations.

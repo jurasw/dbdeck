@@ -8,7 +8,7 @@ import { iconSvg, markBounds, markSvg } from "./icon-art.mjs";
 
 const brand = dirname(fileURLToPath(import.meta.url));
 const root = resolve(brand, "../..");
-const { chromium } = createRequire(join(root, "apps/desktop/package.json"))("playwright");
+const { chromium } = createRequire(join(root, "apps/web/package.json"))("playwright-core");
 const run = (command, args) => execFileSync(command, args, { stdio: ["ignore", "pipe", "inherit"] });
 const work = mkdtempSync(join(tmpdir(), "dbdeck-brand-"));
 const copy = (from, to) => {
@@ -41,7 +41,6 @@ try {
   copy(join(brand, "icon-512.png"), "apps/web/app/icon.png");
   copy(join(brand, "icon-512.png"), "apps/video/public/icon.png");
   copy(join(brand, "icon.svg"), "apps/video/public/icon.svg");
-  copy(join(brand, "icon-256.png"), "apps/desktop/assets/icon.png");
   const touch = join(work, "apple-icon.png");
   await render(touch, 180);
   copy(touch, "apps/web/app/apple-icon.png");
@@ -68,19 +67,7 @@ try {
   });
   writeFileSync(join(root, "apps/web/app/favicon.ico"), Buffer.concat([header, ...frames.map(f => f.data)]));
 
-  const dock = join(brand, "icon-macos-1024.png");
-  await render(dock, 1024, { tile: 824, shadow: "drop-shadow(0 10px 14px rgba(0,0,0,.32))" });
-  const iconset = join(work, "dbdeck.iconset");
-  mkdirSync(iconset);
-  for (const size of [16, 32, 128, 256, 512]) {
-    for (const scale of [1, 2]) {
-      const target = join(iconset, `icon_${size}x${size}${scale === 2 ? "@2x" : ""}.png`);
-      run("sips", ["-z", String(size * scale), String(size * scale), dock, "--out", target]);
-    }
-  }
-  run("iconutil", ["-c", "icns", iconset, "-o", join(brand, "icon.icns")]);
-  copy(join(brand, "icon.icns"), "apps/desktop/assets/dbdeck.icns");
-  console.log("Exported icon.svg, PNG sizes, favicon, Apple touch icon, monochrome mark and macOS ICNS.");
+  console.log("Exported icon.svg, PNG sizes, favicon, Apple touch icon and monochrome mark.");
 } finally {
   await browser.close();
   rmSync(work, { recursive: true, force: true });

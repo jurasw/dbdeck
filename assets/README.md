@@ -7,7 +7,6 @@ Source materials for the brand, the store listings and the website. Nothing here
 | `brand/icon-art.mjs` | Icon source: white glass Data Core on black, drawn as SVG | Not shipped directly |
 | `brand/icon.svg` | Vector icon generated from `icon-art.mjs` | `apps/video/public/icon.svg` |
 | `brand/icon-128.png`, `icon-256.png`, `icon-512.png` | Icon exports | `apps/extension/media/icon.png` (256), `apps/web/public/icon.png` (256), `apps/web/app/icon.png` (512) |
-| `brand/icon.icns`, `icon-macos-1024.png` | macOS app and DMG icon exports | Desktop build resources |
 | `brand/export-icons.mjs` | Reproducible icon export and app asset synchronization | Web favicon and Apple touch icon included |
 | `brand/og/og.html`, `og.png` | Social preview source and its 2400×1260 render | `apps/web/public/og.png` (1200×630, under 300 KB) |
 | `brand/buy-me-a-coffee/cover.html`, `cover.png`, `profile.md` | Buy Me a Coffee cover (1600×400) and DBDeck profile text | Buy Me a Coffee profile |

@@ -5,8 +5,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const brand = dirname(fileURLToPath(import.meta.url));
 const root = resolve(brand, "../..");
-const require = createRequire(join(root, "apps/desktop/package.json"));
-const { chromium } = require("playwright");
+const require = createRequire(join(root, "apps/web/package.json"));
+const { chromium } = require("playwright-core");
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   for (const job of [

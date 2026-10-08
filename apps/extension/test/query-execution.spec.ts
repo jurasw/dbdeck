@@ -53,16 +53,6 @@ test('shared query execution preserves statement order, limits results and stops
   assert.equal(results[1].sql, 'broken');
 });
 
-test('desktop read-only query execution rejects writes before invoking the driver', async () => {
-  const driver = new QueryDriver({ ...config, readonly: true });
-  const results = await executeQueries(driver, ['DELETE FROM users', 'SELECT 1'], 'test', 5000, true);
-  assert.deepEqual(driver.calls, []);
-  assert.match(results[0].error!, /read-only/);
-  const allowed = await executeQueries(driver, ['SELECT 1'], 'test', 5000, true);
-  assert.equal(allowed[0].error, undefined);
-  assert.deepEqual(driver.calls, ['SELECT 1']);
-});
-
 test('shared Elasticsearch parser keeps request ranges and JSON bodies', () => {
   const text = '# demo\nGET /orders/_search\n{ "size": 2 }\n\nGET /_cluster/health\n';
   const requests = parseEsRequests(text);

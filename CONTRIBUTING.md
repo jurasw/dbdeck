@@ -1,6 +1,6 @@
 # Contributing to DBDeck
 
-Use Node.js 22 (`nvm use`). The repository holds independent packages: the extension in `apps/extension`, the desktop demo in `apps/desktop`, the website in `apps/web` and the promo video in `apps/video`. Install each with `npm ci` inside its folder.
+Use Node.js 22 (`nvm use`). The repository holds independent packages: the extension in `apps/extension`, the website in `apps/web` and the promo video in `apps/video`. Install each with `npm ci` inside its folder.
 
 Start everything from the repository root with `phrocs` or [mprocs](https://github.com/pvolok/mprocs) (`brew install mprocs`):
 
@@ -30,8 +30,6 @@ npm run build
 ```
 
 Extension tests use Node's runner and esbuild. Assert observable behavior rather than source spelling. Docker Compose services in `apps/extension/test/docker-compose.yml` are for manual integration checks and are not started by `npm test`.
-
-After shared extension changes, run `npm run validate` in `apps/desktop` too. Desktop builds import extension source and rebuild its webviews. On macOS, `npm run test:smoke` verifies the actual shared UI and `npm run package` builds both demo DMGs. See [Desktop demo](apps/desktop/README.md). Desktop checks are triggered by extension changes as well as desktop changes. The desktop version follows the extension with a demo suffix; packaging does not publish it.
 
 Oracle integration checks use the optional `oracle` Compose profile:
 
