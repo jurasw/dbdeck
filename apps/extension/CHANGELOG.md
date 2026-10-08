@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.3 (2026-10-08)
 
 - Updated the DBDeck icon to white glass Data Core on black, with matching website, README, social preview, favicon, extension and macOS demo icons.
 

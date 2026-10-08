@@ -1,7 +1,7 @@
 {
   "name": "dbdeck-desktop",
   "productName": "DBDeck Demo",
-  "version": "0.4.2-demo.1",
+  "version": "0.4.3-demo.1",
   "private": true,
   "description": "DBDeck macOS desktop demo, built from the extension's drivers and panels.",
   "author": "DBDeck",
