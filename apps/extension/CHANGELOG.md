@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed the missing DBDeck logo in the extension description on Marketplace and Open VSX.
+
 ## 0.4.4 (2026-10-08)
 
 - AI for MongoDB and Elasticsearch: the sparkle button in the FILTER or QUERY field generates a filter, the header sparkle opens Chat with Database, and AI Query writes mongosh queries or Kibana Dev Tools requests. With read-only queries on, the chat runs finds, aggregations without `$out` or `$merge`, and read-only Elasticsearch requests.

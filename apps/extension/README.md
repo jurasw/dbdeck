@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="media/icon.png" alt="DBDeck" width="88" height="88">
+  <img src="https://raw.githubusercontent.com/jurasw/dbdeck/main/apps/extension/media/icon.png" alt="DBDeck" width="88" height="88">
 </p>
 
 <h1 align="center">DBDeck</h1>
