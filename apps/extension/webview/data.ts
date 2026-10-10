@@ -1,5 +1,6 @@
 import { Grid, GridColumn } from './grid';
 import { parseCellValue } from './cell-value';
+import { keepColumnOrder } from './column-order';
 import { fieldCaret } from './doc-caret';
 import { duplicateRow } from './row-duplicate';
 import { RowChanges, undoChanges } from './row-undo';
@@ -108,6 +109,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   let columns: GridColumn[] = [];
   let rows: unknown[][] = [];
   let docs: Record<string, unknown>[] = [];
+  let sorted: { name: string; dir: 'asc' | 'desc'; text: string } | null = null;
   let duration = 0;
   let view: 'grid' | 'json' = 'grid';
   let loadSeq = 0;
@@ -174,8 +176,9 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     c: h('input.input.mono', { placeholder: '{ "name": 1 }' }) as HTMLInputElement,
   };
 
+  const serverSort = I.dialect !== 'cassandra' && I.dialect !== 'dynamodb';
   const grid = new Grid({
-    sort: I.dialect === 'cassandra' || I.dialect === 'dynamodb' ? 'client' : 'server',
+    sort: serverSort ? 'server' : 'client',
     editable: canEditCell,
     rowOffset: () => page * pageSize,
     onSort: (c, dir) => {
@@ -183,6 +186,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       if (isSql) inputs.b.value = dir ? `${quote(name)} ${dir.toUpperCase()}` : '';
       else if (I.mode === 'mongo') inputs.b.value = dir ? JSON.stringify({ [name]: dir === 'asc' ? 1 : -1 }) : '';
       else inputs.b.value = dir ? `${name} ${dir}` : '';
+      sorted = dir ? { name, dir, text: inputs.b.value } : null;
       void load(true);
     },
     onEdit: (r, c, value) => (isSql ? setCell(r, c, value) : void saveDocCell(r, c, value)),
@@ -763,8 +767,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       originals.clear();
       added.clear();
       deleted.clear();
-      columns = r.columns;
-      rows = r.rows;
+      ({ columns, rows } = isSql ? r : keepColumnOrder(columns, r.columns, r.rows));
       docs = r.docs ?? [];
       duration = r.durationMs;
       if (r.total !== undefined) total = r.total;
@@ -774,6 +777,11 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       grid.highlight = search;
       renderBody();
       grid.setData(columns, rows, true);
+      if (serverSort) {
+        if (sorted && sorted.text !== inputs.b.value) sorted = null;
+        const sortCol = sorted ? columns.findIndex((c) => c.name === sorted?.name) : -1;
+        grid.setSortIndicator(sortCol, sortCol >= 0 && sorted ? sorted.dir : null);
+      }
       if (initial) reportShown(r.durationMs);
       if (isSql || I.mode === 'mongo') {
         if (r.total === undefined && (resetPage || total === undefined)) {
@@ -835,7 +843,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       const scroll = h('div.scroll', null, jsonDocs());
       clear(content, scroll, side);
       scroll.scrollTop = top;
-    } else clear(content, h('div.grid-wrap', null, grid.el), side);
+    } else if (grid.el.parentElement?.parentElement !== content) clear(content, h('div.grid-wrap', null, grid.el), side);
   }
 
   function updateActions(): void {
@@ -1053,6 +1061,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
           title: 'Clear filters',
           onClick: () => {
             inputs.a.value = inputs.b.value = inputs.c.value = '';
+            sorted = null;
             grid.setSortIndicator(-1, null);
             void load(true);
           },

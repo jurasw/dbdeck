@@ -309,8 +309,19 @@ export function fmtMs(ms: number): string {
 }
 
 export function loading(host: HTMLElement, on: boolean): void {
-  host.querySelector(':scope > .loading-bar')?.remove();
-  if (on) host.prepend(h('div.loading-bar'));
+  const bar = host.querySelector<HTMLElement>(':scope > .loading-bar:not(.leaving)');
+  if (on) {
+    if (bar) return;
+    const next = h('div.loading-bar');
+    host.prepend(next);
+    requestAnimationFrame(() => next.classList.add('on'));
+    return;
+  }
+  if (!bar) return;
+  if (!bar.classList.contains('on') || getComputedStyle(bar).opacity === '0') return bar.remove();
+  bar.classList.add('leaving');
+  bar.classList.remove('on');
+  setTimeout(() => bar.remove(), 260);
 }
 
 export function jsonEditor(initial: string, rows = 18): HTMLTextAreaElement {

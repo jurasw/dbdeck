@@ -815,21 +815,28 @@ button:disabled,
   height: 2px;
   overflow: hidden;
   z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+.loading-bar.on {
+  opacity: 1;
+  transition-delay: 0.15s;
 }
 .loading-bar::after {
   content: '';
   position: absolute;
-  height: 100%;
-  width: 35%;
-  background: var(--fg);
-  animation: slide 1s ease-in-out infinite;
+  inset: 0 auto 0 0;
+  width: 40%;
+  --bar: var(--vscode-progressBar-background, var(--focus));
+  background: linear-gradient(90deg, transparent, var(--bar) 30%, var(--bar) 70%, transparent);
+  transform: translateX(-100%);
+  will-change: transform;
+  animation: slide 1.4s cubic-bezier(0.45, 0, 0.25, 1) infinite;
 }
 @keyframes slide {
-  from {
-    left: -35%;
-  }
   to {
-    left: 100%;
+    transform: translateX(250%);
   }
 }
 
@@ -2119,6 +2126,9 @@ body.ai-page #app {
   .schema-links .schema-flow,
   .skeleton-row span {
     animation: none;
+  }
+  .loading-bar::after {
+    animation-duration: 3s;
   }
   .schema-ambient .schema-flow {
     opacity: 0;

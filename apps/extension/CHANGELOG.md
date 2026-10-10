@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.5 (2026-10-10)
 
 - Fixed the missing DBDeck logo in the extension description on Marketplace and Open VSX.
+- Fixed MongoDB and Elasticsearch columns jumping after a header sort, and the sort arrow appearing on the wrong column. Sorting, paging and refreshing keep column widths and the scroll position.
+- Smoothed the loading bar when opening and refreshing tables: it no longer flashes on fast loads, fades in and out and uses the editor progress color.
 
 ## 0.4.4 (2026-10-08)
 

@@ -84,17 +84,22 @@ export class Grid {
   setData(columns: GridColumn[], rows: unknown[][], keepLayout = false): void {
     this.closeEditor(false);
     const same = keepLayout && columns.length === this.columns.length && columns.every((c, i) => c.name === this.columns[i]?.name);
+    const prevWidths = new Map(keepLayout ? this.columns.map((c, i) => [c.name, this.widths[i]]) : []);
+    const overlap = columns.some((c) => prevWidths.has(c.name));
     this.columns = columns;
     this.rows = rows;
     this.numeric = columns.map((c) => !!c.type && NUMERIC.test(c.type));
     if (!same) {
-      this.widths = this.measure();
+      const measured = this.measure();
+      this.widths = columns.map((c, i) => prevWidths.get(c.name) ?? measured[i]);
       if (this.opts.sort !== 'server') {
         this.sortCol = -1;
         this.sortDir = null;
       }
-      this.el.scrollTop = 0;
-      this.el.scrollLeft = 0;
+      if (!overlap) {
+        this.el.scrollTop = 0;
+        this.el.scrollLeft = 0;
+      }
     }
     this.selected.clear();
     this.focus = null;
