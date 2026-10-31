@@ -105,3 +105,29 @@ test('Kibana with Remember API key off asks for the key after forgetting, withou
   f.store.forget('k');
   assert.equal(await f.store.askSecrets((await f.store.full('k'))!), undefined);
 });
+
+test('an imported connection without its saved password asks once and remembers it after connecting', async () => {
+  const f = fixture();
+  await f.store.save({ id: 'p', name: 'Postgres', type: 'postgres', host: 'localhost', user: 'app' });
+  const count = prompts.length;
+  answers.push('typed-password');
+  const asked = await f.store.askSecrets((await f.store.full('p'))!);
+  assert.equal(asked!.password, 'typed-password');
+  assert.match(prompts.at(-1)!, /Password for app \(saved after a successful connection\)/);
+  assert.equal(JSON.parse(f.secrets.get('dbdeck.secret.p')!).password, undefined);
+  await f.store.keep('p');
+  assert.equal(JSON.parse(f.secrets.get('dbdeck.secret.p')!).password, 'typed-password');
+  assert.equal((await f.store.askSecrets((await f.store.full('p'))!))!.password, 'typed-password');
+  assert.equal(prompts.length, count + 1);
+});
+
+test('a rejected password for a saved connection is not stored', async () => {
+  const f = fixture();
+  await f.store.save({ id: 'w', name: 'Postgres', type: 'postgres', host: 'localhost', user: 'app' });
+  answers.push('wrong-password');
+  await f.store.askSecrets((await f.store.full('w'))!);
+  f.store.forget('w');
+  await f.store.keep('w');
+  assert.equal(JSON.parse(f.secrets.get('dbdeck.secret.w')!).password, undefined);
+  assert.equal((await f.store.full('w'))!.password, undefined);
+});

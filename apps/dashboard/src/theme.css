@@ -1,0 +1,23 @@
+:root {
+  --vscode-editor-background: #171922;
+  --vscode-editor-foreground: #f4f5f8;
+  --vscode-foreground: #f4f5f8;
+  --vscode-descriptionForeground: #9ba3b5;
+  --vscode-editorWidget-background: #20232e;
+  --vscode-editorWidget-foreground: #f4f5f8;
+  --vscode-input-background: #1d202a;
+  --vscode-input-foreground: #f4f5f8;
+  --vscode-focusBorder: #6b97ff;
+  --vscode-list-hoverBackground: #252937;
+  --vscode-list-activeSelectionBackground: #2b3653;
+  --vscode-list-activeSelectionForeground: #f4f5f8;
+  --vscode-panel-border: #303441;
+  --vscode-editorGroup-border: #303441;
+  --vscode-errorForeground: #f87171;
+  --vscode-font-family:
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --vscode-editor-font-family: "SFMono-Regular", Consolas, monospace;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-size: 13px;
+  color-scheme: dark;
+}

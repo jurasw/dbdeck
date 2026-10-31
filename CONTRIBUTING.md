@@ -1,6 +1,8 @@
 # Contributing to DBDeck
 
-Use Node.js 22 (`nvm use`). The repository holds independent packages: the extension in `apps/extension`, the website in `apps/web` and the promo video in `apps/video`. Install each with `npm ci` inside its folder.
+Use Node.js 22 (`nvm use`). The repository holds independent packages: the extension in `apps/extension`, the landing website in `apps/web`, the browser app in `apps/dashboard` and the promo video in `apps/video`. Install each with `npm ci` inside its folder.
+
+`apps/dashboard` serves the browser app and runs the shared extension through a local connector. Install the extension's dependencies first, then run `npm ci` and `npm run dev` in the dashboard package. In another terminal run `npm run connector -- --dashboard http://localhost:8080` and open its paired link. Use `npm run check`, `npm test`, `npm run build` and `npm run smoke` to verify it. Apply `.agents/skills/dbdeck-shared-app/SKILL.md` for changes in either product. Hosted dashboard files are static; project data stays on the client.
 
 Start everything from the repository root with `phrocs` or [mprocs](https://github.com/pvolok/mprocs) (`brew install mprocs`):
 

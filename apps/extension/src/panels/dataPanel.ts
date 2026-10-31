@@ -260,6 +260,7 @@ function session(
           return r;
         },
         stats: () => driver.stats(db, coll),
+        fields: () => driver.fields(db, coll, true),
         aiFilter: aiFilter('mongodb', async () => ({ collection: coll, columns: await driver.fields(db, coll) }), jsonObject),
         chat,
       };

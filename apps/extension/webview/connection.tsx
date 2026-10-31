@@ -83,7 +83,15 @@ interface Conn {
 
 type Status = { kind: 'ok' | 'err' | 'busy'; text: string } | null;
 
-const I = INIT as { connection: Partial<Conn> | null; defaults: Record<DbType, number>; dockerSocket: string; groups: string[]; icons: Record<DbType, string> };
+const I = INIT as {
+  browserHost?: boolean;
+  webProject?: boolean;
+  connection: Partial<Conn> | null;
+  defaults: Record<DbType, number>;
+  dockerSocket: string;
+  groups: string[];
+  icons: Record<DbType, string>;
+};
 
 // Database usage, Stack Overflow Developer Survey 2026 (all respondents).
 // https://survey.stackoverflow.co/2026/technology/data/databases
@@ -671,7 +679,12 @@ function App() {
     );
     if (t === 'sqlite') {
       return (
-        <Field label="Database file" span={12} htmlFor="database" hint="A .db, .sqlite or .sqlite3 file on this computer.">
+        <Field
+          label="Database file"
+          span={12}
+          htmlFor="database"
+          hint={I.browserHost ? 'A .db, .sqlite or .sqlite3 file on the connected computer. Enter its local path.' : 'A .db, .sqlite or .sqlite3 file on this computer.'}
+        >
           <div className="flex gap-1.5">
             {text('database', '~/data/app.db', 'text', true)}
             <Button
@@ -1001,6 +1014,7 @@ function App() {
             <img src={I.icons[c.type]} alt="" className="size-[26px]" />
             {isNew ? `New ${meta.label} connection` : `Edit ${c.name || meta.label}`}
           </h1>
+          {I.browserHost && <p className="text-xs text-muted-foreground">Connections run on the connected computer. File paths and localhost refer to that computer.</p>}
 
           {isNew && (
             <div className="overflow-x-auto py-1">
@@ -1066,7 +1080,13 @@ function App() {
                             : 'Remember token'
                           : 'Remember password'
                 }
-                hint="On: OS keychain. Off: asked on connect, kept in memory only."
+                hint={
+                  I.webProject
+                    ? 'On: saved in this browser project, encrypted when project protection is enabled. Off: kept only while the project is unlocked.'
+                    : I.browserHost
+                      ? 'On: SecretStorage on the connected computer. Off: kept in memory until its session ends.'
+                      : 'On: OS keychain. Off: asked on connect, kept in memory only.'
+                }
                 checked={c.savePassword !== false}
                 onChange={(v) => set({ savePassword: v })}
               />

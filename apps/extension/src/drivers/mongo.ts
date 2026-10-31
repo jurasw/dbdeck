@@ -292,23 +292,32 @@ export class MongoDriver extends BaseDriver {
     return `${formatCount(s.count ?? 0)} docs · ${formatBytes(s.size ?? 0)} data · ${formatBytes(s.totalIndexSize ?? 0)} indexes`;
   }
 
-  async fields(db: string, coll: string): Promise<{ name: string; type: string }[]> {
+  async fields(db: string, coll: string, withValues = false): Promise<{ name: string; type: string; values?: (string | number | boolean)[] }[]> {
     const docs = await this.db(db)
       .collection(coll)
       .aggregate([{ $sample: { size: 100 } }], { maxTimeMS: 10000 })
       .toArray();
     const types = new Map<string, Set<string>>();
+    const values = new Map<string, Set<string | number | boolean>>();
     const walk = (doc: Document, prefix: string, depth: number) => {
       for (const [key, value] of Object.entries(doc)) {
         const name = prefix + key;
         const type = bsonType(value);
         if (!types.has(name)) types.set(name, new Set());
         types.get(name)!.add(type);
+        if (withValues && (type === 'string' || type === 'number' || type === 'boolean') && String(value).length <= 40) {
+          if (!values.has(name)) values.set(name, new Set());
+          const seen = values.get(name)!;
+          if (seen.size <= FIELD_VALUE_LIMIT) seen.add(value as string | number | boolean);
+        }
         if (type === 'object' && depth < 2) walk(value as Document, `${name}.`, depth + 1);
       }
     };
     for (const doc of docs) walk(doc, '', 0);
-    return [...types].slice(0, 300).map(([name, t]) => ({ name, type: [...t].join(' | ') }));
+    return [...types].slice(0, 300).map(([name, t]) => {
+      const seen = values.get(name);
+      return { name, type: [...t].join(' | '), ...(seen && seen.size <= FIELD_VALUE_LIMIT ? { values: [...seen] } : {}) };
+    });
   }
 
   async readOnly(db: string, text: string): Promise<QueryResult> {
@@ -419,6 +428,8 @@ export class MongoDriver extends BaseDriver {
     return { columns: [], rows: [], durationMs, json: plain, message: logs.join('\n') || (plain === undefined ? 'OK' : undefined) };
   }
 }
+
+const FIELD_VALUE_LIMIT = 8;
 
 function bsonType(value: unknown): string {
   if (value === null) return 'null';

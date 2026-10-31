@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 (2026-10-31)
+
+- SQL WHERE and MongoDB FILTER fields suggest columns as you type: `is_pro = true`, `region = ''` or `IS NULL` for SQL tables, and fields from a sample of the collection for MongoDB. Pick `admin = true` or `status = "active"` with the arrows and Enter or Tab, or click it, and DBDeck inserts valid JSON such as `{ "admin": true }`. Booleans offer `true` and `false`, short repeated values are listed, and Ctrl+Space opens the list.
+- Added a browser dashboard that runs the shared extension through a paired local connector. Projects stay in the client's browser, with optional phrase or WebAuthn PRF passkey encryption, inactivity concealment and web-only privacy settings. No login password is required by default. Website navigation links to dashboard.dbdeck.dev, with Terms of Use and a Privacy Notice.
+- Fixed SQL grid Save asking to discard changes that were already committed. Pending edits clear after a successful save, failed saves retain them, and row editing pauses while the transaction runs.
+- Fixed connections imported without passwords failing with `client password must be a string`. DBDeck now asks for the missing password on connect and remembers it after a successful connection. The browser dashboard can import connection exports from VS Code or Cursor and shows each database type's icon in its tree.
+
 ## 0.4.5 (2026-10-10)
 
 - Fixed the missing DBDeck logo in the extension description on Marketplace and Open VSX.

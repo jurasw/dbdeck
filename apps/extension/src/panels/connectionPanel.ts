@@ -31,6 +31,8 @@ export class ConnectionPanel {
       ),
     ];
     const init = {
+      browserHost: vscode.env.uiKind === vscode.UIKind.Web,
+      webProject: vscode.env.appName === 'DBDeck Dashboard',
       connection: full ?? null,
       defaults: DEFAULT_PORT,
       dockerSocket: defaultSocket(),

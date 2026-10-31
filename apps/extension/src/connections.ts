@@ -90,7 +90,7 @@ export class ConnectionStore {
     const c = this.get(id);
     if (!c) return undefined;
     const raw = c.savePassword === false ? undefined : await this.ctx.secrets.get(`dbdeck.secret.${id}`);
-    const s: Secrets = raw ? JSON.parse(raw) : (this.session.get(id) ?? {});
+    const s: Secrets = { ...this.session.get(id), ...(raw ? JSON.parse(raw) : {}) };
     return {
       ...c,
       password: s.password,
@@ -119,7 +119,10 @@ export class ConnectionStore {
     if (c.savePassword === false) {
       this.session.set(c.id, Object.fromEntries(Object.entries(s).filter(([, v]) => v)) as Secrets);
       await this.ctx.secrets.delete(`dbdeck.secret.${c.id}`);
-    } else await this.ctx.secrets.store(`dbdeck.secret.${c.id}`, JSON.stringify(s));
+    } else {
+      this.session.delete(c.id);
+      await this.ctx.secrets.store(`dbdeck.secret.${c.id}`, JSON.stringify(s));
+    }
     await this.ctx.globalState.update(LIST_KEY, list);
   }
 
@@ -140,8 +143,8 @@ export class ConnectionStore {
   }
 
   async askSecrets(c: ConnectionConfig): Promise<ConnectionConfig | undefined> {
-    if (c.savePassword !== false) return c;
-    const s = this.session.get(c.id) ?? {};
+    const s: Secrets = { password: c.password, uri: c.uri, apiKey: c.apiKey, sessionToken: c.sessionToken, sshPassword: c.ssh?.password, sshPassphrase: c.ssh?.passphrase };
+    const kept = c.savePassword === false ? 'kept in memory for this session only' : 'saved after a successful connection';
     const needsPassword =
       c.type !== 'docker' &&
       c.type !== 'd1' &&
@@ -155,7 +158,7 @@ export class ConnectionStore {
     if (c.type === 'elasticsearch' && c.kibanaUrl && !s.apiKey) {
       const key = await vscode.window.showInputBox({
         title: c.name,
-        prompt: 'Encoded Kibana API key (kept in memory for this session only)',
+        prompt: `Encoded Kibana API key (${kept})`,
         password: true,
         ignoreFocusOut: true,
         validateInput: (value) => (value.trim() ? undefined : 'Paste the Encoded API key from Kibana.'),
@@ -166,7 +169,7 @@ export class ConnectionStore {
     if (c.type === 'd1' && !s.apiKey) {
       const token = await vscode.window.showInputBox({
         title: c.name,
-        prompt: 'Cloudflare API token (kept in memory for this session only)',
+        prompt: `Cloudflare API token (${kept})`,
         password: true,
         ignoreFocusOut: true,
       });
@@ -175,14 +178,14 @@ export class ConnectionStore {
     }
     const needsSsh = !!c.ssh?.enabled && c.ssh.authType === 'password' && s.sshPassword === undefined;
     if (needsUri) {
-      const v = await vscode.window.showInputBox({ title: c.name, prompt: 'Connection string (kept in memory for this session only)', password: true, ignoreFocusOut: true });
+      const v = await vscode.window.showInputBox({ title: c.name, prompt: `Connection string (${kept})`, password: true, ignoreFocusOut: true });
       if (v === undefined) return undefined;
       s.uri = v;
     }
     if (needsPassword) {
       const v = await vscode.window.showInputBox({
         title: c.name,
-        prompt: `${c.type === 's3' || c.type === 'dynamodb' ? 'Secret access key' : c.type === 'snowflake' ? 'Programmatic access token' : 'Password'} for ${c.user} (kept in memory for this session only)`,
+        prompt: `${c.type === 's3' || c.type === 'dynamodb' ? 'Secret access key' : c.type === 'snowflake' ? 'Programmatic access token' : 'Password'} for ${c.user} (${kept})`,
         password: true,
         ignoreFocusOut: true,
       });
@@ -190,7 +193,7 @@ export class ConnectionStore {
       s.password = v;
     }
     if (c.type === 'dynamodb' && c.temporaryCredentials && !s.sessionToken) {
-      const token = await vscode.window.showInputBox({ title: c.name, prompt: 'AWS session token (kept in memory for this session only)', password: true, ignoreFocusOut: true });
+      const token = await vscode.window.showInputBox({ title: c.name, prompt: `AWS session token (${kept})`, password: true, ignoreFocusOut: true });
       if (token === undefined) return undefined;
       s.sessionToken = token;
     }
@@ -199,7 +202,7 @@ export class ConnectionStore {
       if (v === undefined) return undefined;
       s.sshPassword = v;
     }
-    this.session.set(c.id, s);
+    this.session.set(c.id, Object.fromEntries(Object.entries(s).filter(([, v]) => v !== undefined)) as Secrets);
     return {
       ...c,
       password: s.password,
@@ -211,8 +214,17 @@ export class ConnectionStore {
   }
 
   forget(id: string): void {
+    this.session.delete(id);
+  }
+
+  async keep(id: string): Promise<void> {
     const c = this.get(id);
-    if (c?.savePassword === false) this.session.delete(id);
+    const s = this.session.get(id);
+    if (c?.savePassword === false || !s) return;
+    const raw = await this.ctx.secrets.get(`dbdeck.secret.${id}`);
+    const next = JSON.stringify({ ...(raw ? JSON.parse(raw) : {}), ...s });
+    if (next !== raw) await this.ctx.secrets.store(`dbdeck.secret.${id}`, next);
+    this.session.delete(id);
   }
 }
 
@@ -246,6 +258,7 @@ export class ConnectionManager implements vscode.Disposable {
           this.store.forget(id);
           throw e;
         }
+        await this.store.keep(id);
         this.drivers.set(id, driver);
         this.changed.fire(id);
         return driver;

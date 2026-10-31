@@ -5,19 +5,23 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const questions = [
   {
     q: "Is DBDeck really free?",
-    a: "Yes. DBDeck is MIT licensed, has no paid tier, no account and no feature locked behind a subscription.",
+    a: "Yes. DBDeck is MIT licensed, has no paid tier and no feature locked behind a subscription. The extension and dashboard need no account. Project protection in the dashboard is optional.",
   },
   {
     q: "Which editors does it run in?",
     a: "VS Code 1.85 or newer, Cursor, VSCodium, Windsurf and other editors that install extensions from the Visual Studio Marketplace or Open VSX.",
   },
   {
+    q: "Can I use DBDeck in a browser?",
+    a: "Yes. The dashboard uses the extension's actual commands, drivers, forms and grids through a paired local connector on your computer. Projects stay in your browser; DBDeck hosting stores no credentials, queries or results. A connector is needed because browsers cannot open database TCP and SSH connections directly. Setup instructions are in apps/dashboard in the source repository.",
+  },
+  {
     q: "Where are my passwords stored?",
-    a: "In your operating system keychain through VS Code SecretStorage. Turn off Remember password on a connection to keep its secrets in memory for the current session only.",
+    a: "The desktop extension uses your operating system keychain through VS Code SecretStorage. The dashboard saves remembered credentials in the local browser project. Enable phrase or supported passkey protection in Web settings to encrypt that project. With Remember password off, the local connector keeps secrets only in its active session.",
   },
   {
     q: "Does DBDeck send anything to a server?",
-    a: "The extension connects to the databases you configure. Cloudflare D1 queries go directly to the Cloudflare API. There is no telemetry, analytics or cloud sync.",
+    a: "The extension and local dashboard connector contact the databases and providers you configure. They do not upload project data to DBDeck hosting and include no telemetry or analytics. Loading the website still sends normal HTTP metadata to hosting providers; dbdeck.dev uses website analytics. Read the Privacy Notice for details.",
   },
   {
     q: "What does the AI query feature send?",

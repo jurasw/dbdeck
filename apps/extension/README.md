@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="https://dbdeck.dev">Website</a> ·
+  <a href="https://dashboard.dbdeck.dev">Dashboard</a> ·
   <a href="https://github.com/jurasw/dbdeck">GitHub</a> ·
   <a href="https://github.com/jurasw/dbdeck/issues/new/choose">Report a bug</a>
 </p>
@@ -25,6 +26,10 @@
 ## What it does
 
 Browse databases, run queries and edit data without leaving your editor. Keep connections together, use SSH tunnels and inspect results in a virtualized grid.
+
+### Browser dashboard
+
+The DBDeck Dashboard uses this same extension's commands, drivers, forms and panels through a paired local connector on your computer. Projects and remembered credentials stay in your browser, with optional phrase or supported passkey encryption and inactivity concealment in web-only settings. No login password is required by default. Hosted dashboard assets store no connections, credentials, queries or results. Local files, SSH and cloud tools run on your computer. See the [dashboard setup and privacy details](https://github.com/jurasw/dbdeck/blob/main/apps/dashboard/README.md).
 
 | Service                     | Tools                                                          |
 | --------------------------- | -------------------------------------------------------------- |
@@ -62,7 +67,7 @@ Browse databases, run queries and edit data without leaving your editor. Keep co
 - SQL editor: run the statement under the cursor (`⌘/Ctrl+Enter`), run all (`⌘/Ctrl+Shift+Enter`), `▶ Run` CodeLens, table and column completion with alias resolution
 - Results panel: one tab per statement, row filter, JSON view, export to CSV / JSON
 - DDL for tables, views, functions and procedures; truncate and drop
-- MongoDB: document grid and JSON view with in-place value and key editing, filter / sort / projection, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
+- MongoDB: document grid and JSON view with in-place value and key editing, filter / sort / projection with field and value suggestions in FILTER, edit / insert / clone / delete documents, shell-style scripts (`db.users.find({...}).sort(...)`, `aggregate`, `ObjectId()`, `ISODate()`)
 - Redis: key tree grouped by separator, SCAN filter, editors for string (text / JSON), hash, list, set, sorted set, stream and RedisJSON, TTL and rename, built-in CLI terminal
 - Elasticsearch: index list with health, field mapping, document search (query string or DSL), edit / add / delete documents, Kibana-style request console (`.esreq` files). Choose **Kibana URL**, enter the address and use **Open Kibana API keys** to sign in with Google or company SSO in your browser. Create a Personal API key, paste its Encoded value and test the connection. Browser sign-in alone does not connect the extension
 - S3: buckets and folders in the tree, open / download / upload / delete objects, copy `s3://` URI; works with AWS, MinIO, Cloudflare R2 and other S3-compatible servers, and with Google Cloud Storage through Sign in with Google under Options

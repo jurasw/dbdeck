@@ -2,6 +2,8 @@ import { Grid, GridColumn } from './grid';
 import { parseCellValue } from './cell-value';
 import { keepColumnOrder } from './column-order';
 import { fieldCaret } from './doc-caret';
+import { attachFilterComplete } from './filter-complete';
+import { FieldHint, filterSuggestions, sqlSuggestions } from './filter-suggest';
 import { duplicateRow } from './row-duplicate';
 import { RowChanges, undoChanges } from './row-undo';
 import { addValue, editText, parseEdit, planWrite, removeValue, renameField, setValue, valueAt } from './doc-edit';
@@ -55,6 +57,38 @@ interface PageData {
   durationMs: number;
   total?: number;
 }
+
+const SQL_RESERVED = new Set([
+  'all',
+  'and',
+  'as',
+  'by',
+  'case',
+  'check',
+  'column',
+  'default',
+  'desc',
+  'end',
+  'from',
+  'group',
+  'having',
+  'in',
+  'is',
+  'key',
+  'limit',
+  'not',
+  'null',
+  'or',
+  'order',
+  'select',
+  'table',
+  'to',
+  'type',
+  'user',
+  'value',
+  'when',
+  'where',
+]);
 
 const app = document.getElementById('app')!;
 const scriptStart = Date.now();
@@ -143,13 +177,20 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   const originals = new Map<number, unknown[]>();
   const added = new Set<number>();
   const deleted = new Set<number>();
+  let saving = false;
 
   const pkCols = () => columns.map((c, i) => (c.pk ? i : -1)).filter((i) => i >= 0);
-  const canEditRows = () => I.editable && isSql && pkCols().length > 0;
+  const canEditRows = () => !saving && I.editable && isSql && pkCols().length > 0;
   const savingCells = new Set<string>();
   const canEditCell = (r: number, c: number) =>
     isSql ? canEditRows() && !columns[c]?.generated : I.editable && docs[r]?._id !== undefined && columns[c]?.name !== '_id' && !savingCells.has(`${r}:${c}`);
   const dirty = () => edits.size > 0 || added.size > 0 || deleted.size > 0;
+  const clearPending = () => {
+    edits.clear();
+    originals.clear();
+    added.clear();
+    deleted.clear();
+  };
 
   const quote = (n: string) =>
     I.dialect === 'mssql'
@@ -175,6 +216,17 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     b: h('input.input.mono', { placeholder: isSql ? 'created_at DESC' : I.mode === 'mongo' ? '{ "_id": -1 }' : '@timestamp desc' }) as HTMLInputElement,
     c: h('input.input.mono', { placeholder: '{ "name": 1 }' }) as HTMLInputElement,
   };
+  let fieldHints: Promise<FieldHint[]> | null = null;
+  const ident = (n: string) => (/^[a-z_][a-z0-9_]*$/.test(n) && !SQL_RESERVED.has(n) ? n : quote(n));
+  if (isSql) attachFilterComplete(inputs.a, async (text, caret) => sqlSuggestions(text, caret, columns, ident, I.dialect === 'mysql'));
+  else if (I.mode === 'mongo')
+    attachFilterComplete(inputs.a, async (text, caret) => {
+      fieldHints ??= rpc<FieldHint[]>('fields').catch((e) => {
+        fieldHints = null;
+        throw e;
+      });
+      return filterSuggestions(text, caret, await fieldHints);
+    });
 
   const serverSort = I.dialect !== 'cassandra' && I.dialect !== 'dynamodb';
   const grid = new Grid({
@@ -641,6 +693,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   }
 
   async function deleteSelected(): Promise<void> {
+    if (isSql && !canEditRows()) return;
     const sel = grid.selectedRows();
     if (!sel.length) return;
     if (isSql) {
@@ -669,6 +722,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   }
 
   function addRow(): void {
+    if (!canEditRows()) return;
     const r = rows.length;
     rows.push(columns.map(() => undefined));
     added.add(r);
@@ -680,6 +734,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   }
 
   function duplicateRows(): void {
+    if (!canEditRows()) return;
     const sel = grid.selectedRows().filter((r) => !deleted.has(r));
     if (!sel.length) return;
     for (const r of sel) {
@@ -692,6 +747,8 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   }
 
   async function save(): Promise<void> {
+    if (saving) return;
+    grid.el.querySelector<HTMLInputElement>('input.grid-editor')?.blur();
     if (!dirty()) return;
     const pks = pkCols();
     const keyOf = (r: number) => Object.fromEntries(pks.map((c) => [columns[c].name, (originals.get(r) ?? rows[r])[c]]));
@@ -713,25 +770,29 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
             updated.map(([r]) => asObject(originals.get(r)!)),
             removed.map((r) => asObject(originals.get(r) ?? rows[r])),
           );
+    saving = true;
+    updateActions();
     loading(app, true);
     try {
       const n = await rpc<number>('apply', changes);
+      clearPending();
       toast(`Saved · ${n} row(s) affected`, 'success', undefined, revert ? { label: 'Undo', run: () => undo(() => rpc('apply', revert).then(() => load())) } : undefined);
       await load();
     } catch (e) {
       loading(app, false);
       modal('Save failed', h('div.message.error', { style: 'margin:0' }, (e as Error).message), [{ label: 'OK', primary: true }], { icon: 'error' });
+    } finally {
+      saving = false;
+      updateActions();
     }
   }
 
   function discard(): void {
+    if (saving) return;
     for (const [r, orig] of originals) rows[r] = orig;
     const keep = rows.filter((_, i) => !added.has(i));
     rows = keep;
-    edits.clear();
-    originals.clear();
-    added.clear();
-    deleted.clear();
+    clearPending();
     grid.setData(columns, rows, true);
     updateActions();
   }
@@ -744,6 +805,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
   }
 
   async function load(resetPage = false, initial = false): Promise<void> {
+    if (saving && dirty()) return;
     if (!initial) pin();
     if (dirty()) {
       const ok = await rpc<boolean>('confirm', { message: 'Discard unsaved changes?', action: 'Discard' });
@@ -763,10 +825,7 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
       const r = initial && I.initialData ? I.initialData : await rpc<PageData>(initial ? 'initialLoad' : 'load', p);
       I.initialData = undefined;
       if (seq !== loadSeq) return;
-      edits.clear();
-      originals.clear();
-      added.clear();
-      deleted.clear();
+      clearPending();
       ({ columns, rows } = isSql ? r : keepColumnOrder(columns, r.columns, r.rows));
       docs = r.docs ?? [];
       duration = r.durationMs;
@@ -864,13 +923,13 @@ function mount(I: Init): { save: () => Promise<void>; load: () => Promise<void>;
     });
     const left: (HTMLElement | null)[] = [];
     if (isSql && I.editable && pkCols().length) {
-      left.push(btn('Add row', { icon: 'add', class: 'sm outline', onClick: addRow }));
+      left.push(btn('Add row', { icon: 'add', class: 'sm outline', disabled: saving, onClick: addRow }));
       if (pendingCount) {
         left.push(
           h('div.sep'),
           h('span.badge.warn', null, `${pendingCount} pending`),
-          btn('Save', { icon: 'save', class: 'sm primary', title: 'Save changes (⌘S)', onClick: () => void save() }),
-          btn('Discard', { icon: 'discard', class: 'sm ghost', onClick: discard }),
+          btn('Save', { icon: 'save', class: 'sm primary', title: 'Save changes (⌘S)', disabled: saving, onClick: () => void save() }),
+          btn('Discard', { icon: 'discard', class: 'sm ghost', disabled: saving, onClick: discard }),
         );
       }
     } else if (isSql && I.editable && columns.length) {

@@ -26,6 +26,7 @@
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=dbdeck.dbdeck"><b>Install</b></a> ·
   <a href="https://dbdeck.dev">dbdeck.dev</a> ·
+  <a href="https://dashboard.dbdeck.dev">Dashboard</a> ·
   <a href="https://open-vsx.org/extension/dbdeck/dbdeck">Open VSX</a> ·
   <a href="https://github.com/jurasw/dbdeck/releases/latest">Download VSIX</a> ·
   <a href="apps/extension/CHANGELOG.md">Changelog</a> ·
@@ -47,7 +48,9 @@ DBDeck puts your databases next to your code.
 Add a connection, open a table and you are browsing rows, running SQL and fixing data without switching to another app.
 Every connection lives in one sidebar tree, with SSH tunnels, SSL and read-only mode on each of them.
 Omnisearch finds values across a database or schema, with table, value and column previews.
-Nothing leaves your machine except the queries you send to your own databases.
+In the desktop extension, nothing leaves your machine except the queries you send to your own databases.
+
+Use the same extension in the **browser dashboard**. A paired local connector runs the actual extension code on your computer; projects and remembered credentials stay in your browser. Login protection is optional: Web settings offer phrase or supported passkey encryption and inactivity concealment. The website navigation points to `dashboard.dbdeck.dev`; [apps/dashboard](apps/dashboard/README.md) contains setup and privacy details. Hosted assets do not store your connections, queries or results.
 
 <p align="center">
   <picture>
@@ -117,10 +120,9 @@ AI Query builds its context automatically: from a schema it uses that schema, fr
 
 Full feature list: [apps/extension/README.md](apps/extension/README.md).
 
-## Your credentials stay on your machine
+## Your credentials stay on your device
 
-DBDeck talks to the databases you add and to nothing else.
-There is no backend to sign in to, so there is no backend to leak.
+The desktop extension talks to the databases you add and has no DBDeck backend to sign in to. The table below describes the desktop extension. The browser dashboard stores projects on your device and connects through a local engine on that same computer. Enable optional project encryption before saving sensitive credentials in a shared browser profile.
 
 | Data                  | Lives in                    | Note           |
 | --------------------- | --------------------------- | -------------- |
@@ -164,6 +166,7 @@ flowchart LR
 | ---------------- | ---------------------------------------------------------------------------------- |
 | `apps/extension` | The VS Code / Cursor extension, published as `dbdeck.dbdeck`                       |
 | `apps/web`       | The [dbdeck.dev](https://dbdeck.dev) landing page (Next.js, shadcn/ui, Cloudflare) |
+| `apps/dashboard` | The static browser app and local connector, running the shared extension on the client's computer |
 | `assets`         | Icon, screenshots, README media, store listing texts and publishing guide          |
 | `.agents`        | Agent rules and task recipes                                                       |
 | `.github`        | Extension checks and VSIX packaging workflows                                      |
@@ -190,6 +193,9 @@ Pressing **F5** in VS Code at the repository root also launches the extension.
 | `apps/web`       | `npm run dev`      | Landing page with hot reload     |
 | `apps/web`       | `npm run build`    | Static export to `apps/web/out`  |
 | `apps/web`       | `npm run deploy`   | Build and deploy to Cloudflare   |
+| `apps/dashboard` | `npm run dev`     | Build and serve the browser dashboard on port 8080 |
+| `apps/dashboard` | `npm run connector` | Start the local client engine and open a paired dashboard link |
+| `apps/dashboard` | `npm run build`   | Rebuild shared extension code and export static dashboard assets |
 
 The landing page exports a canonical URL, application structured data, `robots.txt` and `sitemap.xml`. After deploying website SEO changes, verify the `dbdeck.dev` domain in Google Search Console through a DNS TXT record, submit `https://dbdeck.dev/sitemap.xml`, and inspect `https://dbdeck.dev/` to request indexing. Add new public pages to `apps/web/public/sitemap.xml` when creating them.
 

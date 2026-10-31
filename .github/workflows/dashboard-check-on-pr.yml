@@ -1,0 +1,53 @@
+name: Check Dashboard on PR
+
+on:
+  pull_request:
+    paths:
+      - 'apps/dashboard/**'
+      - 'apps/extension/**'
+      - '.github/workflows/dashboard-*.yml'
+      - '.github/templates/setup-npm/**'
+      - '.nvmrc'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup shared extension
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/extension
+
+      - name: Setup dashboard
+        uses: ./.github/templates/setup-npm
+        with:
+          directory: apps/dashboard
+
+      - name: Check browser types
+        run: npm run check && npm run lint
+        working-directory: apps/dashboard
+
+      - name: Build shared extension, local connector and static dashboard
+        run: npm run build
+        working-directory: apps/dashboard
+
+      - name: Test encryption and local connector boundaries
+        run: npm test
+        working-directory: apps/dashboard
+
+      - name: Verify local databases, optional encryption and passkeys in Chrome
+        run: npm run smoke
+        working-directory: apps/dashboard
+        env:
+          BROWSER_EXECUTABLE: /usr/bin/google-chrome

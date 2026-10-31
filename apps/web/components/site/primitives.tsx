@@ -2,6 +2,7 @@ import { SectionLink } from "./section-link";
 import { cn } from "@/lib/utils";
 
 export const links = {
+  dashboard: "https://dashboard.dbdeck.dev",
   github: "https://github.com/jurasw/dbdeck",
   issues: "https://github.com/jurasw/dbdeck/issues/new/choose",
   releases: "https://github.com/jurasw/dbdeck/releases/latest",

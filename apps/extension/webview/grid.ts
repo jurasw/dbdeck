@@ -569,6 +569,7 @@ export class Grid {
       this.el.focus({ preventScroll: true });
     };
     input.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') return;
       e.stopPropagation();
       if (e.key === 'Enter') finish(true, [1, 0]);
       else if (e.key === 'Escape') finish(false);

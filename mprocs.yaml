@@ -9,6 +9,8 @@ procs:
       printf '  \033[1mDBDeck\033[0m\n'
       echo ''
       printf '  \033[38;2;91;140;255mweb\033[0m             landing page on http://localhost:3000\n'
+      printf '  \033[38;2;91;140;255mdashboard\033[0m       browser app on http://localhost:8080\n'
+      printf '  \033[38;2;91;140;255mdashboard-connector\033[0m local engine and paired browser link\n'
       printf '  \033[38;2;91;140;255mextension\033[0m       esbuild + tailwind watch for apps/extension\n'
       printf '  \033[38;2;91;140;255mdev-host\033[0m        editor window with the extension from source\n'
       printf '  \033[38;2;91;140;255mtest-dbs\033[0m        Postgres, MySQL, Mongo, Redis, ClickHouse, ES, S3\n'
@@ -31,6 +33,16 @@ procs:
     shell: cd apps/extension && npm run watch
     autostart: true
     groups: &extension_dev { layer: dev, app: extension }
+
+  dashboard:
+    shell: cd apps/dashboard && npm run dev
+    autostart: false
+    groups: { layer: dev, app: dashboard }
+
+  dashboard-connector:
+    shell: cd apps/dashboard && npm run connector -- --dashboard http://localhost:8080
+    autostart: false
+    groups: { layer: dev, app: dashboard }
 
   dev-host:
     shell: ${EDITOR_CLI:-code} --new-window --extensionDevelopmentPath="$PWD/apps/extension"
@@ -65,6 +77,6 @@ procs:
 default_group: layer
 group_order:
   layer: [pinned, dev, infrastructure, tools]
-  app: [pinned, web, extension]
+  app: [pinned, web, dashboard, extension]
 proc_list_width: 22
 scrollback: 10000

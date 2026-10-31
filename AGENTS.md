@@ -4,12 +4,15 @@ DBDeck is a monorepo with independent npm packages, each with its own lockfile:
 
 - `apps/extension/` — the VS Code / Cursor extension. Read `.agents/extension.md` for `src/` changes and `.agents/webview.md` for `webview/` changes.
 - `apps/web/` — the dbdeck.dev landing page (Next.js static export, shadcn/ui, Cloudflare). Read `.agents/web.md`.
+- `apps/dashboard/` — the static browser app and a local connector that runs the shared extension on the client's computer. Read `apps/dashboard/README.md` for startup and privacy boundaries.
 - `apps/video/` — the YouTube promo video (Remotion). `npm run render` writes `out/dbdeck-promo.mp4`, `npm run thumbnail` writes `out/thumbnail.png`; `youtube.md` holds the title and description.
 - `assets/` — brand, screenshots and store listing materials. Not shipped by either app; copy what an app needs into it.
 
 Task recipes live in `.agents/skills/`. Run npm commands inside the package you change. `mprocs.yaml` starts the dev processes with `phrocs` (or `mprocs`).
 
 Trace the affected flow and callers before editing. Reuse existing helpers and platform APIs; keep changes focused. Preserve pre-existing work in the tree.
+
+For extension or dashboard changes, apply `.agents/skills/dbdeck-shared-app/SKILL.md` to keep both products synchronized. Web privacy settings remain web-only; hosted dashboard assets must never store client connection data or credentials.
 
 ## Naming and checks
 
@@ -18,6 +21,7 @@ Trace the affected flow and callers before editing. Reuse existing helpers and p
 - Extension behavioral tests live in `apps/extension/test/<area>.spec.ts`. Execute the interface and assert observable results rather than searching source text.
 - Extension: `npm run check`, `npm run lint`, `npm test` and `npm run build`; `npm run validate` runs all four.
 - Web: `npm run lint` and `npm run build` in `apps/web`.
+- Dashboard: `npm run check`, `npm run lint`, `npm test`, `npm run build` and `npm run smoke` in `apps/dashboard`. Build the extension's dependencies first; the dashboard builds and exercises shared extension code.
 - Lock dependency changes with each package's `package-lock.json`. Use Node 22 (`.nvmrc`) and `npm ci` in CI.
 - Workflow names follow `<area>-check-on-pr.yml`, `<area>-prod-deploy.yml`, `<area>-publish.yml` and `<area>-package.yml`. Shared setup steps live in `.github/templates/` as composite actions.
 

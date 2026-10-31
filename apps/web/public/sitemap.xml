@@ -3,4 +3,6 @@
   <url>
     <loc>https://dbdeck.dev/</loc>
   </url>
+  <url><loc>https://dbdeck.dev/terms/</loc></url>
+  <url><loc>https://dbdeck.dev/privacy/</loc></url>
 </urlset>

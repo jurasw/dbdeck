@@ -3,6 +3,7 @@ import { AiFigure, ChatFigure, PrivacyFigure, RedisFigure, SchemaFigure, SqlFigu
 import { CopyCommand } from "@/components/site/copy-command";
 import { Faq } from "@/components/site/faq";
 import { NavLinks } from "@/components/site/nav-links";
+import { Badge } from "@/components/ui/badge";
 import { SectionLink } from "@/components/site/section-link";
 import { Organize } from "@/components/site/organize";
 import { ProductDemo } from "@/components/site/product-demo";
@@ -58,12 +59,19 @@ function Nav() {
         </SectionLink>
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <NavLinks />
+          <a href={links.dashboard} className="relative rounded-full px-3 py-1.5 transition-colors hover:text-foreground">
+            Dashboard
+            <Badge variant="outline" className="absolute -top-1.5 right-0 h-3.5 bg-background px-1 text-[9px] leading-none text-muted-foreground">
+              Beta
+            </Badge>
+          </a>
           <a
             href={links.github}
+            aria-label="GitHub"
             className="ml-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-foreground transition-colors hover:bg-card"
           >
             <GitHubIcon className="size-4" />
-            GitHub
+            <span className="hidden sm:inline">GitHub</span>
           </a>
         </nav>
       </Shell>
@@ -98,7 +106,7 @@ function Hero() {
           <Pin />
           <span>MIT licensed</span>
           <Pin />
-          <span>Nothing leaves your machine</span>
+          <span>Your databases, your host</span>
         </div>
       </Shell>
     </section>
@@ -253,12 +261,12 @@ function Privacy() {
       <Shell>
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-14">
           <div className="lg:col-span-5">
-            <Heading lead="Your credentials" rest="never leave your machine." />
-            <Lede>Your passwords stay in your OS keychain. No telemetry, analytics or cloud sync.</Lede>
+            <Heading lead="Your credentials." rest="Your infrastructure." />
+            <Lede>The desktop extension keeps passwords in your OS keychain. The dashboard stores projects in your browser, with optional phrase or passkey encryption. Database connections run on your computer.</Lede>
           </div>
           <div className="lg:col-span-7">
             <PrivacyFigure rows={storage} note="No telemetry, analytics or cloud sync. Read the code to check." />
-            <Caption>Fig. 08: the full list</Caption>
+            <Caption>Fig. 08: desktop extension storage. The dashboard uses local browser storage and a connector on your computer.</Caption>
           </div>
         </div>
       </Shell>
@@ -314,6 +322,26 @@ function Install() {
           <CopyCommand editor="VSCodium" icon="/editors/vscodium.svg" command="codium --install-extension dbdeck.dbdeck" />
           <CopyCommand editor="Windsurf" icon="/editors/windsurf.svg" command="windsurf --install-extension dbdeck.dbdeck" />
         </div>
+        <a
+          href={links.dashboard}
+          className="group mt-6 flex flex-col gap-4 rounded-2xl border border-dashed border-border p-6 transition-colors hover:border-brand/50 hover:bg-card/40 md:flex-row md:items-center md:justify-between"
+        >
+          <span>
+            <span className="inline-flex items-center gap-2 text-lg font-semibold text-foreground">
+              Prefer a browser?
+              <Badge variant="outline" className="text-muted-foreground">
+                Beta
+              </Badge>
+            </span>
+            <span className="mt-2 block text-[15px] leading-[1.7] text-muted-foreground">
+              The web version runs the same app in your browser. Projects stay on your device and a local connector opens the database connections.
+            </span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-brand">
+            Try the web beta
+            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </a>
       </Shell>
     </section>
   );
@@ -377,7 +405,12 @@ function Footer() {
           <a href={links.support} className="transition-colors hover:text-foreground">
             Support DBDeck
           </a>
+          <a href="/terms/" className="transition-colors hover:text-foreground">Terms</a>
+          <a href="/privacy/" className="transition-colors hover:text-foreground">Privacy</a>
         </nav>
+      </Shell>
+      <Shell className="mt-6 text-xs text-muted-foreground/80">
+        dbdeck.dev uses PostHog analytics on this page only. The extension and the dashboard collect nothing.
       </Shell>
     </footer>
   );
